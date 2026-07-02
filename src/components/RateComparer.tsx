@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DollarSign, ShieldAlert, Sparkles } from 'lucide-react';
+import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate } from '../utils/mortgageMath';
 import {
   Chart as ChartJS,
@@ -21,6 +21,14 @@ ChartJS.register(
   Legend
 );
 
+interface Offer {
+  id: string;
+  name: string;
+  rate: number;
+  term: number;
+  type: 'fixed' | 'variable';
+}
+
 interface RateComparerProps {
   currentBalance: number;
   currentRate: number;
@@ -38,14 +46,32 @@ export const RateComparer: React.FC<RateComparerProps> = ({
   const [renewalBalance, setRenewalBalance] = useState<number>(defaultBalance || 400000);
   const [renewalAmortization, setRenewalAmortization] = useState<number>(defaultAmortization || 25);
   
-  const [rateA, setRateA] = useState<number>(4.75);
-  const [termA, setTermA] = useState<number>(5); // 5-year term
-  
-  const [rateB, setRateB] = useState<number>(5.15);
-  const [termB, setTermB] = useState<number>(3); // 3-year term
-  
-  const [rateC, setRateC] = useState<number>(4.45);
-  const [termC, setTermC] = useState<number>(5); // 5-year term
+  const [offers, setOffers] = useState<Offer[]>([
+    { id: 'baseline', name: 'Baseline Offer', rate: defaultRate || 5.85, term: 5, type: 'fixed' },
+    { id: 'offer_2', name: 'Option B', rate: 5.15, term: 3, type: 'fixed' },
+    { id: 'offer_3', name: 'Option C', rate: 4.45, term: 5, type: 'variable' }
+  ]);
+
+  const handleAddOffer = () => {
+    if (offers.length >= 10) return;
+    const newOffer: Offer = {
+      id: 'offer_' + Date.now(),
+      name: `Offer ${offers.length + 1}`,
+      rate: 4.5,
+      term: 5,
+      type: 'fixed'
+    };
+    setOffers(prev => [...prev, newOffer]);
+  };
+
+  const handleRemoveOffer = (id: string) => {
+    if (offers.length <= 1) return;
+    setOffers(prev => prev.filter(o => o.id !== id));
+  };
+
+  const handleUpdateOffer = (id: string, field: keyof Offer, value: any) => {
+    setOffers(prev => prev.map(o => o.id === id ? { ...o, [field]: value } : o));
+  };
 
   // Refinance states
   const [refinanceBalance, setRefinanceBalance] = useState<number>(defaultBalance || 400000);
@@ -60,9 +86,10 @@ export const RateComparer: React.FC<RateComparerProps> = ({
   // 1. Renewal calculations
   const renewalResults = useMemo(() => {
     // Helper to calculate term details
-    const getTermDetails = (rate: number, termYears: number) => {
-      const monthlyPayment = calculateRegularPayment(renewalBalance, rate, renewalAmortization, 'monthly');
-      const monthlyRate = getPeriodInterestRate(rate, 'monthly');
+    const getTermDetails = (rate: number, termYears: number, type: 'fixed' | 'variable') => {
+      const compounding = type === 'variable' ? 'monthly' : 'semi_annual';
+      const monthlyPayment = calculateRegularPayment(renewalBalance, rate, renewalAmortization, 'monthly', compounding);
+      const monthlyRate = getPeriodInterestRate(rate, 'monthly', compounding);
       
       let balance = renewalBalance;
       let totalInterest = 0;
@@ -87,12 +114,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({
       };
     };
 
-    return {
-      optionA: getTermDetails(rateA, termA),
-      optionB: getTermDetails(rateB, termB),
-      optionC: getTermDetails(rateC, termC),
-    };
-  }, [renewalBalance, renewalAmortization, rateA, termA, rateB, termB, rateC, termC]);
+    return offers.map(o => ({
+      ...o,
+      results: getTermDetails(o.rate, o.term, o.type)
+    }));
+  }, [renewalBalance, renewalAmortization, offers]);
 
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
@@ -110,25 +136,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({
 
   // Renewal Chart Data
   const renewalChartData = {
-    labels: ['Option A (Offer 1)', 'Option B (Offer 2)', 'Option C (Offer 3)'],
+    labels: renewalResults.map(o => `${o.name} (${o.rate.toFixed(2)}% ${o.type === 'variable' ? 'Var' : 'Fix'})`),
     datasets: [
       {
         label: 'Interest Paid Over Selected Term',
-        data: [
-          renewalResults.optionA.totalInterest,
-          renewalResults.optionB.totalInterest,
-          renewalResults.optionC.totalInterest
-        ],
-        backgroundColor: [
-          'rgba(99, 102, 241, 0.7)',
-          'rgba(168, 85, 247, 0.7)',
-          'rgba(59, 130, 246, 0.7)'
-        ],
-        borderColor: [
-          'rgba(99, 102, 241, 1)',
-          'rgba(168, 85, 247, 1)',
-          'rgba(59, 130, 246, 1)'
-        ],
+        data: renewalResults.map(o => o.results.totalInterest),
+        backgroundColor: renewalResults.map((_, i) => `hsla(${200 + (i * 35) % 160}, 75%, 65%, 0.7)`),
+        borderColor: renewalResults.map((_, i) => `hsla(${200 + (i * 35) % 160}, 75%, 65%, 1)`),
         borderWidth: 1,
         borderRadius: 8,
       }
@@ -282,115 +296,182 @@ export const RateComparer: React.FC<RateComparerProps> = ({
               </div>
             </div>
 
-            {/* Offer A */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
-              <h4 style={{ fontSize: '0.9rem', color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Offer 1 (Option A)</h4>
-              <div className="flex gap-4">
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Interest Rate</label>
-                  <input type="number" step="0.01" className="form-input" value={rateA} onChange={(e) => setRateA(parseFloat(e.target.value) || 0)} />
+            {/* Dynamic Offers list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {offers.map((offer) => (
+                <div 
+                  key={offer.id} 
+                  style={{ 
+                    background: 'rgba(255,255,255,0.01)', 
+                    padding: '0.75rem', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '0.5rem',
+                  }}
+                >
+                  <div className="flex justify-between align-center" style={{ marginBottom: '0.5rem' }}>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={offer.name} 
+                      onChange={(e) => handleUpdateOffer(offer.id, 'name', e.target.value)}
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        borderBottom: '1px dashed var(--border-color)',
+                        borderRadius: 0,
+                        padding: '0.15rem 0',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: 'var(--color-primary)',
+                        width: 'auto'
+                      }}
+                    />
+                    {offers.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveOffer(offer.id)}
+                        style={{ 
+                          background: 'transparent', 
+                          border: 'none', 
+                          color: 'var(--color-danger)', 
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 0
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {/* Rate */}
+                    <div className="form-group w-full" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>Interest Rate</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        className="form-input" 
+                        value={offer.rate} 
+                        onChange={(e) => handleUpdateOffer(offer.id, 'rate', parseFloat(e.target.value) || 0)} 
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    {/* Term */}
+                    <div className="form-group w-full" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>Term</label>
+                      <select 
+                        className="form-select" 
+                        value={offer.term} 
+                        onChange={(e) => handleUpdateOffer(offer.id, 'term', parseInt(e.target.value) || 5)}
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                      >
+                        <option value="1">1 Yr</option>
+                        <option value="2">2 Yrs</option>
+                        <option value="3">3 Yrs</option>
+                        <option value="4">4 Yrs</option>
+                        <option value="5">5 Yrs</option>
+                        <option value="7">7 Yrs</option>
+                        <option value="10">10 Yrs</option>
+                      </select>
+                    </div>
+                    {/* Type */}
+                    <div className="form-group w-full" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>Compounding</label>
+                      <select 
+                        className="form-select" 
+                        value={offer.type} 
+                        onChange={(e) => handleUpdateOffer(offer.id, 'type', e.target.value as 'fixed' | 'variable')}
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                      >
+                        <option value="fixed">Fixed</option>
+                        <option value="variable">Variable</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Term length</label>
-                  <select className="form-select" value={termA} onChange={(e) => setTermA(parseInt(e.target.value))}>
-                    <option value="1">1 Year</option>
-                    <option value="2">2 Years</option>
-                    <option value="3">3 Years</option>
-                    <option value="4">4 Years</option>
-                    <option value="5">5 Years</option>
-                  </select>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Offer B */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
-              <h4 style={{ fontSize: '0.9rem', color: 'var(--color-accent)', marginBottom: '0.5rem' }}>Offer 2 (Option B)</h4>
-              <div className="flex gap-4">
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Interest Rate</label>
-                  <input type="number" step="0.01" className="form-input" value={rateB} onChange={(e) => setRateB(parseFloat(e.target.value) || 0)} />
-                </div>
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Term length</label>
-                  <select className="form-select" value={termB} onChange={(e) => setTermB(parseInt(e.target.value))}>
-                    <option value="1">1 Year</option>
-                    <option value="2">2 Years</option>
-                    <option value="3">3 Years</option>
-                    <option value="4">4 Years</option>
-                    <option value="5">5 Years</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Offer C */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
-              <h4 style={{ fontSize: '0.9rem', color: 'var(--color-secondary)', marginBottom: '0.5rem' }}>Offer 3 (Option C)</h4>
-              <div className="flex gap-4">
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Interest Rate</label>
-                  <input type="number" step="0.01" className="form-input" value={rateC} onChange={(e) => setRateC(parseFloat(e.target.value) || 0)} />
-                </div>
-                <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Term length</label>
-                  <select className="form-select" value={termC} onChange={(e) => setTermC(parseInt(e.target.value))}>
-                    <option value="1">1 Year</option>
-                    <option value="2">2 Years</option>
-                    <option value="3">3 Years</option>
-                    <option value="4">4 Years</option>
-                    <option value="5">5 Years</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            {/* Add Offer Button */}
+            {offers.length < 10 && (
+              <button 
+                type="button" 
+                className="btn btn-secondary w-full flex align-center justify-center gap-2"
+                onClick={handleAddOffer}
+                style={{ marginTop: '0.25rem', padding: '0.5rem' }}
+              >
+                <Plus size={14} />
+                <span style={{ fontSize: '0.85rem' }}>Add Offer ({offers.length}/10)</span>
+              </button>
+            )}
 
           </div>
 
           {/* Renewal Results */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
             <div className="card">
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Renewal Comparison Results</h3>
-              <div className="table-container">
+              <div className="table-container" style={{ overflowX: 'auto' }}>
                 <table>
                   <thead>
                     <tr>
                       <th>Metric</th>
-                      <th style={{ color: 'var(--color-primary)' }}>Offer 1</th>
-                      <th style={{ color: 'var(--color-accent)' }}>Offer 2</th>
-                      <th style={{ color: 'var(--color-secondary)' }}>Offer 3</th>
+                      {renewalResults.map((o, index) => (
+                        <th 
+                          key={o.id} 
+                          style={{ 
+                            color: `hsla(${200 + (index * 35) % 160}, 85%, 65%, 1)`,
+                            textAlign: 'right',
+                            minWidth: '100px'
+                          }}
+                        >
+                          {o.name}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td>Rate / Term</td>
-                      <td><strong>{rateA.toFixed(2)}%</strong> ({termA} yr)</td>
-                      <td><strong>{rateB.toFixed(2)}%</strong> ({termB} yr)</td>
-                      <td><strong>{rateC.toFixed(2)}%</strong> ({termC} yr)</td>
+                      {renewalResults.map(o => (
+                        <td key={o.id} style={{ textAlign: 'right' }}>
+                          <strong>{o.rate.toFixed(2)}%</strong> ({o.term} Yr {o.type === 'variable' ? 'Var' : 'Fix'})
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td>Monthly Payment</td>
-                      <td>${renewalResults.optionA.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td>${renewalResults.optionB.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td>${renewalResults.optionC.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      {renewalResults.map(o => (
+                        <td key={o.id} style={{ textAlign: 'right' }}>
+                          ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td>Interest Paid in Term</td>
-                      <td style={{ color: 'var(--color-danger)' }}>${renewalResults.optionA.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                      <td style={{ color: 'var(--color-danger)' }}>${renewalResults.optionB.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                      <td style={{ color: 'var(--color-danger)' }}>${renewalResults.optionC.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                      {renewalResults.map(o => (
+                        <td key={o.id} style={{ color: 'var(--color-danger)', textAlign: 'right' }}>
+                          ${o.results.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td>Principal Paid in Term</td>
-                      <td style={{ color: 'var(--color-success)' }}>${renewalResults.optionA.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                      <td style={{ color: 'var(--color-success)' }}>${renewalResults.optionB.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                      <td style={{ color: 'var(--color-success)' }}>${renewalResults.optionC.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                      {renewalResults.map(o => (
+                        <td key={o.id} style={{ color: 'var(--color-success)', textAlign: 'right' }}>
+                          ${o.results.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td>Ending Balance</td>
-                      <td><strong>${renewalResults.optionA.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></td>
-                      <td><strong>${renewalResults.optionB.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></td>
-                      <td><strong>${renewalResults.optionC.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></td>
+                      {renewalResults.map(o => (
+                        <td key={o.id} style={{ textAlign: 'right' }}>
+                          <strong>${o.results.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        </td>
+                      ))}
                     </tr>
                   </tbody>
                 </table>

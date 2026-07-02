@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DollarSign, CheckSquare, Square, ShieldAlert, Sparkles, Plus } from 'lucide-react';
+import { DollarSign, CheckSquare, Square, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateHELOC, calculateRegularPayment } from '../utils/mortgageMath';
 
 interface HELOCPlannerProps {
@@ -43,6 +43,18 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
     setRenoItems(prev => prev.map(item => 
       item.id === id ? { ...item, selected: !item.selected } : item
     ));
+  };
+
+  // Update item field
+  const handleUpdateItem = (id: string, field: 'name' | 'cost', value: any) => {
+    setRenoItems(prev => prev.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  // Delete item
+  const handleDeleteItem = (id: string) => {
+    setRenoItems(prev => prev.filter(item => item.id !== id));
   };
 
   // Add custom reno item
@@ -187,33 +199,92 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               {renoItems.map(item => (
                 <div 
                   key={item.id} 
-                  onClick={() => handleToggleItem(item.id)}
                   style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
-                    padding: '0.75rem 1rem', 
+                    padding: '0.5rem 0.75rem', 
                     background: item.selected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)', 
                     border: '1px solid', 
                     borderColor: item.selected ? 'var(--color-primary)' : 'var(--border-color)',
                     borderRadius: '0.5rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    gap: '0.75rem'
                   }}
                 >
-                  <div className="flex align-center gap-2">
-                    {item.selected ? (
-                      <CheckSquare size={18} style={{ color: 'var(--color-primary)' }} />
-                    ) : (
-                      <Square size={18} style={{ color: 'var(--text-muted)' }} />
-                    )}
-                    <span style={{ fontWeight: 500, color: item.selected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                      {item.name}
-                    </span>
+                  <div className="flex align-center gap-2" style={{ flexGrow: 1, minWidth: 0 }}>
+                    {/* Checkbox wrapper */}
+                    <div 
+                      onClick={() => handleToggleItem(item.id)} 
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    >
+                      {item.selected ? (
+                        <CheckSquare size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                      ) : (
+                        <Square size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      )}
+                    </div>
+                    {/* Editable Name */}
+                    <input 
+                      type="text" 
+                      value={item.name} 
+                      onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
+                      style={{ 
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: item.selected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        padding: '0.25rem 0',
+                        width: '100%',
+                        borderBottom: '1px dashed transparent'
+                      }}
+                      onFocus={(e) => e.target.style.borderBottomColor = 'var(--border-color)'}
+                      onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
+                    />
                   </div>
-                  <strong style={{ fontFamily: 'var(--font-heading)' }}>
-                    ${item.cost.toLocaleString()}
-                  </strong>
+
+                  <div className="flex align-center gap-3">
+                    {/* Editable Cost */}
+                    <div className="flex align-center" style={{ gap: '0.25rem', width: '100px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>$</span>
+                      <input 
+                        type="number" 
+                        value={item.cost} 
+                        onChange={(e) => handleUpdateItem(item.id, 'cost', Math.max(0, parseInt(e.target.value) || 0))}
+                        style={{ 
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          color: 'var(--text-primary)',
+                          fontWeight: 'bold',
+                          fontSize: '0.9rem',
+                          textAlign: 'right',
+                          width: '100%',
+                          borderBottom: '1px dashed transparent'
+                        }}
+                        onFocus={(e) => e.target.style.borderBottomColor = 'var(--border-color)'}
+                        onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
+                      />
+                    </div>
+                    {/* Delete button */}
+                    <button 
+                      type="button" 
+                      onClick={() => handleDeleteItem(item.id)}
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        color: 'var(--color-danger)', 
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -4,6 +4,7 @@ export interface MortgageInputs {
   amortizationYears: number; // e.g. 25
   paymentFrequency: PaymentFrequency;
   prepayments?: PrepaymentInputs;
+  compounding?: 'semi_annual' | 'monthly';
 }
 
 export type PaymentFrequency =
@@ -44,10 +45,13 @@ export interface AmortizationSummary {
   monthlyEquivalentPayment: number;
 }
 
-// Convert annual nominal rate (compounded semi-annually in Canada) to period rate
-export function getPeriodInterestRate(annualRatePercent: number, frequency: PaymentFrequency): number {
+// Convert annual nominal rate to period rate (supporting Canadian semi-annual compounding for fixed rates, and monthly compounding for variable rates)
+export function getPeriodInterestRate(annualRatePercent: number, frequency: PaymentFrequency, compounding: 'semi_annual' | 'monthly' = 'semi_annual'): number {
   const r = annualRatePercent / 100;
   const ppy = getPaymentsPerYear(frequency);
+  if (compounding === 'monthly') {
+    return Math.pow(1 + r / 12, 12 / ppy) - 1;
+  }
   // Canadian rule: (1 + i_period)^ppy = (1 + r/2)^2 => i_period = (1 + r/2)^(2 / ppy) - 1
   return Math.pow(1 + r / 2, 2 / ppy) - 1;
 }
@@ -85,16 +89,16 @@ export function getFrequencyLabel(frequency: PaymentFrequency): string {
 }
 
 // Calculate the base monthly payment using Canadian compounding rules
-export function calculateBaseMonthlyPayment(principal: number, annualRatePercent: number, amortizationYears: number): number {
-  const i_m = getPeriodInterestRate(annualRatePercent, 'monthly');
+export function calculateBaseMonthlyPayment(principal: number, annualRatePercent: number, amortizationYears: number, compounding: 'semi_annual' | 'monthly' = 'semi_annual'): number {
+  const i_m = getPeriodInterestRate(annualRatePercent, 'monthly', compounding);
   const n_m = amortizationYears * 12;
   if (i_m === 0) return principal / n_m;
   return (principal * i_m * Math.pow(1 + i_m, n_m)) / (Math.pow(1 + i_m, n_m) - 1);
 }
 
 // Calculate regular payment based on frequency and Canadian standards
-export function calculateRegularPayment(principal: number, annualRatePercent: number, amortizationYears: number, frequency: PaymentFrequency): number {
-  const baseMonthly = calculateBaseMonthlyPayment(principal, annualRatePercent, amortizationYears);
+export function calculateRegularPayment(principal: number, annualRatePercent: number, amortizationYears: number, frequency: PaymentFrequency, compounding: 'semi_annual' | 'monthly' = 'semi_annual'): number {
+  const baseMonthly = calculateBaseMonthlyPayment(principal, annualRatePercent, amortizationYears, compounding);
 
   switch (frequency) {
     case 'monthly':
@@ -119,10 +123,10 @@ export function calculateRegularPayment(principal: number, annualRatePercent: nu
 
 // Calculate the complete amortization schedule
 export function calculateAmortization(inputs: MortgageInputs): AmortizationSummary {
-  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments } = inputs;
+  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual' } = inputs;
   
-  const baseRegularPayment = calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency);
-  const periodRate = getPeriodInterestRate(interestRate, paymentFrequency);
+  const baseRegularPayment = calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency, compounding);
+  const periodRate = getPeriodInterestRate(interestRate, paymentFrequency, compounding);
   const ppy = getPaymentsPerYear(paymentFrequency);
   
   const schedule: AmortizationPeriod[] = [];
