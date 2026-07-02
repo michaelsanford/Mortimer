@@ -242,7 +242,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({
 
       {activeSubTab === 'renewal' ? (
         /* RENEWAL COMPARE PANEL */
-        <div className="grid grid-cols-2" style={{ gridTemplateColumns: '1fr 1.2fr' }}>
+        <div className="grid-main">
           {/* Inputs */}
           <div className="card flex flex-col gap-4">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
@@ -408,7 +408,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({
         </div>
       ) : (
         /* REFINANCE PENALTY PANEL */
-        <div className="grid grid-cols-2" style={{ gridTemplateColumns: '1fr 1.2fr' }}>
+        <div className="grid-main">
           {/* Inputs */}
           <div className="card flex flex-col gap-4">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>

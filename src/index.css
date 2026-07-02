@@ -119,6 +119,26 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.grid-main {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.grid-heloc {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .grid-main, .grid-heloc {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Cards & Glassmorphism */
 .card {
   background: var(--bg-card);
@@ -311,11 +331,11 @@ p {
 }
 
 .form-input-with-prefix {
-  padding-left: 2rem;
+  padding-left: 2.5rem;
 }
 
 .form-input-with-suffix {
-  padding-right: 2rem;
+  padding-right: 2.5rem;
 }
 
 /* Sliders */

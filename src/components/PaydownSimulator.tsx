@@ -197,7 +197,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         <p style={{ fontSize: '0.95rem' }}>Adjust mortgage parameters and simulate prepayment strategies to see interest and time savings.</p>
       </div>
 
-      <div className="grid grid-cols-2" style={{ gridTemplateColumns: '1fr 1.2fr' }}>
+      <div className="grid-main">
         {/* Inputs panel */}
         <div className="card flex flex-col gap-4">
           <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>

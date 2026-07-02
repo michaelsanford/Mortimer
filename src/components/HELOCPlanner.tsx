@@ -106,7 +106,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
         <p style={{ fontSize: '0.95rem' }}>Estimate the cost of upcoming home renovations and see how they can be financed using a Home Equity Line of Credit (HELOC).</p>
       </div>
 
-      <div className="grid grid-cols-2" style={{ gridTemplateColumns: '1.1fr 0.9fr' }}>
+      <div className="grid-heloc">
         {/* Left Side: Reno Checklist & Equity inputs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
