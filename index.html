@@ -12,6 +12,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Commented out Service Worker registration for local development to prevent asset caching issues -->
+    <!--
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -21,5 +23,6 @@
         });
       }
     </script>
+    -->
   </body>
 </html>
