@@ -775,8 +775,9 @@ input:checked + .toggle-slider:before {
   animation: shake 0.3s ease-in-out;
 }
 
-/* Utility classes */
 .flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
 .align-center { align-items: center; }
 .justify-between { justify-content: space-between; }
 .gap-2 { gap: 0.5rem; }
