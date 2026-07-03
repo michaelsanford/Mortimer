@@ -1,0 +1,90 @@
+name: Release
+
+# Trigger: git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, Sign & Create Draft Release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write     # Required for cosign OIDC token and build attestation
+      attestations: write # Required for actions/attest-build-provenance
+      contents: write     # Required to write release and upload assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          npm run sbom
+          mv bom.json "mortimer-${{ github.ref_name }}-sbom.json"
+
+      - name: Package release archive (Source Code + built dist/)
+        run: |
+          zip -r "mortimer-${{ github.ref_name }}.zip" . -x "node_modules/*" -x ".git/*" -x ".github/*" -x ".claude/*"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            mortimer-${{ github.ref_name }}.zip
+            mortimer-${{ github.ref_name }}-sbom.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.8.2
+
+      - name: Sign artifacts with cosign (keyless, GitHub OIDC)
+        run: |
+          cosign sign-blob --yes \
+            "mortimer-${{ github.ref_name }}.zip" \
+            --bundle "mortimer-${{ github.ref_name }}.zip.bundle"
+          cosign sign-blob --yes \
+            "mortimer-${{ github.ref_name }}-sbom.json" \
+            --bundle "mortimer-${{ github.ref_name }}-sbom.json.bundle"
+
+      - name: Prepare Assets Directory
+        run: |
+          mkdir assets
+          mv "mortimer-${{ github.ref_name }}.zip" assets/
+          mv "mortimer-${{ github.ref_name }}.zip.bundle" assets/
+          mv "mortimer-${{ github.ref_name }}-sbom.json" assets/
+          mv "mortimer-${{ github.ref_name }}-sbom.json.bundle" assets/
+
+      - name: Create Draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            assets/* \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            --draft

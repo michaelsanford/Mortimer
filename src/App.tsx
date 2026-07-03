@@ -31,6 +31,12 @@ const HELOCPlanner = lazy(() => import('./components/HELOCPlanner').then(m => ({
 const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 const PasscodeLock = lazy(() => import('./components/PasscodeLock').then(m => ({ default: m.PasscodeLock })));
 
+const appVersion = import.meta.env.VITE_APP_VERSION || 'v0.0.0-dev';
+const isDev = appVersion === 'v0.0.0-dev';
+const releaseUrl = isDev 
+  ? 'https://github.com/michaelsanford/Mortimer/releases' 
+  : `https://github.com/michaelsanford/Mortimer/releases/tag/${appVersion}`;
+
 function App() {
   const { t, locale, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -293,7 +299,15 @@ function App() {
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>{t.footer.copyright.replace('{year}', String(new Date().getFullYear()))}</span>
+            <span>{t.footer.copyright}</span>
+            <span style={{ color: 'var(--border-color)' }}>|</span>
+            {isDev ? (
+              <span>{appVersion}</span>
+            ) : (
+              <a href={releaseUrl} target="_blank" rel="noopener noreferrer" className="footer-link">
+                {appVersion}
+              </a>
+            )}
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <a href="https://github.com/michaelsanford/Mortimer/issues" target="_blank" rel="noopener noreferrer" className="footer-link">
               {t.footer.reportIssue}

@@ -25,7 +25,7 @@ export const fr = {
     loi25: 'Conforme à la Loi 25 (Québec)',
     disclaimer: 'Je ne suis pas un professionnel de la finance. Ceci ne constitue pas un conseil financier. Prenez vos propres décisions. Tous les modèles de calcul sont fournis à des fins éducatives et informatives uniquement. Mortimer ne collecte, ne stocke ni ne transmet vos données personnelles.',
     disclaimerLabel: 'Avis :',
-    copyright: 'Droit d\'auteur {year} Michael Sanford [MIT]',
+    copyright: 'Fait avec <3 par Michael',
     reportIssue: 'Signaler un problème',
     reportSecurity: 'Signaler une faille de sécurité',
   },

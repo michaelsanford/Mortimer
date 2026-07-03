@@ -25,7 +25,7 @@ export const zhHK = {
     loi25: '符合魁北克第 25 號法案',
     disclaimer: '我不是金融專業人士。本工具不構成財務建議。請自行做出決定。所有計算模型僅供參考和教育目的。Mortimer 不收集、儲存或傳輸您的任何個人數據。',
     disclaimerLabel: '免責聲明：',
-    copyright: '版權所有 {year} Michael Sanford [MIT]',
+    copyright: '由 Michael 用 <3 製作',
     reportIssue: '報告問題',
     reportSecurity: '報告安全問題',
   },
