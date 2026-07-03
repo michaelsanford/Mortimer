@@ -39,7 +39,7 @@ function bufferToHex(buffer: ArrayBuffer | Uint8Array): string {
 function hexToUint8Array(hex: string): Uint8Array {
   const view = new Uint8Array(hex.length / 2);
   for (let i = 0; i < view.length; i++) {
-    view[i] = parseInt(hex.substring(i * 2, 2), 16);
+    view[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
   }
   return view;
 }
@@ -178,33 +178,73 @@ export async function loadProfile(pin?: string): Promise<any | null> {
   }
 }
 
-// Save comparison profiles list
-export function saveCompareProfiles(profiles: any[]): void {
-  localStorage.setItem(KEYS.COMPARE_PROFILES, JSON.stringify(profiles));
+// Save comparison profiles list (encrypted if PIN is provided)
+export async function saveCompareProfiles(profiles: any[], pin?: string): Promise<void> {
+  const dataStr = JSON.stringify(profiles);
+  if (pin) {
+    try {
+      const encrypted = await encryptData(dataStr, pin);
+      localStorage.setItem(KEYS.COMPARE_PROFILES, JSON.stringify(encrypted));
+    } catch (err) {
+      console.error('Failed to encrypt compare profiles', err);
+    }
+  } else {
+    localStorage.setItem(KEYS.COMPARE_PROFILES, dataStr);
+  }
 }
 
-// Load comparison profiles list
-export function loadCompareProfiles(): any[] {
+// Load comparison profiles list (decrypts if PIN is provided)
+export async function loadCompareProfiles(pin?: string): Promise<any[]> {
   const stored = localStorage.getItem(KEYS.COMPARE_PROFILES);
   if (!stored) return [];
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === 'object' && 'ciphertext' in parsed && 'salt' in parsed && 'iv' in parsed) {
+      if (!pin) return [];
+      try {
+        const decrypted = await decryptData(parsed.ciphertext, pin, parsed.salt, parsed.iv);
+        return JSON.parse(decrypted);
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-// Save reno checklist state
-export function saveRenoList(list: any): void {
-  localStorage.setItem(KEYS.RENO_LIST, JSON.stringify(list));
+// Save reno checklist state (encrypted if PIN is provided)
+export async function saveRenoList(list: any, pin?: string): Promise<void> {
+  const dataStr = JSON.stringify(list);
+  if (pin) {
+    try {
+      const encrypted = await encryptData(dataStr, pin);
+      localStorage.setItem(KEYS.RENO_LIST, JSON.stringify(encrypted));
+    } catch (err) {
+      console.error('Failed to encrypt reno list', err);
+    }
+  } else {
+    localStorage.setItem(KEYS.RENO_LIST, dataStr);
+  }
 }
 
-// Load reno checklist state
-export function loadRenoList(): any {
+// Load reno checklist state (decrypts if PIN is provided)
+export async function loadRenoList(pin?: string): Promise<any> {
   const stored = localStorage.getItem(KEYS.RENO_LIST);
   if (!stored) return null;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === 'object' && 'ciphertext' in parsed && 'salt' in parsed && 'iv' in parsed) {
+      if (!pin) return null;
+      try {
+        const decrypted = await decryptData(parsed.ciphertext, pin, parsed.salt, parsed.iv);
+        return JSON.parse(decrypted);
+      } catch {
+        return null;
+      }
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -235,10 +275,20 @@ export async function setupPasscode(pin: string, hint?: string): Promise<void> {
   
   localStorage.setItem(KEYS.PASSCODE_CONFIG, JSON.stringify(config));
   
-  // Encrypt current profile if it exists unencrypted
+  // Encrypt all existing data with the new PIN
   const currentProfile = await loadProfile();
   if (currentProfile && !currentProfile.__isEncrypted) {
     await saveProfile(currentProfile, pin);
+  }
+
+  const currentRenoList = await loadRenoList();
+  if (currentRenoList) {
+    await saveRenoList(currentRenoList, pin);
+  }
+
+  const currentCompareProfiles = await loadCompareProfiles();
+  if (currentCompareProfiles && currentCompareProfiles.length > 0) {
+    await saveCompareProfiles(currentCompareProfiles, pin);
   }
 }
 
@@ -252,18 +302,27 @@ export async function disablePasscode(pin: string, inMemoryProfile?: any): Promi
     return false; // Wrong PIN
   }
   
-  // Try to decrypt from localStorage first, fall back to in-memory profile
+  // Decrypt all data back to plaintext
   let profileToSave = await loadProfile(pin);
   if (!profileToSave || profileToSave.__isEncrypted) {
-    // Decryption from localStorage failed; use in-memory profile as source of truth
     profileToSave = inMemoryProfile || null;
   }
+
+  const renoList = await loadRenoList(pin);
+  const compareProfiles = await loadCompareProfiles(pin);
   
   localStorage.removeItem(KEYS.PASSCODE_CONFIG);
   localStorage.removeItem(KEYS.IS_LOCKED);
   
+  // Re-save everything as plaintext
   if (profileToSave) {
     localStorage.setItem(KEYS.PROFILE, JSON.stringify(profileToSave));
+  }
+  if (renoList) {
+    localStorage.setItem(KEYS.RENO_LIST, JSON.stringify(renoList));
+  }
+  if (compareProfiles && compareProfiles.length > 0) {
+    localStorage.setItem(KEYS.COMPARE_PROFILES, JSON.stringify(compareProfiles));
   }
   
   return true;
@@ -312,8 +371,8 @@ export async function exportAppData(pin?: string): Promise<string | null> {
     return null; // Needs unlock or incorrect PIN
   }
   
-  const renoList = loadRenoList();
-  const compareProfiles = loadCompareProfiles();
+  const renoList = await loadRenoList(pin);
+  const compareProfiles = await loadCompareProfiles(pin);
   
   const exportObj: AppDataExport = {
     version: '1.0.0',
@@ -335,15 +394,15 @@ export async function importAppData(jsonStr: string, pin?: string): Promise<bool
       return false; // Invalid file format
     }
     
-    // Save data
+    // Save data (encrypted if PIN is provided)
     if (parsed.profile) {
       await saveProfile(parsed.profile, pin);
     }
     if (parsed.renoList) {
-      saveRenoList(parsed.renoList);
+      await saveRenoList(parsed.renoList, pin);
     }
     if (parsed.compareProfiles) {
-      saveCompareProfiles(parsed.compareProfiles);
+      await saveCompareProfiles(parsed.compareProfiles, pin);
     }
     
     return true;
