@@ -366,9 +366,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   // Payments per year for the current frequency — bounds the double-up interval slider (max once per year)
   const ppy = getPaymentsPerYear(paymentFrequency);
 
-  // Keep the double-up interval within [1, ppy] as frequency changes
+  // Keep the double-up interval at a sane floor (at least every payment)
   useEffect(() => {
-    setDoubleUpEvery((prev) => Math.min(Math.max(1, prev), ppy));
+    setDoubleUpEvery((prev) => Math.max(1, prev));
   }, [ppy]);
 
   // Human-friendly description of how often the double-up applies
@@ -434,15 +434,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   onChange={(e) => setPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
                 />
               </div>
-              <input 
-                type="range" 
-                className="slider-input" 
-                min="50000" 
-                max="2000000" 
-                step="10000"
-                value={principal} 
-                onChange={(e) => setPrincipal(parseInt(e.target.value))}
-              />
             </div>
 
             {/* Interest Rate */}
@@ -461,15 +452,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   onChange={(e) => setInterestRate(Math.max(0, parseFloat(e.target.value) || 0))}
                 />
               </div>
-              <input 
-                type="range" 
-                className="slider-input" 
-                min="1" 
-                max="15" 
-                step="0.05"
-                value={interestRate} 
-                onChange={(e) => setInterestRate(parseFloat(e.target.value))}
-              />
             </div>
 
             {/* Remaining Amortization */}
@@ -484,7 +466,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     type="number" 
                     className="form-input" 
                     value={amortizationYears} 
-                    onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                    onChange={(e) => setAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
                     placeholder={t.paydown.years}
                     style={{ paddingRight: '2rem' }}
                   />
@@ -502,15 +484,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.mos}</span>
                 </div>
               </div>
-              <input 
-                type="range" 
-                className="slider-input" 
-                min="1" 
-                max="30" 
-                step="1"
-                value={amortizationYears} 
-                onChange={(e) => setAmortizationYears(parseInt(e.target.value))}
-              />
             </div>
 
             {/* Frequency */}
@@ -613,7 +586,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     className="form-input" 
                     placeholder={t.paydown.years}
                     value={originalAmortizationYears || ''} 
-                    onChange={(e) => setOriginalAmortizationYears(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
+                    onChange={(e) => setOriginalAmortizationYears(Math.max(0, parseInt(e.target.value) || 0))}
                     style={{ paddingRight: '2rem' }}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
@@ -798,15 +771,13 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                         <span>{t.paydown.doubleUpFrequency}</span>
                         <span className="form-label-val">{doubleUpFrequencyLabel}</span>
                       </label>
-                      {/* Slider is reversed: left = 1×/year (interval = ppy, minimum), right = every payment (interval = 1) */}
+                      {/* Interval between double-up payments: 1 = every payment */}
                       <input
-                        type="range"
-                        className="slider-input"
+                        type="number"
+                        className="form-input"
                         min="1"
-                        max={ppy}
-                        step="1"
-                        value={ppy + 1 - doubleUpEvery}
-                        onChange={(e) => setDoubleUpEvery(ppy + 1 - (parseInt(e.target.value) || 1))}
+                        value={doubleUpEvery}
+                        onChange={(e) => setDoubleUpEvery(Math.max(1, parseInt(e.target.value) || 1))}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
                         {t.paydown.doubleUpTimesPerYear.replace('{n}', String(doubleUpTimesPerYear))}
@@ -821,15 +792,16 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     <span>{t.paydown.annualIncreasePercent}</span>
                     <span className="form-label-val">{paymentIncreasePercent}%</span>
                   </label>
-                  <input
-                    type="range"
-                    className="slider-input"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                    value={paymentIncreasePercent}
-                    onChange={(e) => setPaymentIncreasePercent(parseFloat(e.target.value))}
-                  />
+                  <div className="form-input-wrapper">
+                    <Percent size={14} className="form-input-suffix" />
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-input form-input-with-suffix"
+                      value={paymentIncreasePercent}
+                      onChange={(e) => setPaymentIncreasePercent(Math.max(0, parseFloat(e.target.value) || 0))}
+                    />
+                  </div>
                 </div>
 
                 {/* Payment Increase Fixed */}
