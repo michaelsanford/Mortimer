@@ -37,7 +37,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [interestRate, setInterestRate] = useState<number>(initialProfile?.interestRate || 4.85);
   const [amortizationYears, setAmortizationYears] = useState<number>(initialProfile?.amortizationYears || 25);
   const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>(initialProfile?.paymentFrequency || 'monthly');
-  const [termYears, setTermYears] = useState<number>(initialProfile?.termYears || 5);
   const [maturityDate, setMaturityDate] = useState<string>(initialProfile?.maturityDate || '');
   
   // Custom Payment Override
@@ -73,7 +72,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       interestRate,
       amortizationYears,
       paymentFrequency,
-      termYears,
       maturityDate,
       confirmedPayment,
       originalPrincipal,
@@ -87,7 +85,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, paymentFrequency, termYears, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [principal, interestRate, amortizationYears, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -111,7 +109,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       interestRate,
       amortizationYears,
       paymentFrequency,
-      termYears,
       maturityDate,
       confirmedPayment,
       originalPrincipal,
@@ -363,24 +360,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
               Current Term Timeline
             </h4>
-
-            {/* Remaining Term Length */}
-            <div className="form-group">
-              <label className="form-label">Remaining Term Length</label>
-              <select 
-                className="form-select" 
-                value={termYears} 
-                onChange={(e) => setTermYears(parseInt(e.target.value) || 5)}
-              >
-                <option value="1">1 Year</option>
-                <option value="2">2 Years</option>
-                <option value="3">3 Years</option>
-                <option value="4">4 Years</option>
-                <option value="5">5 Years</option>
-                <option value="7">7 Years</option>
-                <option value="10">10 Years</option>
-              </select>
-            </div>
 
             {/* Maturity Date */}
             <div className="form-group">
