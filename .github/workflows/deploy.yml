@@ -1,11 +1,14 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI"]        # must match `name:` in ci.yml exactly
-    types: [completed]
-    branches: ["main"]       # filters on the CI run's head branch -> main only
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag of the release to deploy (leave blank to deploy latest)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -17,26 +20,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build
-    # Only deploy when the CI run succeeded (or on manual dispatch)
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Download release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME=$(gh release view --json tagName --template '{{.tagName}}')
+          else
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          fi
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
+          echo "Deploying version $TAG_NAME"
 
-      - name: Install dependencies
-        run: npm ci
+          gh release download "$TAG_NAME" \
+            --pattern "mortimer-$TAG_NAME.zip" \
+            --repo "${{ github.repository }}"
 
-      - name: Build
-        run: npm run build
+          unzip "mortimer-$TAG_NAME.zip" -d extracted
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -46,16 +55,8 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: './dist'
+          path: './extracted/dist'
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

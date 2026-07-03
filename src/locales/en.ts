@@ -25,7 +25,7 @@ export const en = {
     loi25: 'Loi 25 (Quebec) Compliant',
     disclaimer: 'I am not a financial professional. This is not financial advice. Make your own decisions. All calculation models are provided for informational and educational purposes only. Mortimer does not collect, store, or transmit your personal data.',
     disclaimerLabel: 'Disclaimer:',
-    copyright: 'Copyright {year} Michael Sanford [MIT]',
+    copyright: 'Make with <3 by Michael',
     reportIssue: 'Report an Issue',
     reportSecurity: 'Report a Security Finding',
   },
