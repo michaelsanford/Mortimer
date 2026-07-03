@@ -69,6 +69,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
   const year1PrincipalPaid = totalPrincipal - endOfYear1Bal;
   const year1PaidPercent = Math.min(100, Math.round((year1PrincipalPaid / totalPrincipal) * 100));
 
+  const hasOriginalPrincipal = !!(profile.originalPrincipal && profile.originalPrincipal > 0);
+  const overallPaidPercent = hasOriginalPrincipal
+    ? Math.min(100, Math.max(0, ((profile.originalPrincipal! - profile.principal) / profile.originalPrincipal!) * 100))
+    : year1PaidPercent;
+
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -86,7 +91,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
       <div className="grid grid-cols-3 mb-4">
         {/* Progress Card */}
         <div className="card text-center flex flex-col align-center justify-between" style={{ minHeight: '260px' }}>
-          <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>Year 1 Progress</h3>
+          <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>
+            {hasOriginalPrincipal ? 'Overall Progress' : 'Year 1 Progress'}
+          </h3>
           
           <div style={{ position: 'relative', width: '130px', height: '130px', margin: '1rem 0' }}>
             <svg width="130" height="130" viewBox="0 0 130 130">
@@ -106,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
                 stroke="url(#progressGrad)" 
                 strokeWidth="10" 
                 strokeDasharray={345.5}
-                strokeDashoffset={345.5 - (345.5 * year1PaidPercent) / 100}
+                strokeDashoffset={345.5 - (345.5 * overallPaidPercent) / 100}
                 strokeLinecap="round"
                 transform="rotate(-90 65 65)"
               />
@@ -126,11 +133,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
               fontSize: '1.5rem',
               fontWeight: 800
             }}>
-              {year1PaidPercent}%
+              {overallPaidPercent.toFixed(1)}%
             </div>
           </div>
           <p style={{ fontSize: '0.85rem', margin: 0 }}>
-            Of principal paid off in Year 1
+            {hasOriginalPrincipal ? 'Of original principal paid to date' : 'Of principal paid off in Year 1'}
           </p>
         </div>
 
