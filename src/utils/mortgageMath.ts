@@ -17,11 +17,13 @@ export interface MortgageInputs {
   // Rate Comparer Persistence
   offers?: any[];
   renewalBalance?: number;
-  renewalAmortization?: number;
+  renewalAmortizationYears?: number;
+  renewalAmortizationMonths?: number;
   refinanceBalance?: number;
   refinanceCurrentRate?: number;
   refinanceRemainingTerm?: number;
-  refinanceAmortization?: number;
+  refinanceAmortizationYears?: number;
+  refinanceAmortizationMonths?: number;
   refinanceNewRate?: number;
   refinancePenaltyType?: 'three_months_interest' | 'ird' | 'custom';
   refinanceCustomPenalty?: number;

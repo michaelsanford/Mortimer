@@ -107,8 +107,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const [renewalBalance, setRenewalBalance] = useState<number>(() => {
     return profile?.renewalBalance || defaultBalance;
   });
-  const [renewalAmortization, setRenewalAmortization] = useState<number>(() => {
-    return profile?.renewalAmortization || defaultAmortization;
+  const [renewalAmortizationYears, setRenewalAmortizationYears] = useState<number>(() => {
+    return profile?.renewalAmortizationYears || defaultAmortization;
+  });
+  const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number>(() => {
+    return profile?.renewalAmortizationMonths !== undefined ? profile.renewalAmortizationMonths : (profile?.amortizationMonths || 0);
   });
   
   const [offers, setOffers] = useState<Offer[]>(() => {
@@ -154,8 +157,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     if (profile?.refinanceRemainingTerm !== undefined) return profile.refinanceRemainingTerm;
     return profile?.maturityDate ? calculateRemainingMonths(profile.maturityDate) : 36;
   });
-  const [refinanceAmortization, setRefinanceAmortization] = useState<number>(() => {
-    return profile?.refinanceAmortization || defaultAmortization;
+  const [refinanceAmortizationYears, setRefinanceAmortizationYears] = useState<number>(() => {
+    return profile?.refinanceAmortizationYears || defaultAmortization;
+  });
+  const [refinanceAmortizationMonths, setRefinanceAmortizationMonths] = useState<number>(() => {
+    return profile?.refinanceAmortizationMonths !== undefined ? profile.refinanceAmortizationMonths : (profile?.amortizationMonths || 0);
   });
   const [refinanceNewRate, setRefinanceNewRate] = useState<number>(() => {
     return profile?.refinanceNewRate || 4.49;
@@ -177,11 +183,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     const offersChanged = JSON.stringify(offers) !== JSON.stringify(profile.offers);
     const othersChanged = 
       renewalBalance !== profile.renewalBalance ||
-      renewalAmortization !== profile.renewalAmortization ||
+      renewalAmortizationYears !== profile.renewalAmortizationYears ||
+      renewalAmortizationMonths !== profile.renewalAmortizationMonths ||
       refinanceBalance !== profile.refinanceBalance ||
       refinanceCurrentRate !== profile.refinanceCurrentRate ||
       refinanceRemainingTerm !== profile.refinanceRemainingTerm ||
-      refinanceAmortization !== profile.refinanceAmortization ||
+      refinanceAmortizationYears !== profile.refinanceAmortizationYears ||
+      refinanceAmortizationMonths !== profile.refinanceAmortizationMonths ||
       refinanceNewRate !== profile.refinanceNewRate ||
       refinancePenaltyType !== profile.refinancePenaltyType ||
       refinanceCustomPenalty !== profile.refinanceCustomPenalty ||
@@ -199,11 +207,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         ...profile,
         offers,
         renewalBalance,
-        renewalAmortization,
+        renewalAmortizationYears,
+        renewalAmortizationMonths,
         refinanceBalance,
         refinanceCurrentRate,
         refinanceRemainingTerm,
-        refinanceAmortization,
+        refinanceAmortizationYears,
+        refinanceAmortizationMonths,
         refinanceNewRate,
         refinancePenaltyType,
         refinanceCustomPenalty,
@@ -219,11 +229,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   }, [
     offers,
     renewalBalance,
-    renewalAmortization,
+    renewalAmortizationYears,
+    renewalAmortizationMonths,
     refinanceBalance,
     refinanceCurrentRate,
     refinanceRemainingTerm,
-    refinanceAmortization,
+    refinanceAmortizationYears,
+    refinanceAmortizationMonths,
     refinanceNewRate,
     refinancePenaltyType,
     refinanceCustomPenalty,
@@ -234,6 +246,8 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   // 1. Renewal calculations
   const renewalResults = useMemo(() => {
+    const renewalAmortization = renewalAmortizationYears + renewalAmortizationMonths / 12;
+
     // Helper to calculate term details
     const getTermDetails = (rate: number, termYears: number, type: 'fixed' | 'variable') => {
       const compounding = type === 'variable' ? 'monthly' : 'semi_annual';
@@ -267,7 +281,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       ...o,
       results: getTermDetails(o.rate, o.term, o.type)
     }));
-  }, [renewalBalance, renewalAmortization, offers]);
+  }, [renewalBalance, renewalAmortizationYears, renewalAmortizationMonths, offers]);
 
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
@@ -275,13 +289,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       currentBalance: refinanceBalance,
       currentRate: refinanceCurrentRate,
       remainingTermMonths: refinanceRemainingTerm,
-      remainingAmortizationYears: refinanceAmortization,
+      remainingAmortizationYears: refinanceAmortizationYears + refinanceAmortizationMonths / 12,
       prepaymentPenaltyType: refinancePenaltyType,
       customPenaltyAmount: refinanceCustomPenalty,
       newRate: refinanceNewRate,
       refinanceFees
     });
-  }, [refinanceBalance, refinanceCurrentRate, refinanceRemainingTerm, refinanceAmortization, refinancePenaltyType, refinanceCustomPenalty, refinanceNewRate, refinanceFees]);
+  }, [refinanceBalance, refinanceCurrentRate, refinanceRemainingTerm, refinanceAmortizationYears, refinanceAmortizationMonths, refinancePenaltyType, refinanceCustomPenalty, refinanceNewRate, refinanceFees]);
 
   // Renewal Chart Data
   const renewalChartData = {
@@ -441,15 +455,31 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
             <div className="form-group">
               <label className="form-label">
                 <span>Remaining Amortization</span>
-                <span className="form-label-val">{renewalAmortization} Years</span>
+                <span className="form-label-val">{renewalAmortizationYears} Yrs, {renewalAmortizationMonths} Mos</span>
               </label>
-              <div className="form-input-wrapper">
-                <input 
-                  type="number" 
-                  className="form-input" 
-                  value={renewalAmortization} 
-                  onChange={(e) => setRenewalAmortization(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
-                />
+              <div className="flex gap-2">
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={renewalAmortizationYears} 
+                    onChange={(e) => setRenewalAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                    placeholder="Years"
+                    style={{ paddingRight: '2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                </div>
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={renewalAmortizationMonths} 
+                    onChange={(e) => setRenewalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    placeholder="Months"
+                    style={{ paddingRight: '2.2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                </div>
               </div>
             </div>
 
@@ -679,8 +709,31 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   <input type="number" step="0.01" className="form-input" value={refinanceCurrentRate} onChange={(e) => setRefinanceCurrentRate(parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Amortization Left (Yrs)</label>
-                  <input type="number" className="form-input" value={refinanceAmortization} onChange={(e) => setRefinanceAmortization(Math.max(1, parseInt(e.target.value) || 20))} />
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Amortization Left</label>
+                  <div className="flex gap-2">
+                    <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        value={refinanceAmortizationYears} 
+                        onChange={(e) => setRefinanceAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 20)))}
+                        placeholder="Yrs"
+                        style={{ paddingRight: '1.8rem', fontSize: '0.85rem' }}
+                      />
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                    </div>
+                    <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        value={refinanceAmortizationMonths} 
+                        onChange={(e) => setRefinanceAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                        placeholder="Mos"
+                        style={{ paddingRight: '2rem', fontSize: '0.85rem' }}
+                      />
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
