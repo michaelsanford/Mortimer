@@ -104,6 +104,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [originalAmortizationMonths, setOriginalAmortizationMonths] = useState<number>(initialProfile?.originalAmortizationMonths || 0);
   const [originalTermYears, setOriginalTermYears] = useState<number>(initialProfile?.originalTermYears || 0);
 
+  // Household affordability (persisted globally; not used by the amortization math)
+  const [householdIncome, setHouseholdIncome] = useState<number>(initialProfile?.householdIncome || 0);
+  const [incomeType, setIncomeType] = useState<'gross' | 'net'>(initialProfile?.incomeType || 'gross');
+
   // Prepayments
   const [showPrepayments, setShowPrepayments] = useState<boolean>(
     !!(initialProfile?.prepayments && 
@@ -213,11 +217,14 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       (originalAmortizationYears || 0) !== (initialProfile.originalAmortizationYears || 0) ||
       (originalAmortizationMonths || 0) !== (initialProfile.originalAmortizationMonths || 0) ||
       (originalTermYears || 0) !== (initialProfile.originalTermYears || 0) ||
+      (householdIncome || 0) !== (initialProfile.householdIncome || 0) ||
+      (incomeType || 'gross') !== (initialProfile.incomeType || 'gross') ||
       !prepaymentsEqual
     );
   }, [
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    householdIncome, incomeType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
   ]);
 
@@ -251,6 +258,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         originalAmortizationYears,
         originalAmortizationMonths,
         originalTermYears,
+        householdIncome,
+        incomeType,
         prepayments: showPrepayments ? {
           lumpSumAmount,
           doubleUp,
@@ -271,6 +280,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     isDirty,
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    householdIncome, incomeType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
     onSaveProfile
   ]);
@@ -535,6 +545,42 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
                 {t.paydown.paymentOverrideHint}
               </span>
+            </div>
+
+            {/* Household Income (with gross/net toggle) — persisted globally, used by the Rates Comparer */}
+            <div className="form-group">
+              <label className="form-label flex justify-between align-center">
+                <span>{t.paydown.householdIncome}</span>
+                <div style={{ display: 'inline-flex', border: '1px solid var(--border-color)', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                  {(['gross', 'net'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setIncomeType(type)}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.5rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: incomeType === type ? 'var(--color-primary)' : 'transparent',
+                        color: incomeType === type ? '#fff' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {type === 'gross' ? t.paydown.incomeGross : t.paydown.incomeNet}
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <div className="form-input-wrapper">
+                <DollarSign size={16} className="form-input-prefix" />
+                <input
+                  type="number"
+                  className="form-input form-input-with-prefix"
+                  value={householdIncome || ''}
+                  onChange={(e) => setHouseholdIncome(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
             </div>
           </div>
 
