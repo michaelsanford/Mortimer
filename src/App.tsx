@@ -225,13 +225,14 @@ function App() {
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>&copy; {new Date().getFullYear()} Mortimer.</span>
-            <a href="https://github.com/michaelsanford/Mortimer" target="_blank" rel="noopener noreferrer" className="footer-link">
-              Hosted on GitHub Pages
-            </a>
+            <span>Copyright {new Date().getFullYear()} Michael Sanford [MIT]</span>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <a href="https://github.com/michaelsanford/Mortimer/issues" target="_blank" rel="noopener noreferrer" className="footer-link">
               Report an Issue
+            </a>
+            <span style={{ color: 'var(--border-color)' }}>|</span>
+            <a href="https://github.com/michaelsanford/Mortimer/security/advisories/new" target="_blank" rel="noopener noreferrer" className="footer-link">
+              Report a Security Finding
             </a>
           </div>
         </div>
