@@ -40,12 +40,15 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     try {
       setPasscodeError('');
 
-      // Build export object directly from in-memory state and unencrypted localStorage keys
+      // Build export object from in-memory profile and decrypted localStorage keys
+      const renoList = await loadRenoList(_currentPin || undefined);
+      const compareProfiles = await loadCompareProfiles(_currentPin || undefined);
+
       const exportObj = {
         version: '1.0.0',
         profile: profile || null,
-        renoList: loadRenoList(),
-        compareProfiles: loadCompareProfiles(),
+        renoList,
+        compareProfiles,
         exportedAt: new Date().toISOString()
       };
 
@@ -73,7 +76,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      const success = await importAppData(content, pin || undefined);
+      const success = await importAppData(content, _currentPin || undefined);
       if (success) {
         setImportStatus({ type: 'success', message: 'Data imported successfully! Reloading profile...' });
         onImportSuccess();
@@ -90,8 +93,8 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     setPasscodeError('');
     setPasscodeSuccess('');
 
-    if (pin.length !== 4 || !/^\d+$/.test(pin)) {
-      setPasscodeError('PIN must be exactly 4 digits.');
+    if (pin.length === 0 || !/^\d+$/.test(pin)) {
+      setPasscodeError('PIN must be at least 1 digit.');
       return;
     }
 
@@ -193,7 +196,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
               <div className="settings-item-info">
                 <span className="settings-item-title">Passcode Protection</span>
                 <span className="settings-item-desc">
-                  {passcodeEnabled ? 'Locked with 4-digit PIN' : 'Unprotected (localStorage plaintext)'}
+                  {passcodeEnabled ? 'Locked with PIN' : 'Unprotected (localStorage plaintext)'}
                 </span>
               </div>
               <button 
@@ -209,15 +212,14 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
             {showPinForm && (
               <form onSubmit={handlePinSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
                 <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-                  {passcodeEnabled ? 'Enter current PIN to Disable' : 'Configure New 4-Digit PIN'}
+                  {passcodeEnabled ? 'Enter current PIN to Disable' : 'Configure New PIN'}
                 </h4>
                 
                 <div className="flex gap-4">
                   <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>PIN (4 Digits)</label>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>PIN (Numeric)</label>
                     <input 
                       type="password" 
-                      maxLength={4}
                       placeholder="e.g. 1234"
                       className="form-input" 
                       value={pin}

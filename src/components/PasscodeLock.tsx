@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, AlertCircle } from 'lucide-react';
+import { Lock, AlertCircle, Check, Delete } from 'lucide-react';
 import { hashPin, getPasscodeConfig } from '../utils/storage';
 
 interface PasscodeLockProps {
@@ -11,6 +11,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
   const [error, setError] = useState<boolean>(false);
   const [hint, setHint] = useState<string | undefined>(undefined);
   const [showHint, setShowHint] = useState<boolean>(false);
+  const [validating, setValidating] = useState<boolean>(false);
 
   useEffect(() => {
     const config = getPasscodeConfig();
@@ -20,15 +21,8 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
   }, []);
 
   const handleKeyPress = (num: string) => {
-    if (pin.length < 4) {
-      setError(false);
-      setPin(prev => prev + num);
-    }
-  };
-
-  const handleClear = () => {
-    setPin('');
     setError(false);
+    setPin(prev => prev + num);
   };
 
   const handleDelete = () => {
@@ -36,32 +30,42 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
     setError(false);
   };
 
-  useEffect(() => {
-    if (pin.length === 4) {
-      // Validate PIN
-      const validatePin = async () => {
-        const config = getPasscodeConfig();
-        if (!config) {
-          // If no passcode config is set up, unlock immediately
-          onUnlock('');
-          return;
-        }
+  const handleSubmit = async () => {
+    if (pin.length === 0 || validating) return;
 
-        const hashed = await hashPin(pin, config.salt);
-        if (hashed === config.hash) {
-          onUnlock(pin);
-        } else {
-          // Wrong PIN - shake and clear
-          setError(true);
-          setTimeout(() => {
-            setPin('');
-          }, 300);
-        }
-      };
-
-      validatePin();
+    setValidating(true);
+    const config = getPasscodeConfig();
+    if (!config) {
+      onUnlock('');
+      return;
     }
-  }, [pin, onUnlock]);
+
+    const hashed = await hashPin(pin, config.salt);
+    if (hashed === config.hash) {
+      onUnlock(pin);
+    } else {
+      setError(true);
+      setTimeout(() => {
+        setPin('');
+        setValidating(false);
+      }, 300);
+    }
+  };
+
+  // Allow Enter key to submit
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && pin.length > 0) {
+        handleSubmit();
+      } else if (e.key === 'Backspace') {
+        handleDelete();
+      } else if (/^[0-9]$/.test(e.key)) {
+        handleKeyPress(e.key);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin, validating]);
 
   return (
     <div className="pin-overlay">
@@ -74,17 +78,25 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
           App Locked
         </h2>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Enter your 4-digit PIN to decrypt local data
+          Enter your PIN to decrypt local data
         </p>
 
-        <div className="pin-dots">
-          {[0, 1, 2, 3].map(i => (
-            <div 
-              key={i} 
-              className={`pin-dot ${i < pin.length ? 'filled' : ''} ${error ? 'color-danger' : ''}`}
-              style={error ? { borderColor: 'var(--color-danger)', backgroundColor: 'var(--color-danger)' } : {}}
-            />
-          ))}
+        {/* PIN display - shows dots for entered digits */}
+        <div className="pin-dots" aria-live="polite" aria-label={`${pin.length} digits entered`}>
+          {pin.length === 0 ? (
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No digits entered</span>
+          ) : (
+            Array.from({ length: Math.min(pin.length, 12) }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`pin-dot filled ${error ? 'color-danger' : ''}`}
+                style={error ? { borderColor: 'var(--color-danger)', backgroundColor: 'var(--color-danger)' } : {}}
+              />
+            ))
+          )}
+          {pin.length > 12 && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>+{pin.length - 12}</span>
+          )}
         </div>
 
         <div className="pin-grid mb-4">
@@ -94,18 +106,37 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
               type="button" 
               className="pin-key"
               onClick={() => handleKeyPress(num)}
+              disabled={validating}
             >
               {num}
             </button>
           ))}
-          <button type="button" className="pin-key action" onClick={handleClear}>
-            Clear
+          <button 
+            type="button" 
+            className="pin-key action" 
+            onClick={handleDelete}
+            disabled={validating || pin.length === 0}
+            aria-label="Delete last digit"
+          >
+            <Delete size={18} />
           </button>
-          <button type="button" className="pin-key" onClick={() => handleKeyPress('0')}>
+          <button 
+            type="button" 
+            className="pin-key" 
+            onClick={() => handleKeyPress('0')}
+            disabled={validating}
+          >
             0
           </button>
-          <button type="button" className="pin-key action" onClick={handleDelete}>
-            Delete
+          <button 
+            type="button" 
+            className="pin-key action accept" 
+            onClick={handleSubmit}
+            disabled={validating || pin.length === 0}
+            aria-label="Submit PIN"
+            style={pin.length > 0 ? { backgroundColor: 'var(--color-success)', color: 'white', borderColor: 'var(--color-success)' } : {}}
+          >
+            <Check size={20} />
           </button>
         </div>
 
