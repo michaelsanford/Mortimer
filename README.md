@@ -54,6 +54,18 @@ npm run build
 npm run preview
 ```
 
+## Supply Chain / SBOM
+
+Generate a [CycloneDX](https://cyclonedx.org/) Software Bill of Materials locally:
+
+```bash
+npm run sbom   # writes bom.json (CycloneDX 1.6 JSON)
+```
+
+CI regenerates this on every run, publishes it as the `sbom-cyclonedx` build artifact, and
+scans it for known vulnerabilities with [Grype](https://github.com/anchore/grype) — see
+[SECURITY.md](SECURITY.md) for details.
+
 ## Deployment
 
 Mortimer deploys to GitHub Pages via the workflow in `.github/workflows/deploy.yml`.

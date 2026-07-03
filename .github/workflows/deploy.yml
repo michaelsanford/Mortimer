@@ -11,6 +11,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  security-events: write   # required for code-scanning SARIF upload
 
 concurrency:
   group: "pages"
@@ -48,9 +49,49 @@ jobs:
         with:
           path: './dist'
 
+  sbom:
+    name: SBOM & Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate CycloneDX SBOM
+        run: npm run sbom
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: bom.json
+
+      - name: Scan SBOM for vulnerabilities
+        id: scan
+        uses: anchore/scan-action@v6
+        with:
+          sbom: bom.json
+          fail-build: true          # gate the pipeline on findings
+          severity-cutoff: high     # fail on high/critical (tunable)
+          output-format: sarif
+
+      - name: Upload scan results to code scanning
+        if: always()                # upload even when the scan fails the build
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+
   deploy:
     name: Deploy to GitHub Pages
-    needs: test
+    needs: [test, sbom]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     environment:
       name: github-pages
