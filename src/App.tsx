@@ -6,7 +6,8 @@ import {
   Percent, 
   Calculator, 
   LayoutDashboard,
-  ShieldCheck
+  ShieldCheck,
+  Languages
 } from 'lucide-react';
 import type { MortgageInputs } from './utils/mortgageMath';
 import { 
@@ -15,6 +16,7 @@ import {
   getPasscodeConfig, 
   setAppLockedStatus 
 } from './utils/storage';
+import { useI18n, type Locale } from './utils/i18n';
 
 // Import components
 import { Dashboard } from './components/Dashboard';
@@ -25,6 +27,7 @@ import { Settings } from './components/Settings';
 import { PasscodeLock } from './components/PasscodeLock';
 
 function App() {
+  const { t, locale, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [profile, setProfile] = useState<MortgageInputs | null>(null);
   const [isAppLocked, setIsAppLocked] = useState<boolean>(false);
@@ -51,7 +54,6 @@ function App() {
     setIsAppLocked(false);
     setAppLockedStatus(false);
     
-    // Load profile using the PIN to decrypt
     const loadedProfile = await loadProfile(pin);
     if (loadedProfile && !loadedProfile.__isEncrypted) {
       setProfile(loadedProfile);
@@ -133,7 +135,7 @@ function App() {
             <div className="logo-icon">
               <Landmark size={20} />
             </div>
-            <span>Mortimer</span>
+            <span>{t.app.name}</span>
           </a>
 
           {/* Navigation Bar */}
@@ -144,7 +146,7 @@ function App() {
               onClick={() => setActiveTab('dashboard')}
             >
               <LayoutDashboard size={16} />
-              <span>Dashboard</span>
+              <span>{t.nav.dashboard}</span>
             </button>
             <button 
               type="button" 
@@ -152,7 +154,7 @@ function App() {
               onClick={() => setActiveTab('paydown')}
             >
               <TrendingDown size={16} />
-              <span>Paydown Simulator</span>
+              <span>{t.nav.paydown}</span>
             </button>
             <button 
               type="button" 
@@ -160,7 +162,7 @@ function App() {
               onClick={() => setActiveTab('rate')}
             >
               <Percent size={16} />
-              <span>Rates Comparer</span>
+              <span>{t.nav.rate}</span>
             </button>
             <button 
               type="button" 
@@ -168,7 +170,7 @@ function App() {
               onClick={() => setActiveTab('heloc')}
             >
               <Calculator size={16} />
-              <span>Reno & HELOC</span>
+              <span>{t.nav.heloc}</span>
             </button>
             <button 
               type="button" 
@@ -176,9 +178,31 @@ function App() {
               onClick={() => setActiveTab('settings')}
             >
               <SettingsIcon size={16} />
-              <span>Settings</span>
+              <span>{t.nav.settings}</span>
             </button>
           </nav>
+
+          {/* Language Picker */}
+          <div className="language-picker" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Languages size={16} style={{ color: 'var(--text-secondary)' }} />
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+              aria-label={t.language.label}
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '0.375rem',
+                padding: '0.25rem 0.5rem',
+                fontSize: '0.8rem',
+                color: 'var(--text-primary)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="en">{t.language.en}</option>
+              <option value="fr">{t.language.fr}</option>
+            </select>
+          </div>
         </div>
       </header>
 
@@ -193,11 +217,11 @@ function App() {
       <footer className="app-footer">
         <div className="container">
           <div className="footer-links">
-            <a href="#" className="footer-link" onClick={() => setActiveTab('dashboard')}>Dashboard</a>
-            <a href="#" className="footer-link" onClick={() => setActiveTab('paydown')}>Paydowns</a>
-            <a href="#" className="footer-link" onClick={() => setActiveTab('rate')}>Renewal & Refinance</a>
-            <a href="#" className="footer-link" onClick={() => setActiveTab('heloc')}>Reno & HELOC Planner</a>
-            <a href="#" className="footer-link" onClick={() => setActiveTab('settings')}>Settings & Privacy</a>
+            <a href="#" className="footer-link" onClick={() => setActiveTab('dashboard')}>{t.footer.dashboard}</a>
+            <a href="#" className="footer-link" onClick={() => setActiveTab('paydown')}>{t.footer.paydowns}</a>
+            <a href="#" className="footer-link" onClick={() => setActiveTab('rate')}>{t.footer.renewal}</a>
+            <a href="#" className="footer-link" onClick={() => setActiveTab('heloc')}>{t.footer.heloc}</a>
+            <a href="#" className="footer-link" onClick={() => setActiveTab('settings')}>{t.footer.settings}</a>
           </div>
 
           <div className="flex align-center justify-center gap-4 mt-4" style={{ fontSize: '0.85rem' }}>
@@ -207,7 +231,7 @@ function App() {
               onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
             >
               <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
-              PIPEDA Compliant
+              {t.footer.pipeda}
             </a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <a 
@@ -216,23 +240,23 @@ function App() {
               onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
             >
               <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
-              Loi 25 (Quebec) Compliant
+              {t.footer.loi25}
             </a>
           </div>
 
           <div className="footer-disclaimer">
-            <strong>Disclaimer:</strong> I am not a financial professional. This is not financial advice. Make your own decisions. All calculation models are provided for informational and educational purposes only. Mortimer does not collect, store, or transmit your personal data.
+            <strong>{t.footer.disclaimerLabel}</strong> {t.footer.disclaimer}
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>Copyright {new Date().getFullYear()} Michael Sanford [MIT]</span>
+            <span>{t.footer.copyright.replace('{year}', String(new Date().getFullYear()))}</span>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <a href="https://github.com/michaelsanford/Mortimer/issues" target="_blank" rel="noopener noreferrer" className="footer-link">
-              Report an Issue
+              {t.footer.reportIssue}
             </a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             <a href="https://github.com/michaelsanford/Mortimer/security/advisories/new" target="_blank" rel="noopener noreferrer" className="footer-link">
-              Report a Security Finding
+              {t.footer.reportSecurity}
             </a>
           </div>
         </div>
