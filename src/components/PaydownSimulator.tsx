@@ -115,7 +115,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(initialProfile?.prepayments?.lumpSumAmount || 0);
   const [doubleUp, setDoubleUp] = useState<boolean>(initialProfile?.prepayments?.doubleUp || false);
-  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(initialProfile?.prepayments?.doubleUpEvery || 1);
+  // Interval between double-ups, in payments. Defaults to once per year (ppy) for a fresh profile.
+  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(
+    initialProfile?.prepayments?.doubleUpEvery || getPaymentsPerYear(initialProfile?.paymentFrequency || 'monthly')
+  );
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
@@ -363,19 +366,26 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
   const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || paymentFrequency.includes('accelerated'));
 
-  // Payments per year for the current frequency — bounds the double-up interval slider (max once per year)
+  // Payments per year for the current frequency — drives the double-up interval slider.
   const ppy = getPaymentsPerYear(paymentFrequency);
 
-  // Keep the double-up interval at a sane floor (at least every payment)
+  // Double-up interval slider bounds (in payments): 1 = every payment (most frequent),
+  // ppy × term = once per term (least frequent, the "no less than 1/term" floor).
+  // Term falls back to the full amortization when the original term isn't tracked.
+  const doubleUpTermYears = originalTermYears > 0 ? originalTermYears : amortizationYears;
+  const maxDoubleUpInterval = Math.max(1, Math.round(ppy * doubleUpTermYears));
+
+  // Keep the double-up interval within [1, once-per-term] as frequency/term change.
   useEffect(() => {
-    setDoubleUpEvery((prev) => Math.max(1, prev));
-  }, [ppy]);
+    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev)));
+  }, [maxDoubleUpInterval]);
 
   // Human-friendly description of how often the double-up applies
   const doubleUpFrequencyLabel = useMemo(() => {
+    if (doubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
     if (doubleUpEvery <= 1) return t.paydown.everyPayment;
     return t.paydown.everyNPayments.replace('{n}', String(doubleUpEvery));
-  }, [doubleUpEvery, t]);
+  }, [doubleUpEvery, maxDoubleUpInterval, t]);
 
   const doubleUpTimesPerYear = useMemo(() => {
     const times = ppy / Math.max(1, doubleUpEvery);
@@ -776,16 +786,22 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                         <span>{t.paydown.doubleUpFrequency}</span>
                         <span className="form-label-val">{doubleUpFrequencyLabel}</span>
                       </label>
-                      {/* Interval between double-up payments: 1 = every payment */}
+                      {/* Interval between double-ups, in payments: 1 = every payment (most frequent),
+                          ppy × term = once per term (least frequent). */}
                       <input
-                        type="number"
-                        className="form-input"
-                        min="1"
+                        type="range"
+                        className="slider-input"
+                        min={1}
+                        max={maxDoubleUpInterval}
+                        step={1}
                         value={doubleUpEvery}
-                        onChange={(e) => setDoubleUpEvery(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setDoubleUpEvery(Math.min(maxDoubleUpInterval, Math.max(1, parseInt(e.target.value) || 1)))}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
                         {t.paydown.doubleUpTimesPerYear.replace('{n}', String(doubleUpTimesPerYear))}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                        {t.paydown.doubleUpDistribution}
                       </span>
                     </div>
                   )}
