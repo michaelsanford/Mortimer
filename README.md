@@ -1,6 +1,9 @@
 # Mortimer – Canadian Mortgage Insights
 
-[![CI & Deploy](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml)
+[![CI](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![Deploy](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml)
+[![SBOM: CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-blue)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![Security scan: Grype](https://img.shields.io/badge/security%20scan-Grype-8A2BE2)](https://github.com/michaelsanford/Mortimer/security/code-scanning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A privacy-first Progressive Web App for simulating mortgage paydowns, comparing renewal and refinancing rates, and planning home equity (HELOC) borrowing — tailored for Canadian mortgages.
@@ -53,6 +56,18 @@ Build for production:
 npm run build
 npm run preview
 ```
+
+## Supply Chain / SBOM
+
+Generate a [CycloneDX](https://cyclonedx.org/) Software Bill of Materials locally:
+
+```bash
+npm run sbom   # writes bom.json (CycloneDX 1.6 JSON)
+```
+
+CI regenerates this on every run, publishes it as the `sbom-cyclonedx` build artifact, and
+scans it for known vulnerabilities with [Grype](https://github.com/anchore/grype) — see
+[SECURITY.md](SECURITY.md) for details.
 
 ## Deployment
 

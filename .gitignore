@@ -15,6 +15,9 @@ dist-ssr
 # DevTools performance traces
 Trace*.json
 
+# Generated SBOM (produced by `npm run sbom` / CI)
+bom.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
