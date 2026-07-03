@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { en } from '../locales/en';
 import { fr } from '../locales/fr';
+import { zh } from '../locales/zh';
+import { pa } from '../locales/pa';
+import { zhHK } from '../locales/zh-HK';
+import { es } from '../locales/es';
+import { ar } from '../locales/ar';
 
 /**
  * Recursively collect all keys from a nested object as dot-separated paths.
@@ -26,21 +31,63 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
 }
 
 describe('i18n locale completeness', () => {
+  const locales = {
+    en: { name: 'English', data: en },
+    fr: { name: 'French', data: fr },
+    zh: { name: 'Mandarin', data: zh },
+    pa: { name: 'Punjabi', data: pa },
+    'zh-HK': { name: 'Cantonese', data: zhHK },
+    es: { name: 'Spanish', data: es },
+    ar: { name: 'Arabic', data: ar }
+  };
+
   const enKeys = collectKeys(en);
-  const frKeys = collectKeys(fr);
 
-  it('English and French have the same number of keys', () => {
-    expect(enKeys.length).toBe(frKeys.length);
-  });
+  Object.entries(locales).forEach(([code, locale]) => {
+    if (code === 'en') return;
 
-  it('every English key exists in French', () => {
-    const missingInFr = enKeys.filter(key => !frKeys.includes(key));
-    expect(missingInFr).toEqual([]);
-  });
+    const localeKeys = collectKeys(locale.data);
 
-  it('every French key exists in English', () => {
-    const missingInEn = frKeys.filter(key => !enKeys.includes(key));
-    expect(missingInEn).toEqual([]);
+    it(`English and ${locale.name} have the same number of keys`, () => {
+      expect(localeKeys.length).toBe(enKeys.length);
+    });
+
+    it(`every English key exists in ${locale.name}`, () => {
+      const missing = enKeys.filter(key => !localeKeys.includes(key));
+      expect(missing).toEqual([]);
+    });
+
+    it(`every ${locale.name} key exists in English`, () => {
+      const missing = localeKeys.filter(key => !enKeys.includes(key));
+      expect(missing).toEqual([]);
+    });
+
+    it(`no ${locale.name} values are empty strings`, () => {
+      const emptyKeys = localeKeys.filter(key => {
+        const val = getNestedValue(locale.data, key);
+        return typeof val === 'string' && val.trim() === '';
+      });
+      expect(emptyKeys).toEqual([]);
+    });
+
+    it(`interpolation placeholders in English exist in ${locale.name}`, () => {
+      const placeholderRegex = /\{[a-zA-Z0-9_]+\}/g;
+      const mismatches: string[] = [];
+
+      for (const key of enKeys) {
+        const enVal = getNestedValue(en, key);
+        const locVal = getNestedValue(locale.data, key);
+        if (typeof enVal !== 'string' || typeof locVal !== 'string') continue;
+
+        const enPlaceholders = (enVal.match(placeholderRegex) || []).sort();
+        const locPlaceholders = (locVal.match(placeholderRegex) || []).sort();
+
+        if (JSON.stringify(enPlaceholders) !== JSON.stringify(locPlaceholders)) {
+          mismatches.push(`${key}: EN=${JSON.stringify(enPlaceholders)} ${code.toUpperCase()}=${JSON.stringify(locPlaceholders)}`);
+        }
+      }
+      expect(mismatches).toEqual([]);
+    });
   });
 
   it('no English values are empty strings', () => {
@@ -49,33 +96,6 @@ describe('i18n locale completeness', () => {
       return typeof val === 'string' && val.trim() === '';
     });
     expect(emptyKeys).toEqual([]);
-  });
-
-  it('no French values are empty strings', () => {
-    const emptyKeys = frKeys.filter(key => {
-      const val = getNestedValue(fr, key);
-      return typeof val === 'string' && val.trim() === '';
-    });
-    expect(emptyKeys).toEqual([]);
-  });
-
-  it('interpolation placeholders in English exist in French', () => {
-    const placeholderRegex = /\{[a-zA-Z]+\}/g;
-    const mismatches: string[] = [];
-
-    for (const key of enKeys) {
-      const enVal = getNestedValue(en, key);
-      const frVal = getNestedValue(fr, key);
-      if (typeof enVal !== 'string' || typeof frVal !== 'string') continue;
-
-      const enPlaceholders = (enVal.match(placeholderRegex) || []).sort();
-      const frPlaceholders = (frVal.match(placeholderRegex) || []).sort();
-
-      if (JSON.stringify(enPlaceholders) !== JSON.stringify(frPlaceholders)) {
-        mismatches.push(`${key}: EN=${JSON.stringify(enPlaceholders)} FR=${JSON.stringify(frPlaceholders)}`);
-      }
-    }
-    expect(mismatches).toEqual([]);
   });
 
   describe('locale structure', () => {
@@ -94,8 +114,10 @@ describe('i18n locale completeness', () => {
       expect(topLevelSections).toContain('settings');
     });
 
-    it('French has the same top-level sections', () => {
-      expect(Object.keys(fr).sort()).toEqual(topLevelSections.sort());
+    Object.entries(locales).forEach(([code, locale]) => {
+      it(`${locale.name} has the same top-level sections`, () => {
+        expect(Object.keys(locale.data).sort()).toEqual(topLevelSections.sort());
+      });
     });
   });
 });
