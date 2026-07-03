@@ -2,6 +2,7 @@ export interface MortgageInputs {
   principal: number;
   interestRate: number; // e.g. 5.25 for 5.25%
   amortizationYears: number; // e.g. 25
+  amortizationMonths?: number; // e.g. 0 to 11 months
   paymentFrequency: PaymentFrequency;
   prepayments?: PrepaymentInputs;
   compounding?: 'semi_annual' | 'monthly';
@@ -10,6 +11,7 @@ export interface MortgageInputs {
   confirmedPayment?: number; // Confirmed payment override
   originalPrincipal?: number; // Original mortgage amount
   originalAmortizationYears?: number; // Original amortization period in years
+  originalAmortizationMonths?: number; // Original amortization period in months
   originalTermYears?: number; // Original term length in years
 }
 
@@ -129,10 +131,15 @@ export function calculateRegularPayment(principal: number, annualRatePercent: nu
 
 // Calculate the complete amortization schedule
 export function calculateAmortization(inputs: MortgageInputs): AmortizationSummary {
-  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual', confirmedPayment, originalPrincipal, originalAmortizationYears } = inputs;
+  const { principal, interestRate, amortizationYears, amortizationMonths = 0, paymentFrequency, prepayments, compounding = 'semi_annual', confirmedPayment, originalPrincipal, originalAmortizationYears, originalAmortizationMonths = 0 } = inputs;
   
+  const totalAmortizationYears = amortizationYears + amortizationMonths / 12;
+  const totalOriginalAmortizationYears = originalAmortizationYears && originalAmortizationYears > 0
+    ? originalAmortizationYears + originalAmortizationMonths / 12
+    : undefined;
+
   const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
-  const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 ? originalAmortizationYears : amortizationYears;
+  const amortizationForPayment = totalOriginalAmortizationYears && totalOriginalAmortizationYears > 0 ? totalOriginalAmortizationYears : totalAmortizationYears;
 
   const baseRegularPayment = confirmedPayment && confirmedPayment > 0 
     ? confirmedPayment 
@@ -146,7 +153,7 @@ export function calculateAmortization(inputs: MortgageInputs): AmortizationSumma
   let cumulativeInterest = 0;
   let cumulativePrincipal = 0;
   
-  const maxPeriods = amortizationYears * ppy * 2; // Safeguard limit to prevent infinite loops
+  const maxPeriods = Math.ceil(totalAmortizationYears * ppy * 2); // Safeguard limit to prevent infinite loops
   
   while (currentBalance > 0.01 && periodNumber < maxPeriods) {
     periodNumber++;

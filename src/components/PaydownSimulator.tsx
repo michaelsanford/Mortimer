@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, DollarSign, Calendar, Percent, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, DollarSign, Percent, Sparkles } from 'lucide-react';
 import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import {
@@ -36,6 +36,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [principal, setPrincipal] = useState<number>(initialProfile?.principal || 450000);
   const [interestRate, setInterestRate] = useState<number>(initialProfile?.interestRate || 4.85);
   const [amortizationYears, setAmortizationYears] = useState<number>(initialProfile?.amortizationYears || 25);
+  const [amortizationMonths, setAmortizationMonths] = useState<number>(initialProfile?.amortizationMonths || 0);
   const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>(initialProfile?.paymentFrequency || 'monthly');
   const [maturityDate, setMaturityDate] = useState<string>(initialProfile?.maturityDate || '');
   
@@ -45,6 +46,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   // Original Parameters
   const [originalPrincipal, setOriginalPrincipal] = useState<number>(initialProfile?.originalPrincipal || 0);
   const [originalAmortizationYears, setOriginalAmortizationYears] = useState<number>(initialProfile?.originalAmortizationYears || 0);
+  const [originalAmortizationMonths, setOriginalAmortizationMonths] = useState<number>(initialProfile?.originalAmortizationMonths || 0);
   const [originalTermYears, setOriginalTermYears] = useState<number>(initialProfile?.originalTermYears || 0);
 
   // Prepayments
@@ -63,9 +65,11 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
   const calculatedRegularPayment = useMemo(() => {
     const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
-    const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 ? originalAmortizationYears : amortizationYears;
+    const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 
+      ? originalAmortizationYears + (originalAmortizationMonths || 0) / 12 
+      : amortizationYears + (amortizationMonths || 0) / 12;
     return calculateRegularPayment(principalForPayment, interestRate, amortizationForPayment, paymentFrequency);
-  }, [principal, interestRate, amortizationYears, paymentFrequency, originalPrincipal, originalAmortizationYears]);
+  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, originalPrincipal, originalAmortizationYears, originalAmortizationMonths]);
 
   // Amortization results
   const results = useMemo(() => {
@@ -73,11 +77,13 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       principal,
       interestRate,
       amortizationYears,
+      amortizationMonths,
       paymentFrequency,
       maturityDate,
       confirmedPayment,
       originalPrincipal,
       originalAmortizationYears,
+      originalAmortizationMonths,
       originalTermYears,
       prepayments: showPrepayments ? {
         lumpSumAmount,
@@ -87,7 +93,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -99,22 +105,25 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       principal,
       interestRate,
       amortizationYears,
+      amortizationMonths,
       paymentFrequency: baseFreq,
       confirmedPayment,
       prepayments: undefined
     });
-  }, [principal, interestRate, amortizationYears, paymentFrequency, confirmedPayment]);
+  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, confirmedPayment]);
 
   const handleSave = () => {
     onSaveProfile({
       principal,
       interestRate,
       amortizationYears,
+      amortizationMonths,
       paymentFrequency,
       maturityDate,
       confirmedPayment,
       originalPrincipal,
       originalAmortizationYears,
+      originalAmortizationMonths,
       originalTermYears,
       prepayments: showPrepayments ? {
         lumpSumAmount,
@@ -293,21 +302,36 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>Remaining Amortization</span>
-                <span className="form-label-val">{amortizationYears} Years</span>
+                <span className="form-label-val">{amortizationYears} Yrs, {amortizationMonths} Mos</span>
               </label>
-              <div className="form-input-wrapper">
-                <Calendar size={16} className="form-input-suffix" />
-                <input 
-                  type="number" 
-                  className="form-input form-input-with-suffix" 
-                  value={amortizationYears} 
-                  onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
-                />
+              <div className="flex gap-2">
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={amortizationYears} 
+                    onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                    placeholder="Years"
+                    style={{ paddingRight: '2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                </div>
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={amortizationMonths} 
+                    onChange={(e) => setAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    placeholder="Months"
+                    style={{ paddingRight: '2.2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                </div>
               </div>
               <input 
                 type="range" 
                 className="slider-input" 
-                min="5" 
+                min="1" 
                 max="30" 
                 step="1"
                 value={amortizationYears} 
@@ -404,17 +428,33 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>Original Amortization</span>
-                {originalAmortizationYears > 0 && <span className="form-label-val">{originalAmortizationYears} Years</span>}
+                {(originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
+                  <span className="form-label-val">{originalAmortizationYears} Yrs, {originalAmortizationMonths} Mos</span>
+                )}
               </label>
-              <div className="form-input-wrapper">
-                <Calendar size={16} className="form-input-suffix" />
-                <input 
-                  type="number" 
-                  className="form-input form-input-with-suffix" 
-                  placeholder="e.g. 25"
-                  value={originalAmortizationYears || ''} 
-                  onChange={(e) => setOriginalAmortizationYears(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
-                />
+              <div className="flex gap-2">
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    placeholder="Years"
+                    value={originalAmortizationYears || ''} 
+                    onChange={(e) => setOriginalAmortizationYears(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
+                    style={{ paddingRight: '2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                </div>
+                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    placeholder="Months"
+                    value={originalAmortizationMonths || ''} 
+                    onChange={(e) => setOriginalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    style={{ paddingRight: '2.2rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                </div>
               </div>
             </div>
 

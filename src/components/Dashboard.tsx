@@ -160,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
             </div>
           </div>
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Amortized over {profile.amortizationYears} years
+            Amortized over {profile.amortizationYears} year{profile.amortizationYears !== 1 ? 's' : ''}{profile.amortizationMonths ? ` and ${profile.amortizationMonths} month${profile.amortizationMonths !== 1 ? 's' : ''}` : ''}
           </div>
         </div>
 
@@ -250,23 +250,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
             )}
 
             {/* Amortization Progress */}
-            {profile.originalAmortizationYears ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <span>Amortization Period</span>
-                  <span>{profile.originalAmortizationYears - profile.amortizationYears} Yrs Progress</span>
+            {profile.originalAmortizationYears ? (() => {
+              const originalTotalMonths = (profile.originalAmortizationYears || 0) * 12 + (profile.originalAmortizationMonths || 0);
+              const remainingTotalMonths = profile.amortizationYears * 12 + (profile.amortizationMonths || 0);
+              const elapsedTotalMonths = Math.max(0, originalTotalMonths - remainingTotalMonths);
+              const percentElapsed = originalTotalMonths > 0 ? (elapsedTotalMonths / originalTotalMonths * 100) : 0;
+              
+              const elapsedYears = Math.floor(elapsedTotalMonths / 12);
+              const elapsedMonths = elapsedTotalMonths % 12;
+
+              const displayRemaining = `${profile.amortizationYears} Yr${profile.amortizationYears !== 1 ? 's' : ''}` + (profile.amortizationMonths ? `, ${profile.amortizationMonths} Mo${profile.amortizationMonths !== 1 ? 's' : ''}` : '');
+              const displayOriginal = `${profile.originalAmortizationYears} Yr${profile.originalAmortizationYears !== 1 ? 's' : ''}` + (profile.originalAmortizationMonths ? `, ${profile.originalAmortizationMonths} Mo${profile.originalAmortizationMonths !== 1 ? 's' : ''}` : '');
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <span>Amortization Progress</span>
+                    <span>{elapsedYears} Yr{elapsedYears !== 1 ? 's' : ''}{elapsedMonths > 0 ? `, ${elapsedMonths} Mo${elapsedMonths !== 1 ? 's' : ''}` : ''} elapsed</span>
+                  </div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
+                    {displayRemaining} <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>of {displayOriginal}</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.max(0, percentElapsed))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Amortization Remaining: {displayRemaining}
+                  </div>
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
-                  {profile.amortizationYears} Years <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>of {profile.originalAmortizationYears} Yrs</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(100, Math.max(0, ((profile.originalAmortizationYears - profile.amortizationYears) / profile.originalAmortizationYears * 100)))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Years Remaining: {profile.amortizationYears}
-                </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', height: '60px' }}>
                 Original amortization tracking not configured.
               </div>
