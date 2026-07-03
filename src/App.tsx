@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   Landmark, 
   Settings as SettingsIcon, 
@@ -18,12 +18,15 @@ import {
 import { useI18n } from './utils/i18n';
 
 // Import components
+// Dashboard is the default landing tab, so it stays statically imported.
+// The remaining views are code-split via React.lazy so their code (and, for the
+// calculator views, Chart.js) is only fetched when the tab is opened.
 import { Dashboard } from './components/Dashboard';
-import { PaydownSimulator } from './components/PaydownSimulator';
-import { RateComparer } from './components/RateComparer';
-import { HELOCPlanner } from './components/HELOCPlanner';
-import { Settings } from './components/Settings';
-import { PasscodeLock } from './components/PasscodeLock';
+const PaydownSimulator = lazy(() => import('./components/PaydownSimulator').then(m => ({ default: m.PaydownSimulator })));
+const RateComparer = lazy(() => import('./components/RateComparer').then(m => ({ default: m.RateComparer })));
+const HELOCPlanner = lazy(() => import('./components/HELOCPlanner').then(m => ({ default: m.HELOCPlanner })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const PasscodeLock = lazy(() => import('./components/PasscodeLock').then(m => ({ default: m.PasscodeLock })));
 
 function App() {
   const { t, locale, setLocale } = useI18n();
@@ -122,7 +125,11 @@ function App() {
 
   // Show PIN entry screen if locked
   if (isAppLocked) {
-    return <PasscodeLock onUnlock={handleUnlock} />;
+    return (
+      <Suspense fallback={<div className="container" style={{ padding: '2rem' }} />}>
+        <PasscodeLock onUnlock={handleUnlock} />
+      </Suspense>
+    );
   }
 
   // Primary navigation destinations (shared by the desktop top bar and the mobile bottom bar)
@@ -215,7 +222,9 @@ function App() {
       {/* Main Container */}
       <main className="app-main" style={{ flexGrow: 1 }}>
         <div className="container">
-          {renderTabContent()}
+          <Suspense fallback={<div className="container" style={{ padding: '2rem' }} />}>
+            {renderTabContent()}
+          </Suspense>
         </div>
       </main>
 
