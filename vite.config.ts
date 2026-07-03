@@ -37,6 +37,21 @@ function swVersionPlugin(): Plugin {
 export default defineConfig({
   base: '/Mortimer/',
   plugins: [react(), swVersionPlugin()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Split the React runtime into a stable vendor chunk so it stays cached
+          // across app-code deployments. Only the React core is forced here — Chart.js
+          // is left to Rollup's automatic splitting, which keeps it in its own chunk
+          // loaded on demand by the lazy Paydown/Rate views (never at initial paint).
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) {
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
   test: {
     environment: 'happy-dom',
     include: ['src/**/*.test.{ts,tsx}'],
