@@ -22,17 +22,7 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Commented out Service Worker registration for local development to prevent asset caching issues -->
-    <!--
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered:', reg.scope))
-            .catch(err => console.error('Service Worker registration failed:', err));
-        });
-      }
-    </script>
-    -->
+    <!-- Service Worker is registered by the useServiceWorker hook (src/hooks/useServiceWorker.ts).
+         It self-guards with import.meta.env.PROD so it only runs in production builds. -->
   </body>
 </html>

@@ -19,6 +19,8 @@ import {
   setAppLockedStatus 
 } from './utils/storage';
 import { useI18n } from './utils/i18n';
+import { useServiceWorker } from './hooks/useServiceWorker';
+import { UpdateBanner } from './components/UpdateBanner';
 
 // Import components
 // Dashboard is the default landing tab, so it stays statically imported.
@@ -39,6 +41,7 @@ const releaseUrl = isDev
 
 function App() {
   const { t, locale, setLocale } = useI18n();
+  const { updateState, applyUpdate } = useServiceWorker();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [profile, setProfile] = useState<MortgageInputs | null>(null);
   const [isAppLocked, setIsAppLocked] = useState<boolean>(false);
@@ -171,6 +174,9 @@ function App() {
 
   return (
     <>
+      {updateState === 'update-available' && (
+        <UpdateBanner onReload={applyUpdate} />
+      )}
       {/* Top Header */}
       <header className="app-header">
         <div className="container header-content">
