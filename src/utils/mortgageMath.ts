@@ -42,6 +42,7 @@ export type PaymentFrequency =
 export interface PrepaymentInputs {
   lumpSumAmount: number; // Annual lump sum paid at the end of each year
   doubleUp: boolean; // Double the regular payment (added directly to principal)
+  doubleUpEvery?: number; // Apply the double-up on every Nth payment (1 = every payment). Defaults to 1.
   paymentIncreasePercent: number; // Annual payment increase percentage
   paymentIncreaseFixed: number; // Annual fixed dollar payment increase
 }
@@ -203,7 +204,11 @@ export function calculateAmortization(inputs: MortgageInputs): AmortizationSumma
     
     // 3. Prepayments
     let doubleUpPaid = 0;
-    if (prepayments?.doubleUp && currentBalance - principalPaid > 0.01) {
+    // Double-up recurs on every Nth payment (doubleUpEvery, default 1 = every payment)
+    const doubleUpEvery = prepayments?.doubleUpEvery && prepayments.doubleUpEvery > 0
+      ? Math.floor(prepayments.doubleUpEvery)
+      : 1;
+    if (prepayments?.doubleUp && periodNumber % doubleUpEvery === 0 && currentBalance - principalPaid > 0.01) {
       // Double up payment is equal to the base payment amount, applied to principal
       doubleUpPaid = basePaymentForPeriod;
       if (doubleUpPaid > currentBalance - principalPaid) {

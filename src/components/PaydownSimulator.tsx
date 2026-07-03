@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, ChevronUp, DollarSign, Percent, Sparkles } from 'lucide-react';
+import { DollarSign, Eraser, Percent, Sparkles } from 'lucide-react';
 import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
@@ -115,6 +115,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(initialProfile?.prepayments?.lumpSumAmount || 0);
   const [doubleUp, setDoubleUp] = useState<boolean>(initialProfile?.prepayments?.doubleUp || false);
+  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(initialProfile?.prepayments?.doubleUpEvery || 1);
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
@@ -151,12 +152,13 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
+        doubleUpEvery,
         paymentIncreasePercent,
         paymentIncreaseFixed
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -180,16 +182,18 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     const prepay = showPrepayments ? {
       lumpSumAmount,
       doubleUp,
+      doubleUpEvery,
       paymentIncreasePercent,
       paymentIncreaseFixed
     } : undefined;
-    
+
     const initPrepay = initialProfile.prepayments;
 
     const prepaymentsEqual = (!prepay && !initPrepay) || (
       !!prepay && !!initPrepay &&
       prepay.lumpSumAmount === initPrepay.lumpSumAmount &&
       prepay.doubleUp === initPrepay.doubleUp &&
+      (prepay.doubleUpEvery || 1) === (initPrepay.doubleUpEvery || 1) &&
       prepay.paymentIncreasePercent === initPrepay.paymentIncreasePercent &&
       prepay.paymentIncreaseFixed === initPrepay.paymentIncreaseFixed
     );
@@ -211,7 +215,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   }, [
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
-    showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
+    showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
   ]);
 
   // Set to pending when inputs change compared to initialProfile
@@ -247,6 +251,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         prepayments: showPrepayments ? {
           lumpSumAmount,
           doubleUp,
+          doubleUpEvery,
           paymentIncreasePercent,
           paymentIncreaseFixed
         } : undefined
@@ -263,7 +268,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     isDirty,
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
-    showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed,
+    showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
     onSaveProfile
   ]);
 
@@ -357,6 +362,34 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   };
 
   const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || paymentFrequency.includes('accelerated'));
+
+  // Payments per year for the current frequency — bounds the double-up interval slider (max once per year)
+  const ppy = getPaymentsPerYear(paymentFrequency);
+
+  // Keep the double-up interval within [1, ppy] as frequency changes
+  useEffect(() => {
+    setDoubleUpEvery((prev) => Math.min(Math.max(1, prev), ppy));
+  }, [ppy]);
+
+  // Human-friendly description of how often the double-up applies
+  const doubleUpFrequencyLabel = useMemo(() => {
+    if (doubleUpEvery <= 1) return t.paydown.everyPayment;
+    return t.paydown.everyNPayments.replace('{n}', String(doubleUpEvery));
+  }, [doubleUpEvery, t]);
+
+  const doubleUpTimesPerYear = useMemo(() => {
+    const times = ppy / Math.max(1, doubleUpEvery);
+    return times >= 1 ? Math.round(times) : Math.round(times * 10) / 10;
+  }, [ppy, doubleUpEvery]);
+
+  // Reset all extra-payment inputs back to their defaults
+  const clearExtraPayments = () => {
+    setLumpSumAmount(0);
+    setDoubleUp(false);
+    setDoubleUpEvery(ppy);
+    setPaymentIncreasePercent(0);
+    setPaymentIncreaseFixed(0);
+  };
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -619,90 +652,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             </div>
           </div>
 
-          {/* Prepayments Toggle Button */}
-          <div>
-            <button 
-              type="button" 
-              className="btn btn-secondary w-full justify-between" 
-              onClick={() => setShowPrepayments(!showPrepayments)}
-            >
-              <span>{t.paydown.simulateExtra}</span>
-              {showPrepayments ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
-          </div>
-
-          {/* Prepayments Drawer */}
-          {showPrepayments && (
-            <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.25rem' }}>
-              
-              {/* Lump Sum */}
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  <span>{t.paydown.lumpSum}</span>
-                  <span className="form-label-val">${lumpSumAmount.toLocaleString()}</span>
-                </label>
-                <div className="form-input-wrapper">
-                  <DollarSign size={14} className="form-input-prefix" />
-                  <input 
-                    type="number" 
-                    className="form-input form-input-with-prefix" 
-                    value={lumpSumAmount} 
-                    onChange={(e) => setLumpSumAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  />
-                </div>
-              </div>
-
-              {/* Double Up */}
-              <div className="settings-item" style={{ borderBottom: 'none', padding: '0.25rem 0' }}>
-                <div className="settings-item-info">
-                  <div className="settings-item-title" style={{ fontSize: '0.9rem' }}>{t.paydown.doubleUp}</div>
-                  <div className="settings-item-desc" style={{ fontSize: '0.75rem' }}>{t.paydown.doubleUpDesc}</div>
-                </div>
-                <label className="toggle-switch">
-                  <input 
-                    type="checkbox" 
-                    checked={doubleUp} 
-                    onChange={(e) => setDoubleUp(e.target.checked)}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-
-              {/* Payment Increase Percent */}
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  <span>{t.paydown.annualIncreasePercent}</span>
-                  <span className="form-label-val">{paymentIncreasePercent}%</span>
-                </label>
-                <input 
-                  type="range" 
-                  className="slider-input" 
-                  min="0" 
-                  max="20" 
-                  step="0.5"
-                  value={paymentIncreasePercent} 
-                  onChange={(e) => setPaymentIncreasePercent(parseFloat(e.target.value))}
-                />
-              </div>
-
-              {/* Payment Increase Fixed */}
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">
-                  <span>{t.paydown.annualIncreaseDollar}</span>
-                  <span className="form-label-val">${paymentIncreaseFixed.toLocaleString()}</span>
-                </label>
-                <div className="form-input-wrapper">
-                  <DollarSign size={14} className="form-input-prefix" />
-                  <input 
-                    type="number" 
-                    className="form-input form-input-with-prefix" 
-                    value={paymentIncreaseFixed} 
-                    onChange={(e) => setPaymentIncreaseFixed(Math.max(0, parseInt(e.target.value) || 0))}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Charts & Outcomes Panel */}
@@ -766,6 +715,142 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div style={{ flexGrow: 1, position: 'relative', height: '240px' }}>
               <Line data={chartData} options={chartOptions} />
             </div>
+          </div>
+
+          {/* Simulate Extra Payments (extracted section, directly below the graph) */}
+          <div className={`card card-${saveStatus}`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: showPrepayments ? '1rem' : '0.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
+                {t.paydown.simulateExtra}
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={clearExtraPayments}
+                  style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', gap: '0.35rem' }}
+                  title={t.paydown.clearExtra}
+                >
+                  <Eraser size={14} />
+                  {t.paydown.clearExtra}
+                </button>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={showPrepayments}
+                    onChange={(e) => setShowPrepayments(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            {!showPrepayments && (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                {t.paydown.extraDisabledHint}
+              </p>
+            )}
+
+            {showPrepayments && (
+              <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+
+                {/* Anniversary Lump Sum */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    <span>{t.paydown.lumpSum}</span>
+                    <span className="form-label-val">${lumpSumAmount.toLocaleString()}</span>
+                  </label>
+                  <div className="form-input-wrapper">
+                    <DollarSign size={14} className="form-input-prefix" />
+                    <input
+                      type="number"
+                      className="form-input form-input-with-prefix"
+                      value={lumpSumAmount}
+                      onChange={(e) => setLumpSumAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                    {t.paydown.lumpSumHint}
+                  </span>
+                </div>
+
+                {/* Double-Up + interval */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="settings-item" style={{ borderBottom: 'none', padding: 0 }}>
+                    <div className="settings-item-info">
+                      <div className="settings-item-title" style={{ fontSize: '0.9rem' }}>{t.paydown.doubleUp}</div>
+                      <div className="settings-item-desc" style={{ fontSize: '0.75rem' }}>{t.paydown.doubleUpDesc}</div>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={doubleUp}
+                        onChange={(e) => setDoubleUp(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  {doubleUp && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <label className="form-label">
+                        <span>{t.paydown.doubleUpFrequency}</span>
+                        <span className="form-label-val">{doubleUpFrequencyLabel}</span>
+                      </label>
+                      {/* Slider is reversed: left = 1×/year (interval = ppy, minimum), right = every payment (interval = 1) */}
+                      <input
+                        type="range"
+                        className="slider-input"
+                        min="1"
+                        max={ppy}
+                        step="1"
+                        value={ppy + 1 - doubleUpEvery}
+                        onChange={(e) => setDoubleUpEvery(ppy + 1 - (parseInt(e.target.value) || 1))}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                        {t.paydown.doubleUpTimesPerYear.replace('{n}', String(doubleUpTimesPerYear))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment Increase Percent */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    <span>{t.paydown.annualIncreasePercent}</span>
+                    <span className="form-label-val">{paymentIncreasePercent}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    className="slider-input"
+                    min="0"
+                    max="20"
+                    step="0.5"
+                    value={paymentIncreasePercent}
+                    onChange={(e) => setPaymentIncreasePercent(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                {/* Payment Increase Fixed */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">
+                    <span>{t.paydown.annualIncreaseDollar}</span>
+                    <span className="form-label-val">${paymentIncreaseFixed.toLocaleString()}</span>
+                  </label>
+                  <div className="form-input-wrapper">
+                    <DollarSign size={14} className="form-input-prefix" />
+                    <input
+                      type="number"
+                      className="form-input form-input-with-prefix"
+                      value={paymentIncreaseFixed}
+                      onChange={(e) => setPaymentIncreaseFixed(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
 
         </div>

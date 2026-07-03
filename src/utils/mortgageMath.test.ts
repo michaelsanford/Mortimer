@@ -255,6 +255,51 @@ describe('calculateAmortization', () => {
       // Most periods should have double-up (all except maybe the last)
       expect(periodsWithDoubleUp.length).toBeGreaterThan(result.schedule.length * 0.9);
     });
+
+    it('treats a missing doubleUpEvery the same as every payment (interval 1)', () => {
+      const everyOne = calculateAmortization({
+        ...inputs,
+        prepayments: { ...inputs.prepayments!, doubleUpEvery: 1 },
+      });
+      const noInterval = calculateAmortization(inputs);
+      expect(everyOne.yearsToPayoff).toBe(noInterval.yearsToPayoff);
+      expect(everyOne.totalInterestPaid).toBe(noInterval.totalInterestPaid);
+    });
+  });
+
+  describe('with interval double-up payments (doubleUpEvery)', () => {
+    const baseInputs: MortgageInputs = {
+      principal: 500000,
+      interestRate: 5,
+      amortizationYears: 25,
+      paymentFrequency: 'monthly',
+      prepayments: {
+        lumpSumAmount: 0,
+        doubleUp: true,
+        doubleUpEvery: 6,
+        paymentIncreasePercent: 0,
+        paymentIncreaseFixed: 0,
+      },
+    };
+
+    it('only applies the double-up on multiples of the interval', () => {
+      const result = calculateAmortization(baseInputs);
+      const doubleUpPeriods = result.schedule.filter(p => p.doubleUpAmount > 0);
+      // Every double-up must land on a period that is a multiple of 6
+      expect(doubleUpPeriods.length).toBeGreaterThan(0);
+      expect(doubleUpPeriods.every(p => p.periodNumber % 6 === 0)).toBe(true);
+    });
+
+    it('pays off slower than doubling every payment but faster than none', () => {
+      const interval = calculateAmortization(baseInputs);
+      const everyPayment = calculateAmortization({
+        ...baseInputs,
+        prepayments: { ...baseInputs.prepayments!, doubleUpEvery: 1 },
+      });
+      const none = calculateAmortization({ ...baseInputs, prepayments: undefined });
+      expect(interval.yearsToPayoff).toBeGreaterThan(everyPayment.yearsToPayoff);
+      expect(interval.yearsToPayoff).toBeLessThan(none.yearsToPayoff);
+    });
   });
 
   describe('with payment increase', () => {
