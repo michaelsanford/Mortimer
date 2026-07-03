@@ -94,6 +94,7 @@ function App() {
         return (
           <RateComparer 
             profile={profile}
+            onSaveProfile={handleSaveProfile}
           />
         );
       case 'heloc':

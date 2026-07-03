@@ -13,6 +13,19 @@ export interface MortgageInputs {
   originalAmortizationYears?: number; // Original amortization period in years
   originalAmortizationMonths?: number; // Original amortization period in months
   originalTermYears?: number; // Original term length in years
+
+  // Rate Comparer Persistence
+  offers?: any[];
+  renewalBalance?: number;
+  renewalAmortization?: number;
+  refinanceBalance?: number;
+  refinanceCurrentRate?: number;
+  refinanceRemainingTerm?: number;
+  refinanceAmortization?: number;
+  refinanceNewRate?: number;
+  refinancePenaltyType?: 'three_months_interest' | 'ird' | 'custom';
+  refinanceCustomPenalty?: number;
+  refinanceFees?: number;
 }
 
 export type PaymentFrequency =

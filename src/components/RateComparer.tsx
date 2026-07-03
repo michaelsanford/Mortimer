@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
@@ -32,6 +32,7 @@ interface Offer {
 
 interface RateComparerProps {
   profile: MortgageInputs | null;
+  onSaveProfile?: (newProfile: MortgageInputs) => void;
 }
 
 const calculateRemainingMonths = (maturityDateStr: string) => {
@@ -42,7 +43,7 @@ const calculateRemainingMonths = (maturityDateStr: string) => {
   return Math.max(1, diffMonths);
 };
 
-export const RateComparer: React.FC<RateComparerProps> = ({ profile }) => {
+export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfile }) => {
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
 
   const defaultBalance = profile?.principal || 400000;
@@ -50,14 +51,23 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile }) => {
   const defaultAmortization = profile?.amortizationYears || 25;
 
   // Renewal states
-  const [renewalBalance, setRenewalBalance] = useState<number>(defaultBalance);
-  const [renewalAmortization, setRenewalAmortization] = useState<number>(defaultAmortization);
+  const [renewalBalance, setRenewalBalance] = useState<number>(() => {
+    return profile?.renewalBalance || defaultBalance;
+  });
+  const [renewalAmortization, setRenewalAmortization] = useState<number>(() => {
+    return profile?.renewalAmortization || defaultAmortization;
+  });
   
-  const [offers, setOffers] = useState<Offer[]>([
-    { id: 'baseline', name: 'Baseline Offer', rate: defaultRate, term: profile?.termYears || 5, type: 'fixed' },
-    { id: 'offer_2', name: 'Option B', rate: 5.15, term: 3, type: 'fixed' },
-    { id: 'offer_3', name: 'Option C', rate: 4.45, term: 5, type: 'variable' }
-  ]);
+  const [offers, setOffers] = useState<Offer[]>(() => {
+    if (profile?.offers && profile.offers.length > 0) {
+      return profile.offers;
+    }
+    return [
+      { id: 'baseline', name: 'Baseline Offer', rate: defaultRate, term: 5, type: 'fixed' },
+      { id: 'offer_2', name: 'Option B', rate: 5.15, term: 3, type: 'fixed' },
+      { id: 'offer_3', name: 'Option C', rate: 4.45, term: 5, type: 'variable' }
+    ];
+  });
 
   const handleAddOffer = () => {
     if (offers.length >= 10) return;
@@ -81,16 +91,80 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile }) => {
   };
 
   // Refinance states
-  const [refinanceBalance, setRefinanceBalance] = useState<number>(defaultBalance);
-  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(defaultRate);
+  const [refinanceBalance, setRefinanceBalance] = useState<number>(() => {
+    return profile?.refinanceBalance || defaultBalance;
+  });
+  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(() => {
+    return profile?.refinanceCurrentRate || defaultRate;
+  });
   const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number>(() => {
+    if (profile?.refinanceRemainingTerm !== undefined) return profile.refinanceRemainingTerm;
     return profile?.maturityDate ? calculateRemainingMonths(profile.maturityDate) : 36;
   });
-  const [refinanceAmortization, setRefinanceAmortization] = useState<number>(defaultAmortization);
-  const [refinanceNewRate, setRefinanceNewRate] = useState<number>(4.49);
-  const [refinancePenaltyType, setRefinancePenaltyType] = useState<'three_months_interest' | 'ird' | 'custom'>('ird');
-  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number>(0);
-  const [refinanceFees, setRefinanceFees] = useState<number>(1500); // Legal, Appraisal
+  const [refinanceAmortization, setRefinanceAmortization] = useState<number>(() => {
+    return profile?.refinanceAmortization || defaultAmortization;
+  });
+  const [refinanceNewRate, setRefinanceNewRate] = useState<number>(() => {
+    return profile?.refinanceNewRate || 4.49;
+  });
+  const [refinancePenaltyType, setRefinancePenaltyType] = useState<'three_months_interest' | 'ird' | 'custom'>(() => {
+    return profile?.refinancePenaltyType || 'ird';
+  });
+  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number>(() => {
+    return profile?.refinanceCustomPenalty || 0;
+  });
+  const [refinanceFees, setRefinanceFees] = useState<number>(() => {
+    return profile?.refinanceFees !== undefined ? profile.refinanceFees : 1500;
+  });
+
+  // Auto-save useEffect hook
+  useEffect(() => {
+    if (!profile || !onSaveProfile) return;
+
+    const offersChanged = JSON.stringify(offers) !== JSON.stringify(profile.offers);
+    const othersChanged = 
+      renewalBalance !== profile.renewalBalance ||
+      renewalAmortization !== profile.renewalAmortization ||
+      refinanceBalance !== profile.refinanceBalance ||
+      refinanceCurrentRate !== profile.refinanceCurrentRate ||
+      refinanceRemainingTerm !== profile.refinanceRemainingTerm ||
+      refinanceAmortization !== profile.refinanceAmortization ||
+      refinanceNewRate !== profile.refinanceNewRate ||
+      refinancePenaltyType !== profile.refinancePenaltyType ||
+      refinanceCustomPenalty !== profile.refinanceCustomPenalty ||
+      refinanceFees !== profile.refinanceFees;
+
+    if (offersChanged || othersChanged) {
+      onSaveProfile({
+        ...profile,
+        offers,
+        renewalBalance,
+        renewalAmortization,
+        refinanceBalance,
+        refinanceCurrentRate,
+        refinanceRemainingTerm,
+        refinanceAmortization,
+        refinanceNewRate,
+        refinancePenaltyType,
+        refinanceCustomPenalty,
+        refinanceFees
+      });
+    }
+  }, [
+    offers,
+    renewalBalance,
+    renewalAmortization,
+    refinanceBalance,
+    refinanceCurrentRate,
+    refinanceRemainingTerm,
+    refinanceAmortization,
+    refinanceNewRate,
+    refinancePenaltyType,
+    refinanceCustomPenalty,
+    refinanceFees,
+    profile,
+    onSaveProfile
+  ]);
 
   // 1. Renewal calculations
   const renewalResults = useMemo(() => {
