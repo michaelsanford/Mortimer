@@ -284,6 +284,49 @@ p {
   box-shadow: var(--shadow-sm);
 }
 
+.app-main {
+  padding: 2rem 0;
+}
+
+/* Mobile bottom navigation (hidden on desktop, shown under 768px) */
+.mobile-nav {
+  display: none;
+}
+
+.mobile-nav-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.65rem;
+  padding: 0.4rem 0.15rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.mobile-nav-btn span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-nav-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-nav-btn.active {
+  color: var(--color-primary);
+}
+
 /* Inputs & Form Controls */
 .form-group {
   margin-bottom: 1.25rem;
@@ -819,6 +862,38 @@ input:checked + .toggle-slider:before {
   h2 { font-size: 1.5rem; }
   .grid { gap: 1rem; }
   .card { padding: 1.25rem; }
+
+  /* Swap the scrollable top tab strip for a fixed bottom bar */
+  .tabs-navigation {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 0.15rem;
+    background: rgba(8, 12, 20, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+    padding: 0.4rem 0.25rem;
+    padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Ensure page content is never hidden behind the fixed bottom bar */
+  .app-main {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-footer {
+    margin-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @keyframes spin {

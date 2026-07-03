@@ -125,6 +125,15 @@ function App() {
     return <PasscodeLock onUnlock={handleUnlock} />;
   }
 
+  // Primary navigation destinations (shared by the desktop top bar and the mobile bottom bar)
+  const navItems = [
+    { id: 'dashboard', label: t.nav.dashboard, Icon: LayoutDashboard },
+    { id: 'paydown', label: t.nav.paydown, Icon: TrendingDown },
+    { id: 'rate', label: t.nav.rate, Icon: Percent },
+    { id: 'heloc', label: t.nav.heloc, Icon: Calculator },
+    { id: 'settings', label: t.nav.settings, Icon: SettingsIcon },
+  ];
+
   return (
     <>
       {/* Top Header */}
@@ -137,48 +146,20 @@ function App() {
             <span>{t.app.name}</span>
           </a>
 
-          {/* Navigation Bar */}
-          <nav className="tabs-navigation">
-            <button 
-              type="button" 
-              className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              <LayoutDashboard size={16} />
-              <span>{t.nav.dashboard}</span>
-            </button>
-            <button 
-              type="button" 
-              className={`tab-btn ${activeTab === 'paydown' ? 'active' : ''}`}
-              onClick={() => setActiveTab('paydown')}
-            >
-              <TrendingDown size={16} />
-              <span>{t.nav.paydown}</span>
-            </button>
-            <button 
-              type="button" 
-              className={`tab-btn ${activeTab === 'rate' ? 'active' : ''}`}
-              onClick={() => setActiveTab('rate')}
-            >
-              <Percent size={16} />
-              <span>{t.nav.rate}</span>
-            </button>
-            <button 
-              type="button" 
-              className={`tab-btn ${activeTab === 'heloc' ? 'active' : ''}`}
-              onClick={() => setActiveTab('heloc')}
-            >
-              <Calculator size={16} />
-              <span>{t.nav.heloc}</span>
-            </button>
-            <button 
-              type="button" 
-              className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('settings')}
-            >
-              <SettingsIcon size={16} />
-              <span>{t.nav.settings}</span>
-            </button>
+          {/* Navigation Bar (desktop) */}
+          <nav className="tabs-navigation" aria-label={t.app.name}>
+            {navItems.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className={`tab-btn ${activeTab === id ? 'active' : ''}`}
+                onClick={() => setActiveTab(id)}
+                aria-current={activeTab === id ? 'page' : undefined}
+              >
+                <Icon size={16} />
+                <span>{label}</span>
+              </button>
+            ))}
           </nav>
 
           {/* Language Picker */}
@@ -232,11 +213,27 @@ function App() {
       </header>
 
       {/* Main Container */}
-      <main style={{ flexGrow: 1, padding: '2rem 0' }}>
+      <main className="app-main" style={{ flexGrow: 1 }}>
         <div className="container">
           {renderTabContent()}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-nav" aria-label={t.app.name}>
+        {navItems.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={`mobile-nav-btn ${activeTab === id ? 'active' : ''}`}
+            onClick={() => setActiveTab(id)}
+            aria-current={activeTab === id ? 'page' : undefined}
+          >
+            <Icon size={20} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* App Footer */}
       <footer className="app-footer">
