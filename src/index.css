@@ -1016,8 +1016,63 @@ input:checked + .toggle-slider:before {
   to { transform: scale(1); opacity: 1; }
 }
 
-@keyframes pulse {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.6; }
+/* ─── Update Banner ───────────────────────────────────────────────────────── */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  box-shadow: 0 2px 12px rgba(79, 70, 229, 0.5);
+  animation: slideDownFade 0.3s ease forwards;
+}
+
+.update-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.update-banner-icon {
+  flex-shrink: 0;
+  animation: spin 2s linear infinite;
+}
+
+.update-banner-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.update-banner-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.04);
+}
+
+.update-banner-btn:active {
+  transform: scale(0.97);
+}
+
+@keyframes slideDownFade {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
