@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Landmark, TrendingDown, Clock, ShieldAlert, Award } from 'lucide-react';
 import { calculateAmortization } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
@@ -19,6 +19,17 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => {
   const { t } = useI18n();
+
+  // Amortization is recomputed only when the profile changes, not on every render.
+  // Hooks must run unconditionally, so these are computed above the null-profile guard.
+  const results = useMemo(
+    () => (profile ? calculateAmortization(profile) : null),
+    [profile]
+  );
+  const baseAmortization = useMemo(
+    () => (profile ? calculateAmortization({ ...profile, prepayments: undefined }) : null),
+    [profile]
+  );
 
   if (!profile) {
     return (
@@ -46,17 +57,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
     );
   }
 
-  // Calculate amortization details
-  const results = calculateAmortization(profile);
+  // profile is non-null past the guard above, so the memoized results are too.
+  if (!results || !baseAmortization) return null;
+
   const totalPrincipal = profile.principal;
-  
-  // Calculate paid-off details
-  // Let's assume the user starts fresh, or we can check the schedule.
-  // In our simple dashboard, we show what is planned over the amortization.
-  const baseAmortization = calculateAmortization({
-    ...profile,
-    prepayments: undefined
-  });
 
   const timeSaved = baseAmortization.yearsToPayoff - results.yearsToPayoff;
   const interestSaved = baseAmortization.totalInterestPaid - results.totalInterestPaid;
