@@ -95,6 +95,36 @@ const calculateRemainingMonths = (maturityDateStr: string) => {
   return Math.max(1, diffMonths);
 };
 
+const estimateRemainingAmortization = (
+  balance: number,
+  rate: number,
+  payment: number,
+  frequency: PaymentFrequency,
+  compounding: 'semi_annual' | 'monthly'
+): { years: number; months: number } | null => {
+  if (balance <= 0.01) return { years: 0, months: 0 };
+  
+  const periodRate = getPeriodInterestRate(rate, frequency, compounding);
+  if (payment <= balance * periodRate) {
+    return null; // Infinite amortization
+  }
+  
+  try {
+    const n = -Math.log(1 - (balance * periodRate) / payment) / Math.log(1 + periodRate);
+    const ppy = getPaymentsPerYear(frequency);
+    const totalYears = n / ppy;
+    const years = Math.floor(totalYears);
+    const months = Math.round((totalYears - years) * 12);
+    
+    if (months === 12) {
+      return { years: years + 1, months: 0 };
+    }
+    return { years, months };
+  } catch (e) {
+    return null;
+  }
+};
+
 export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfile }) => {
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
@@ -276,11 +306,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         balance = Math.max(0, balance - principalPaid);
       }
 
+      const remainingAmortization = estimateRemainingAmortization(balance, rate, monthlyPayment, renewalFrequency, compounding);
+
       return {
         monthlyPayment,
         totalInterest,
         totalPrincipal,
-        endingBalance: balance
+        endingBalance: balance,
+        remainingAmortization
       };
     };
 
@@ -683,6 +716,17 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                           <strong>${o.results.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
                         </td>
                       ))}
+                    </tr>
+                    <tr>
+                      <td>Amortization at Term End</td>
+                      {renewalResults.map(o => {
+                        const amort = o.results.remainingAmortization;
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', fontWeight: 600 }}>
+                            {amort ? `${amort.years} Yrs, ${amort.months} Mos` : 'Never Payoff'}
+                          </td>
+                        );
+                      })}
                     </tr>
                   </tbody>
                 </table>
