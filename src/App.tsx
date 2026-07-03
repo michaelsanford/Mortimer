@@ -6,8 +6,11 @@ import {
   Percent, 
   Calculator, 
   LayoutDashboard,
-  ShieldCheck
+  ShieldCheck,
+  Globe,
+  ChevronDown
 } from 'lucide-react';
+import type { Locale } from './utils/i18n';
 import type { MortgageInputs } from './utils/mortgageMath';
 import { 
   loadProfile, 
@@ -34,6 +37,25 @@ function App() {
   const [profile, setProfile] = useState<MortgageInputs | null>(null);
   const [isAppLocked, setIsAppLocked] = useState<boolean>(false);
   const [currentPin, setCurrentPin] = useState<string>('');
+  const [isLangOpen, setIsLangOpen] = useState<boolean>(false);
+
+  // Close language dropdown on outside click
+  useEffect(() => {
+    if (!isLangOpen) return;
+    const handleClose = () => setIsLangOpen(false);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [isLangOpen]);
+
+  const languages: { code: Locale; label: string; short: string }[] = [
+    { code: 'en', label: 'English', short: 'EN' },
+    { code: 'fr', label: 'Français', short: 'FR' },
+    { code: 'zh', label: '简体中文', short: 'ZH' },
+    { code: 'pa', label: 'ਪੰਜਾਬੀ', short: 'PA' },
+    { code: 'zh-HK', label: '繁體中文', short: 'HK' },
+    { code: 'es', label: 'Español', short: 'ES' },
+    { code: 'ar', label: 'العربية', short: 'AR' }
+  ];
 
   // Initial load
   useEffect(() => {
@@ -171,50 +193,41 @@ function App() {
 
           {/* Language Picker */}
           <div 
-            className="language-picker" 
-            role="radiogroup" 
-            aria-label={t.language.label}
-            style={{ display: 'flex', alignItems: 'center', gap: 0, fontSize: '0.75rem', fontWeight: 600 }}
+            className="language-dropdown-container"
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
-              onClick={() => setLocale('en')}
-              aria-pressed={locale === 'en'}
-              style={{
-                background: locale === 'en' ? 'var(--color-accent)' : 'transparent',
-                color: locale === 'en' ? 'white' : 'var(--text-secondary)',
-                border: '1px solid ' + (locale === 'en' ? 'var(--color-accent)' : 'var(--border-color)'),
-                borderRight: 'none',
-                borderRadius: '0.375rem 0 0 0.375rem',
-                padding: '0.3rem 0.5rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                lineHeight: 1,
-                transition: 'all 0.15s ease',
-              }}
+              className={`language-dropdown-trigger ${isLangOpen ? 'open' : ''}`}
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              aria-expanded={isLangOpen}
+              aria-haspopup="listbox"
+              aria-label={t.language.label}
             >
-              EN
+              <Globe size={14} />
+              <span>{languages.find(l => l.code === locale)?.short || locale.toUpperCase()}</span>
+              <ChevronDown size={12} className="language-dropdown-arrow" />
             </button>
-            <button
-              type="button"
-              onClick={() => setLocale('fr')}
-              aria-pressed={locale === 'fr'}
-              style={{
-                background: locale === 'fr' ? 'var(--color-accent)' : 'transparent',
-                color: locale === 'fr' ? 'white' : 'var(--text-secondary)',
-                border: '1px solid ' + (locale === 'fr' ? 'var(--color-accent)' : 'var(--border-color)'),
-                borderRadius: '0 0.375rem 0.375rem 0',
-                padding: '0.3rem 0.5rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                lineHeight: 1,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              FR
-            </button>
+
+            {isLangOpen && (
+              <div className="language-dropdown-menu" role="listbox" aria-label={t.language.label}>
+                {languages.map(({ code, label }) => (
+                  <button
+                    key={code}
+                    type="button"
+                    role="option"
+                    aria-selected={locale === code}
+                    className={`language-dropdown-item ${locale === code ? 'active' : ''}`}
+                    onClick={() => {
+                      setLocale(code);
+                      setIsLangOpen(false);
+                    }}
+                  >
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </header>
