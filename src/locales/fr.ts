@@ -8,8 +8,8 @@ export const fr = {
   // Navigation
   nav: {
     dashboard: 'Tableau de bord',
-    paydown: 'Simulateur de remboursement',
-    rate: 'Comparateur de taux',
+    paydown: 'Remboursement',
+    rate: 'Taux',
     heloc: 'Réno & MCBI',
     settings: 'Paramètres',
   },

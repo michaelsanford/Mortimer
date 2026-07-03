@@ -263,8 +263,8 @@ p {
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.9rem;
   border-radius: 0.5rem;
   cursor: pointer;
   display: flex;

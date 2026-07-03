@@ -6,8 +6,7 @@ import {
   Percent, 
   Calculator, 
   LayoutDashboard,
-  ShieldCheck,
-  Languages
+  ShieldCheck
 } from 'lucide-react';
 import type { MortgageInputs } from './utils/mortgageMath';
 import { 
@@ -16,7 +15,7 @@ import {
   getPasscodeConfig, 
   setAppLockedStatus 
 } from './utils/storage';
-import { useI18n, type Locale } from './utils/i18n';
+import { useI18n } from './utils/i18n';
 
 // Import components
 import { Dashboard } from './components/Dashboard';
@@ -183,25 +182,51 @@ function App() {
           </nav>
 
           {/* Language Picker */}
-          <div className="language-picker" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Languages size={16} style={{ color: 'var(--text-secondary)' }} />
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as Locale)}
-              aria-label={t.language.label}
+          <div 
+            className="language-picker" 
+            role="radiogroup" 
+            aria-label={t.language.label}
+            style={{ display: 'flex', alignItems: 'center', gap: 0, fontSize: '0.75rem', fontWeight: 600 }}
+          >
+            <button
+              type="button"
+              onClick={() => setLocale('en')}
+              aria-pressed={locale === 'en'}
               style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '0.375rem',
-                padding: '0.25rem 0.5rem',
-                fontSize: '0.8rem',
-                color: 'var(--text-primary)',
-                cursor: 'pointer'
+                background: locale === 'en' ? 'var(--color-accent)' : 'transparent',
+                color: locale === 'en' ? 'white' : 'var(--text-secondary)',
+                border: '1px solid ' + (locale === 'en' ? 'var(--color-accent)' : 'var(--border-color)'),
+                borderRight: 'none',
+                borderRadius: '0.375rem 0 0 0.375rem',
+                padding: '0.3rem 0.5rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                lineHeight: 1,
+                transition: 'all 0.15s ease',
               }}
             >
-              <option value="en">{t.language.en}</option>
-              <option value="fr">{t.language.fr}</option>
-            </select>
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocale('fr')}
+              aria-pressed={locale === 'fr'}
+              style={{
+                background: locale === 'fr' ? 'var(--color-accent)' : 'transparent',
+                color: locale === 'fr' ? 'white' : 'var(--text-secondary)',
+                border: '1px solid ' + (locale === 'fr' ? 'var(--color-accent)' : 'var(--border-color)'),
+                borderRadius: '0 0.375rem 0.375rem 0',
+                padding: '0.3rem 0.5rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                lineHeight: 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              FR
+            </button>
           </div>
         </div>
       </header>
