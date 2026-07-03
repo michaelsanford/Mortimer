@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DollarSign, CheckSquare, Square, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateHELOC, calculateRegularPayment } from '../utils/mortgageMath';
+import { useI18n } from '../utils/i18n';
 
 interface HELOCPlannerProps {
   currentHomeValue: number;
@@ -18,6 +19,8 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
   currentHomeValue: defaultHomeValue,
   currentBalance: defaultBalance
 }) => {
+  const { t } = useI18n();
+
   // Financial inputs
   const [homeValue, setHomeValue] = useState<number>(defaultHomeValue || 650000);
   const [mortgageBalance, setMortgageBalance] = useState<number>(defaultBalance || 350000);
@@ -30,12 +33,12 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
 
   // Reno Checklist
   const [renoItems, setRenoItems] = useState<RenoItem[]>([
-    { id: 'kitchen', name: 'Kitchen Remodel', cost: 35000, selected: false },
-    { id: 'bathroom', name: 'Bathroom Remodel', cost: 15000, selected: false },
-    { id: 'basement', name: 'Basement Finishing', cost: 30000, selected: false },
-    { id: 'roof', name: 'Roof Replacement', cost: 12000, selected: false },
-    { id: 'hvac', name: 'HVAC / Heat Pump Upgrades', cost: 15000, selected: false },
-    { id: 'landscaping', name: 'Landscaping & Deck', cost: 10000, selected: false }
+    { id: 'kitchen', name: t.heloc.kitchen, cost: 35000, selected: false },
+    { id: 'bathroom', name: t.heloc.bathroom, cost: 15000, selected: false },
+    { id: 'basement', name: t.heloc.basement, cost: 30000, selected: false },
+    { id: 'roof', name: t.heloc.roof, cost: 12000, selected: false },
+    { id: 'hvac', name: t.heloc.hvac, cost: 15000, selected: false },
+    { id: 'landscaping', name: t.heloc.landscaping, cost: 10000, selected: false }
   ]);
 
   // Toggle selection
@@ -114,8 +117,8 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Reno & Equity Planner</h2>
-        <p style={{ fontSize: '0.95rem' }}>Estimate the cost of upcoming home renovations and see how they can be financed using a Home Equity Line of Credit (HELOC).</p>
+        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>{t.heloc.title}</h2>
+        <p style={{ fontSize: '0.95rem' }}>{t.heloc.subtitle}</p>
       </div>
 
       <div className="grid-heloc">
@@ -125,14 +128,14 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
           {/* Equity Inputs */}
           <div className="card flex flex-col gap-4">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-              Property Equity Details
+              {t.heloc.propertyEquity}
             </h3>
 
             <div className="flex gap-4">
               {/* Home Value */}
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  <span>Home Market Value</span>
+                  <span>{t.heloc.homeValue}</span>
                   <span className="form-label-val">${homeValue.toLocaleString()}</span>
                 </label>
                 <div className="form-input-wrapper">
@@ -149,7 +152,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               {/* Balance */}
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  <span>Outstanding Mortgage</span>
+                  <span>{t.heloc.outstandingMortgage}</span>
                   <span className="form-label-val">${mortgageBalance.toLocaleString()}</span>
                 </label>
                 <div className="form-input-wrapper">
@@ -167,7 +170,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
             {/* HELOC Rates setting */}
             <div className="flex gap-4">
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>Canada Prime Rate</label>
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.heloc.primeRate}</label>
                 <input 
                   type="number" 
                   step="0.01" 
@@ -177,7 +180,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                 />
               </div>
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.8rem' }}>HELOC Premium (+%)</label>
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.heloc.helocPremium}</label>
                 <input 
                   type="number" 
                   step="0.05" 
@@ -192,7 +195,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
           {/* Reno Checklist Card */}
           <div className="card">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Renovation Checklist
+              {t.heloc.renoChecklist}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -291,11 +294,11 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
 
             {/* Custom Addition Form */}
             <form onSubmit={handleAddCustomItem} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-              <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Add Custom Project</h4>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>{t.heloc.addCustom}</h4>
               <div className="flex gap-4">
                 <input 
                   type="text" 
-                  placeholder="Project Name (e.g. Pool)" 
+                  placeholder={t.heloc.projectName} 
                   className="form-input" 
                   style={{ flexGrow: 2 }}
                   value={customRenoName}
@@ -305,7 +308,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                   <DollarSign size={14} className="form-input-prefix" />
                   <input 
                     type="number" 
-                    placeholder="Cost" 
+                    placeholder={t.heloc.cost} 
                     className="form-input form-input-with-prefix" 
                     value={customRenoCost || ''}
                     onChange={(e) => setCustomRenoCost(parseInt(e.target.value) || 0)}
@@ -324,27 +327,27 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
           
           {/* HELOC Capacity Summary */}
           <div className="card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Canadian Equity Capacity</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{t.heloc.equityCapacity}</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '1.25rem 0' }}>
               <div className="flex justify-between align-center">
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Current LTV ratio:</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.currentLtv}</span>
                 <span style={{ fontWeight: 600 }}>{helocDetails.currentLtvPercent}%</span>
               </div>
               <div className="flex justify-between align-center">
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Projected LTV ratio:</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.projectedLtv}</span>
                 <span style={{ fontWeight: 600 }}>{ltvAfterReno.toFixed(1)}%</span>
               </div>
               <div className="flex justify-between align-center">
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Legal HELOC Limit (65%):</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.helocLimit65}</span>
                 <span style={{ fontWeight: 600 }}>${helocDetails.maxHelocLtvAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between align-center">
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Borrowing Limit (80%):</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.borrowingLimit80}</span>
                 <span style={{ fontWeight: 600 }}>${helocDetails.maxTotalLtvAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between align-center" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>HELOC Capacity Available:</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>{t.heloc.helocCapacity}</span>
                 <strong style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
                   ${helocDetails.maxAvailableHeloc.toLocaleString()}
                 </strong>
@@ -356,9 +359,9 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div className="alert alert-warning" style={{ margin: 0 }}>
                 <ShieldAlert size={20} />
                 <div>
-                  <strong style={{ display: 'block', fontSize: '0.85rem' }}>HELOC Locked</strong>
+                  <strong style={{ display: 'block', fontSize: '0.85rem' }}>{t.heloc.helocLocked}</strong>
                   <span style={{ fontSize: '0.75rem' }}>
-                    Your current mortgage exceeds 80% of your home's value. You must pay down your mortgage balance to unlock HELOC borrowing.
+                    {t.heloc.helocLockedDesc}
                   </span>
                 </div>
               </div>
@@ -366,9 +369,9 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div className="alert alert-warning" style={{ margin: 0 }}>
                 <ShieldAlert size={20} />
                 <div>
-                  <strong style={{ display: 'block', fontSize: '0.85rem' }}>Insufficient Capacity</strong>
+                  <strong style={{ display: 'block', fontSize: '0.85rem' }}>{t.heloc.insufficientCapacity}</strong>
                   <span style={{ fontSize: '0.75rem' }}>
-                    Your selected renovation budget (${renoTotal.toLocaleString()}) exceeds your available HELOC borrowing capacity (${helocDetails.maxAvailableHeloc.toLocaleString()}).
+                    {t.heloc.insufficientCapacityDesc.replace('${budget}', renoTotal.toLocaleString()).replace('${capacity}', helocDetails.maxAvailableHeloc.toLocaleString())}
                   </span>
                 </div>
               </div>
@@ -376,9 +379,9 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div className="alert alert-info" style={{ margin: 0, background: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
                 <Sparkles size={20} style={{ color: 'var(--color-success)' }} />
                 <div>
-                  <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-success)' }}>Equity Verified</strong>
+                  <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-success)' }}>{t.heloc.equityVerified}</strong>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Your property has sufficient equity to cover the planned projects using a HELOC.
+                    {t.heloc.equityVerifiedDesc}
                   </span>
                 </div>
               </div>
@@ -387,9 +390,9 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
 
           {/* Financing Cost Card */}
           <div className="card card-accent">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Financing Cost Estimation</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.heloc.financingCost}</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              Cost estimates for borrowing the selected <strong>${renoTotal.toLocaleString()}</strong> budget:
+              {t.heloc.financingCostDesc.replace('${amount}', renoTotal.toLocaleString())}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -397,30 +400,30 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               {/* Option A: Interest-Only HELOC */}
               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
                 <div className="flex justify-between align-center mb-4">
-                  <strong style={{ fontSize: '0.95rem' }}>Interest-Only HELOC</strong>
-                  <span className="badge badge-info">{helocRate.toFixed(2)}% Rate</span>
+                  <strong style={{ fontSize: '0.95rem' }}>{t.heloc.interestOnlyHeloc}</strong>
+                  <span className="badge badge-info">{helocRate.toFixed(2)}% {t.heloc.rate}</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
                   ${borrowingCosts.interestOnlyMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> / month</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> {t.heloc.perMonth}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
-                  Interest only. The principal balance remains outstanding until repaid in lump sums.
+                  {t.heloc.interestOnlyNote}
                 </p>
               </div>
 
               {/* Option B: Roll into Mortgage */}
               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
                 <div className="flex justify-between align-center mb-4">
-                  <strong style={{ fontSize: '0.95rem' }}>Roll into Amortized Mortgage</strong>
-                  <span className="badge badge-success">4.75% (20 Yr Refi)</span>
+                  <strong style={{ fontSize: '0.95rem' }}>{t.heloc.rollIntoMortgage}</strong>
+                  <span className="badge badge-success">{t.heloc.refiRate}</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-success)' }}>
                   ${borrowingCosts.amortizedMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> / month</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> {t.heloc.perMonth}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
-                  Fully amortized payment. Pays off interest and the principal over a 20-year term.
+                  {t.heloc.amortizedNote}
                 </p>
               </div>
 

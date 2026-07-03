@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Upload, Trash2, Key, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { useI18n } from '../utils/i18n';
 import { 
   getPasscodeConfig, 
   setupPasscode, 
@@ -19,6 +20,8 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin: _currentPin, onUpdatePin, profile }) => {
+  const { t } = useI18n();
+
   // Passcode States
   const [passcodeEnabled, setPasscodeEnabled] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
@@ -64,7 +67,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      setPasscodeError('Export failed.');
+      setPasscodeError(t.settings.exportFailed);
     }
   };
 
@@ -78,10 +81,10 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       const content = event.target?.result as string;
       const success = await importAppData(content, _currentPin || undefined);
       if (success) {
-        setImportStatus({ type: 'success', message: 'Data imported successfully! Reloading profile...' });
+        setImportStatus({ type: 'success', message: t.settings.importSuccess });
         onImportSuccess();
       } else {
-        setImportStatus({ type: 'error', message: 'Import failed. Verify the file layout.' });
+        setImportStatus({ type: 'error', message: t.settings.importFailed });
       }
     };
     reader.readAsText(file);
@@ -94,7 +97,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     setPasscodeSuccess('');
 
     if (pin.length === 0 || !/^\d+$/.test(pin)) {
-      setPasscodeError('PIN must be at least 1 digit.');
+      setPasscodeError(t.settings.pinMinDigit);
       return;
     }
 
@@ -108,9 +111,9 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
         setPin('');
         setHint('');
         setShowPinForm(false);
-        setPasscodeSuccess('Passcode lock disabled successfully!');
+        setPasscodeSuccess(t.settings.passcodeDisabled);
       } else {
-        setPasscodeError('Incorrect PIN. Unable to disable.');
+        setPasscodeError(t.settings.incorrectPin);
       }
     } else {
       // Enable passcode
@@ -120,27 +123,27 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       setPin('');
       setHint('');
       setShowPinForm(false);
-      setPasscodeSuccess('Passcode lock enabled! Stored data is now encrypted.');
+      setPasscodeSuccess(t.settings.passcodeEnabled);
     }
   };
 
   // Handle clear data
   const handleClearData = () => {
-    if (window.confirm('WARNING: This will delete all your local configurations, renovation checklists, and passcode options. This action is irreversible. Proceed?')) {
+    if (window.confirm(t.settings.wipeConfirm)) {
       clearAllAppData();
       onClearProfile();
       setPasscodeEnabled(false);
       setPin('');
       setHint('');
-      alert('All local app data cleared.');
+      alert(t.settings.wipeSuccess);
     }
   };
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Settings & Privacy</h2>
-        <p style={{ fontSize: '0.95rem' }}>Configure device security, backup configurations, and read about our local-only privacy compliance.</p>
+        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>{t.settings.title}</h2>
+        <p style={{ fontSize: '0.95rem' }}>{t.settings.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-2">
@@ -150,19 +153,19 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* Backups Card */}
           <div className="card">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Import / Export Data
+              {t.settings.importExport}
             </h3>
             <p style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Backup your mortgage settings and renovation checklists to a file on your device, or restore data from a previous export.
+              {t.settings.importExportDesc}
             </p>
 
             <div className="flex gap-4">
               <button type="button" className="btn btn-secondary w-full" onClick={handleExport}>
-                <Download size={16} /> Export File
+                <Download size={16} /> {t.settings.exportFile}
               </button>
               
               <label className="btn btn-secondary w-full text-center" style={{ cursor: 'pointer' }}>
-                <Upload size={16} /> Import File
+                <Upload size={16} /> {t.settings.importFile}
                 <input 
                   type="file" 
                   accept=".json" 
@@ -186,17 +189,17 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* Security Card */}
           <div className="card">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Local Security (PIN Lock)
+              {t.settings.localSecurity}
             </h3>
             <p style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Secure this application using a local PIN. If enabled, your mortgage values are AES-256 encrypted using your passcode as the key.
+              {t.settings.localSecurityDesc}
             </p>
 
             <div className="settings-item" style={{ borderBottom: 'none', padding: '0.5rem 0' }}>
               <div className="settings-item-info">
-                <span className="settings-item-title">Passcode Protection</span>
+                <span className="settings-item-title">{t.settings.passcodeProtection}</span>
                 <span className="settings-item-desc">
-                  {passcodeEnabled ? 'Locked with PIN' : 'Unprotected (localStorage plaintext)'}
+                  {passcodeEnabled ? t.settings.lockedWithPin : t.settings.unprotected}
                 </span>
               </div>
               <button 
@@ -204,7 +207,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
                 className={`btn ${passcodeEnabled ? 'btn-danger' : 'btn-primary'} btn-sm`}
                 onClick={() => setShowPinForm(!showPinForm)}
               >
-                <Key size={14} /> {passcodeEnabled ? 'Disable PIN' : 'Enable PIN'}
+                <Key size={14} /> {passcodeEnabled ? t.settings.disablePin : t.settings.enablePin}
               </button>
             </div>
 
@@ -212,15 +215,15 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
             {showPinForm && (
               <form onSubmit={handlePinSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
                 <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-                  {passcodeEnabled ? 'Enter current PIN to Disable' : 'Configure New PIN'}
+                  {passcodeEnabled ? t.settings.enterPinToDisable : t.settings.configureNewPin}
                 </h4>
                 
                 <div className="flex gap-4">
                   <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>PIN (Numeric)</label>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.settings.pinLabel}</label>
                     <input 
                       type="password" 
-                      placeholder="e.g. 1234"
+                      placeholder={t.settings.pinPlaceholder}
                       className="form-input" 
                       value={pin}
                       onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
@@ -228,10 +231,10 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
                   </div>
                   {!passcodeEnabled && (
                     <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.75rem' }}>PIN Hint (Optional)</label>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.settings.hintLabel}</label>
                       <input 
                         type="text" 
-                        placeholder="Hint description"
+                        placeholder={t.settings.hintPlaceholder}
                         className="form-input" 
                         value={hint}
                         onChange={(e) => setHint(e.target.value)}
@@ -241,7 +244,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
                 </div>
 
                 <button type="submit" className="btn btn-primary w-full mt-4 btn-sm">
-                  Confirm Code
+                  {t.settings.confirmCode}
                 </button>
               </form>
             )}
@@ -253,13 +256,13 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* Destructive Actions Card */}
           <div className="card" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
             <h3 style={{ borderBottom: '1px solid rgba(239,68,68,0.2)', paddingBottom: '0.5rem', marginBottom: '1rem', color: 'var(--color-danger)' }}>
-              Danger Zone
+              {t.settings.dangerZone}
             </h3>
             <p style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Permanently wipe all mortgage parameters, passcode secrets, and checklists from local storage.
+              {t.settings.dangerDesc}
             </p>
             <button type="button" className="btn btn-danger w-full justify-between" onClick={handleClearData}>
-              <span>Wipe Local Data</span>
+              <span>{t.settings.wipeData}</span>
               <Trash2 size={16} />
             </button>
           </div>
@@ -271,21 +274,21 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* Privacy Compliance Card */}
           <div className="card">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Privacy Statement (PIPEDA & Loi 25)
+              {t.settings.privacyStatement}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
               <p style={{ margin: 0 }}>
-                Mortimer is built to strictly adhere to the Canadian **Personal Information Protection and Electronic Documents Act (PIPEDA)** and Quebec's **Loi 25** (formerly Bill 64).
+                {t.settings.privacyStatementDesc}
               </p>
               <ul style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li>
-                  <strong>Zero Data Collection</strong>: We do not operate databases or backend web servers. None of your inputs leave your device.
+                  <strong>{t.settings.zeroDataCollection}</strong>: {t.settings.zeroDataDesc}
                 </li>
                 <li>
-                  <strong>Informed Consent</strong>: Calculations and settings are stored locally. Clearing cache or using "Wipe Local Data" immediately removes everything.
+                  <strong>{t.settings.informedConsent}</strong>: {t.settings.informedConsentDesc}
                 </li>
                 <li>
-                  <strong>Encryption</strong>: Enforcing PIN lock derives keys inside the browser's sandbox using the Web Cryptography API, meaning no cleartext calculations can be read.
+                  <strong>{t.settings.encryption}</strong>: {t.settings.encryptionDesc}
                 </li>
               </ul>
             </div>
@@ -294,14 +297,14 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* Disclaimer Card */}
           <div className="card card-accent">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Disclaimer
+              {t.settings.disclaimerTitle}
             </h3>
             <div style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
               <p style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
-                I am not a financial professional. This is not financial advice. Make your own decisions.
+                {t.settings.disclaimerText}
               </p>
               <p style={{ margin: 0 }}>
-                Mortimer is an educational calculator for simulating mortgage paydowns and equity limits. Lending systems differ in interest rounding, compounding schedules, and adjustments. Always consult a licensed mortgage broker, financial planner, or bank advisor before signing agreements.
+                {t.settings.disclaimerLong}
               </p>
             </div>
           </div>
@@ -309,10 +312,10 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
           {/* GitHub Integration card */}
           <div className="card">
             <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              Open Source & Support
+              {t.settings.openSource}
             </h3>
             <p style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Spotted a mathematical inconsistency or want to suggest an improvement? Submit a ticket using our GitHub issue templates.
+              {t.settings.openSourceDesc}
             </p>
             <a 
               href="https://github.com/michaelsanford/Mortimer/issues/new/choose" 
@@ -320,7 +323,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
               rel="noopener noreferrer" 
               className="btn btn-secondary w-full"
             >
-              Report Issues / Math Errors
+              {t.settings.reportIssues}
             </a>
           </div>
 

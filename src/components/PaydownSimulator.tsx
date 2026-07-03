@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronUp, DollarSign, Percent, Sparkles } from 'lucide-react';
 import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
+import { useI18n } from '../utils/i18n';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,11 +32,11 @@ interface PaydownSimulatorProps {
   onSaveProfile: (profile: MortgageInputs) => void;
 }
 
-const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving' }> = ({ status }) => {
+const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels: Record<'saved' | 'pending' | 'saving', string> }> = ({ status, labels }) => {
   const config = {
-    saved: { color: 'var(--color-success)', text: 'Saved', bg: 'rgba(16, 185, 129, 0.08)' },
-    pending: { color: 'var(--color-warning)', text: 'Pending', bg: 'rgba(245, 158, 11, 0.08)' },
-    saving: { color: 'var(--color-primary)', text: 'Saving...', bg: 'rgba(99, 102, 241, 0.08)' }
+    saved: { color: 'var(--color-success)', bg: 'rgba(16, 185, 129, 0.08)' },
+    pending: { color: 'var(--color-warning)', bg: 'rgba(245, 158, 11, 0.08)' },
+    saving: { color: 'var(--color-primary)', bg: 'rgba(99, 102, 241, 0.08)' }
   };
   
   const current = config[status];
@@ -78,12 +79,14 @@ const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving' }> = ({
       {status === 'saved' && (
         <span style={{ color: current.color }}>✓</span>
       )}
-      <span>{current.text}</span>
+      <span>{labels[status]}</span>
     </div>
   );
 };
 
 export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfile, onSaveProfile }) => {
+  const { t } = useI18n();
+
   // Local state for inputs
   const [principal, setPrincipal] = useState<number>(initialProfile?.principal || 450000);
   const [interestRate, setInterestRate] = useState<number>(initialProfile?.interestRate || 4.85);
@@ -116,6 +119,12 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
   const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
+
+  const saveStatusLabels = useMemo(() => ({
+    saved: t.paydown.saved,
+    pending: t.paydown.pending,
+    saving: t.paydown.saving,
+  }), [t]);
 
   const calculatedRegularPayment = useMemo(() => {
     const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
@@ -261,7 +270,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   // Line Chart Data
   const chartData = useMemo(() => {
     // Generate data points for chart (e.g. plot ending balance at the end of each year)
-    const labels: string[] = ['Year 0'];
+    const labels: string[] = [t.paydown.year0];
     const baselineDataPoints: number[] = [principal];
     const prepaymentDataPoints: number[] = [principal];
 
@@ -270,7 +279,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     // Find baseline balances at the end of each year
     const baselinePpy = baselineResults.schedule.length / baselineResults.yearsToPayoff;
     for (let y = 1; y <= maxYears; y++) {
-      labels.push(`Yr ${y}`);
+      labels.push(t.paydown.yearN.replace('{n}', String(y)));
       
       // Baseline
       const baseIdx = Math.min(Math.round(y * baselinePpy) - 1, baselineResults.schedule.length - 1);
@@ -286,7 +295,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       labels,
       datasets: [
         {
-          label: 'Baseline (No Prepayments)',
+          label: t.paydown.baseline,
           data: baselineDataPoints,
           borderColor: 'rgba(148, 163, 184, 0.6)',
           backgroundColor: 'rgba(148, 163, 184, 0.1)',
@@ -295,7 +304,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
           fill: false,
         },
         {
-          label: 'With Prepayments / Frequency Shift',
+          label: t.paydown.withPrepayments,
           data: prepaymentDataPoints,
           borderColor: 'rgba(99, 102, 241, 1)',
           backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -304,7 +313,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         }
       ]
     };
-  }, [principal, amortizationYears, results, baselineResults]);
+  }, [principal, amortizationYears, results, baselineResults, t]);
 
   const chartOptions = {
     responsive: true,
@@ -352,8 +361,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Paydown Simulator</h2>
-        <p style={{ fontSize: '0.95rem' }}>Adjust mortgage parameters and simulate prepayment strategies to see interest and time savings.</p>
+        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>{t.paydown.title}</h2>
+        <p style={{ fontSize: '0.95rem' }}>{t.paydown.subtitle}</p>
       </div>
 
       <div className="grid-main">
@@ -367,20 +376,20 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <span>Mortgage Parameters</span>
-            <SaveStatusBadge status={saveStatus} />
+            <span>{t.paydown.mortgageParams}</span>
+            <SaveStatusBadge status={saveStatus} labels={saveStatusLabels} />
           </h3>
           
           {/* Group 1: Current Term & Balance */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem', marginBottom: '0.25rem' }}>
-              Current Balance & Payments
+              {t.paydown.balancePayments}
             </h4>
 
             {/* Remaining Principal */}
             <div className="form-group">
               <label className="form-label">
-                <span>Remaining Mortgage Balance</span>
+                <span>{t.paydown.remainingBalance}</span>
                 <span className="form-label-val">${principal.toLocaleString()}</span>
               </label>
               <div className="form-input-wrapper">
@@ -406,7 +415,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             {/* Interest Rate */}
             <div className="form-group">
               <label className="form-label">
-                <span>Annual Interest Rate (Compounded Semi-Annually)</span>
+                <span>{t.paydown.annualRate}</span>
                 <span className="form-label-val">{interestRate.toFixed(2)}%</span>
               </label>
               <div className="form-input-wrapper">
@@ -433,8 +442,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             {/* Remaining Amortization */}
             <div className="form-group">
               <label className="form-label">
-                <span>Remaining Amortization</span>
-                <span className="form-label-val">{amortizationYears} Yrs, {amortizationMonths} Mos</span>
+                <span>{t.paydown.remainingAmort}</span>
+                <span className="form-label-val">{amortizationYears} {t.paydown.yrs}, {amortizationMonths} {t.paydown.mos}</span>
               </label>
               <div className="flex gap-2">
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
@@ -443,10 +452,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     className="form-input" 
                     value={amortizationYears} 
                     onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
-                    placeholder="Years"
+                    placeholder={t.paydown.years}
                     style={{ paddingRight: '2rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
                   <input 
@@ -454,10 +463,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     className="form-input" 
                     value={amortizationMonths} 
                     onChange={(e) => setAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
-                    placeholder="Months"
+                    placeholder={t.paydown.months}
                     style={{ paddingRight: '2.2rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.mos}</span>
                 </div>
               </div>
               <input 
@@ -473,27 +482,27 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
             {/* Frequency */}
             <div className="form-group">
-              <label className="form-label">Payment Frequency</label>
+              <label className="form-label">{t.paydown.paymentFrequency}</label>
               <select 
                 className="form-select" 
                 value={paymentFrequency} 
                 onChange={(e) => setPaymentFrequency(e.target.value as PaymentFrequency)}
               >
-                <option value="monthly">Monthly</option>
-                <option value="semi_monthly">Semi-Monthly</option>
-                <option value="regular_bi_weekly">Regular Bi-Weekly</option>
-                <option value="accelerated_bi_weekly">Accelerated Bi-Weekly (Acc. 26/yr)</option>
-                <option value="regular_weekly">Regular Weekly</option>
-                <option value="accelerated_weekly">Accelerated Weekly (Acc. 52/yr)</option>
+                <option value="monthly">{t.paydown.monthly}</option>
+                <option value="semi_monthly">{t.paydown.semiMonthly}</option>
+                <option value="regular_bi_weekly">{t.paydown.biWeekly}</option>
+                <option value="accelerated_bi_weekly">{t.paydown.accBiWeekly}</option>
+                <option value="regular_weekly">{t.paydown.weekly}</option>
+                <option value="accelerated_weekly">{t.paydown.accWeekly}</option>
               </select>
             </div>
 
             {/* Confirmed Payment */}
             <div className="form-group">
               <label className="form-label flex justify-between align-center">
-                <span>Confirmed Payment Override</span>
+                <span>{t.paydown.paymentOverride}</span>
                 <span className="form-label-val" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Calculated: ${calculatedRegularPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {t.paydown.calculated} ${calculatedRegularPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </label>
               <div className="form-input-wrapper">
@@ -508,7 +517,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                 />
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
-                Leave empty or 0 to use the calculated regular payment.
+                {t.paydown.paymentOverrideHint}
               </span>
             </div>
           </div>
@@ -516,12 +525,12 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
           {/* Group 2: Current Term Timeline */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
             <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              Current Term Timeline
+              {t.paydown.termTimeline}
             </h4>
 
             {/* Maturity Date */}
             <div className="form-group">
-              <label className="form-label">Current Term Maturity Date</label>
+              <label className="form-label">{t.paydown.termMaturity}</label>
               <input 
                 type="date" 
                 className="form-input" 
@@ -535,13 +544,13 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
           {/* Group 3: Original Parameters */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
             <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-              Original parameters (for tracking)
+              {t.paydown.originalParams}
             </h4>
 
             {/* Original Principal */}
             <div className="form-group">
               <label className="form-label">
-                <span>Original Mortgage Amount</span>
+                <span>{t.paydown.originalAmount}</span>
                 {originalPrincipal > 0 && <span className="form-label-val">${originalPrincipal.toLocaleString()}</span>}
               </label>
               <div className="form-input-wrapper">
@@ -549,7 +558,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                 <input 
                   type="number" 
                   className="form-input form-input-with-prefix" 
-                  placeholder="e.g. 500000"
+                  placeholder={t.paydown.originalAmountPlaceholder}
                   value={originalPrincipal || ''} 
                   onChange={(e) => setOriginalPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
                 />
@@ -559,9 +568,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             {/* Original Amortization */}
             <div className="form-group">
               <label className="form-label">
-                <span>Original Amortization</span>
+                <span>{t.paydown.originalAmort}</span>
                 {(originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
-                  <span className="form-label-val">{originalAmortizationYears} Yrs, {originalAmortizationMonths} Mos</span>
+                  <span className="form-label-val">{originalAmortizationYears} {t.paydown.yrs}, {originalAmortizationMonths} {t.paydown.mos}</span>
                 )}
               </label>
               <div className="flex gap-2">
@@ -569,43 +578,43 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   <input 
                     type="number" 
                     className="form-input" 
-                    placeholder="Years"
+                    placeholder={t.paydown.years}
                     value={originalAmortizationYears || ''} 
                     onChange={(e) => setOriginalAmortizationYears(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
                     style={{ paddingRight: '2rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Yrs</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
                   <input 
                     type="number" 
                     className="form-input" 
-                    placeholder="Months"
+                    placeholder={t.paydown.months}
                     value={originalAmortizationMonths || ''} 
                     onChange={(e) => setOriginalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
                     style={{ paddingRight: '2.2rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>Mos</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.mos}</span>
                 </div>
               </div>
             </div>
 
             {/* Original Term */}
             <div className="form-group">
-              <label className="form-label">Original Term Length</label>
+              <label className="form-label">{t.paydown.originalTerm}</label>
               <select 
                 className="form-select" 
                 value={originalTermYears} 
                 onChange={(e) => setOriginalTermYears(parseInt(e.target.value) || 0)}
               >
-                <option value="0">Not Tracked</option>
-                <option value="1">1 Year</option>
-                <option value="2">2 Years</option>
-                <option value="3">3 Years</option>
-                <option value="4">4 Years</option>
-                <option value="5">5 Years</option>
-                <option value="7">7 Years</option>
-                <option value="10">10 Years</option>
+                <option value="0">{t.paydown.notTracked}</option>
+                <option value="1">{t.paydown.year1}</option>
+                <option value="2">{t.paydown.years2}</option>
+                <option value="3">{t.paydown.years3}</option>
+                <option value="4">{t.paydown.years4}</option>
+                <option value="5">{t.paydown.years5}</option>
+                <option value="7">{t.paydown.years7}</option>
+                <option value="10">{t.paydown.years10}</option>
               </select>
             </div>
           </div>
@@ -617,7 +626,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               className="btn btn-secondary w-full justify-between" 
               onClick={() => setShowPrepayments(!showPrepayments)}
             >
-              <span>Simulate Extra Prepayments</span>
+              <span>{t.paydown.simulateExtra}</span>
               {showPrepayments ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           </div>
@@ -629,7 +638,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               {/* Lump Sum */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  <span>Annual Anniversary Lump Sum</span>
+                  <span>{t.paydown.lumpSum}</span>
                   <span className="form-label-val">${lumpSumAmount.toLocaleString()}</span>
                 </label>
                 <div className="form-input-wrapper">
@@ -646,8 +655,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               {/* Double Up */}
               <div className="settings-item" style={{ borderBottom: 'none', padding: '0.25rem 0' }}>
                 <div className="settings-item-info">
-                  <div className="settings-item-title" style={{ fontSize: '0.9rem' }}>Double-Up Payments</div>
-                  <div className="settings-item-desc" style={{ fontSize: '0.75rem' }}>Add 100% of base payment directly to principal every period</div>
+                  <div className="settings-item-title" style={{ fontSize: '0.9rem' }}>{t.paydown.doubleUp}</div>
+                  <div className="settings-item-desc" style={{ fontSize: '0.75rem' }}>{t.paydown.doubleUpDesc}</div>
                 </div>
                 <label className="toggle-switch">
                   <input 
@@ -662,7 +671,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               {/* Payment Increase Percent */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  <span>Annual Payment Increase (%)</span>
+                  <span>{t.paydown.annualIncreasePercent}</span>
                   <span className="form-label-val">{paymentIncreasePercent}%</span>
                 </label>
                 <input 
@@ -679,7 +688,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               {/* Payment Increase Fixed */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  <span>Annual Payment Increase ($)</span>
+                  <span>{t.paydown.annualIncreaseDollar}</span>
                   <span className="form-label-val">${paymentIncreaseFixed.toLocaleString()}</span>
                 </label>
                 <div className="form-input-wrapper">
@@ -705,32 +714,32 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             {/* Standard Metrics */}
             <div className="card">
               <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                Baseline Outcome
+                {t.paydown.baselineOutcome}
               </h4>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
                 ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Total Interest Paid over {baselineResults.yearsToPayoff.toFixed(1)} years
+                {t.paydown.totalInterestPaid.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                Reg. Payment: <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             </div>
 
             {/* Prepayment Metrics */}
             <div className="card card-accent">
               <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                Active Plan Outcome
+                {t.paydown.activePlanOutcome}
               </h4>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
                 ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Total Interest Paid over {results.yearsToPayoff.toFixed(1)} years
+                {t.paydown.totalInterestPaid.replace('{years}', results.yearsToPayoff.toFixed(1))}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                Plan Payment: <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             </div>
 
@@ -741,9 +750,11 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="alert alert-info" style={{ marginBottom: 0 }}>
               <Sparkles size={20} />
               <div>
-                <strong style={{ display: 'block', fontSize: '0.95rem' }}>Optimization Success!</strong>
+                <strong style={{ display: 'block', fontSize: '0.95rem' }}>{t.paydown.optimizationSuccess}</strong>
                 <span style={{ fontSize: '0.85rem' }}>
-                  By applying these prepayments, you shave <strong>{results.yearsSaved.toFixed(1)} years</strong> off your mortgage length and save <strong style={{ color: 'var(--color-success)' }}>${results.interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong> in lifetime interest!
+                  {t.paydown.shaveOff
+                    .replace('{years}', results.yearsSaved.toFixed(1))
+                    .replace('{amount}', results.interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 }))}
                 </span>
               </div>
             </div>
@@ -751,7 +762,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
           {/* Graph Card */}
           <div className="card" style={{ height: '320px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Balance Projection</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.paydown.balanceProjection}</h3>
             <div style={{ flexGrow: 1, position: 'relative', height: '240px' }}>
               <Line data={chartData} options={chartOptions} />
             </div>
@@ -763,18 +774,18 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       {/* Amortization Schedule Table */}
       <div className="card mt-4">
         <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-          Yearly Amortization Breakdowns
+          {t.paydown.yearlyBreakdowns}
         </h3>
         <div className="table-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
           <table>
             <thead>
               <tr>
-                <th>Year</th>
-                <th className="text-right">Regular Payments</th>
-                <th className="text-right">Extra Prepayments</th>
-                <th className="text-right">Interest Paid</th>
-                <th className="text-right">Principal Paid</th>
-                <th className="text-right">Ending Balance</th>
+                <th>{t.paydown.yearCol}</th>
+                <th className="text-right">{t.paydown.regularPayments}</th>
+                <th className="text-right">{t.paydown.extraPrepayments}</th>
+                <th className="text-right">{t.paydown.interestPaid}</th>
+                <th className="text-right">{t.paydown.principalPaid}</th>
+                <th className="text-right">{t.paydown.endingBalance}</th>
               </tr>
             </thead>
             <tbody>
@@ -799,7 +810,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     const yearNum = Math.floor(i / ppy) + 1;
                     yearlyRows.push(
                       <tr key={yearNum}>
-                        <td>Year {yearNum}</td>
+                        <td>{t.paydown.yearCol} {yearNum}</td>
                         <td className="text-right">${yearPayments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="text-right" style={{ color: yearExtra > 0 ? 'var(--color-accent)' : 'inherit' }}>
                           {yearExtra > 0 ? `+$${yearExtra.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00'}

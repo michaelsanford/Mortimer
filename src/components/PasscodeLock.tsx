@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, AlertCircle, Check, Delete } from 'lucide-react';
 import { hashPin, getPasscodeConfig } from '../utils/storage';
+import { useI18n } from '../utils/i18n';
 
 interface PasscodeLockProps {
   onUnlock: (pin: string) => void;
 }
 
 export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
+  const { t } = useI18n();
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<boolean>(false);
   const [hint, setHint] = useState<string | undefined>(undefined);
@@ -75,16 +77,16 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
         </div>
         
         <h2 className="mt-4" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
-          App Locked
+          {t.passcode.appLocked}
         </h2>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Enter your PIN to decrypt local data
+          {t.passcode.enterPin}
         </p>
 
         {/* PIN display - shows dots for entered digits */}
         <div className="pin-dots" aria-live="polite" aria-label={`${pin.length} digits entered`}>
           {pin.length === 0 ? (
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No digits entered</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.passcode.noDigits}</span>
           ) : (
             Array.from({ length: Math.min(pin.length, 12) }).map((_, i) => (
               <div 
@@ -144,7 +146,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
           <div style={{ marginTop: '1rem' }}>
             {showHint ? (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-accent)', fontStyle: 'italic' }}>
-                Hint: {hint}
+                {t.passcode.hint} {hint}
               </p>
             ) : (
               <button 
@@ -153,7 +155,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
                 onClick={() => setShowHint(true)}
                 style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
               >
-                Show Hint
+                {t.passcode.showHint}
               </button>
             )}
           </div>
