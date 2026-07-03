@@ -1,8 +1,10 @@
 name: Deploy
 
 on:
-  push:
-    branches: ["main"]
+  workflow_run:
+    workflows: ["CI"]        # must match `name:` in ci.yml exactly
+    types: [completed]
+    branches: ["main"]       # filters on the CI run's head branch -> main only
   workflow_dispatch:
 
 permissions:
@@ -17,6 +19,8 @@ concurrency:
 jobs:
   build:
     name: Build
+    # Only deploy when the CI run succeeded (or on manual dispatch)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
