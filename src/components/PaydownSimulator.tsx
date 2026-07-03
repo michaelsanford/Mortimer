@@ -37,6 +37,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [interestRate, setInterestRate] = useState<number>(initialProfile?.interestRate || 4.85);
   const [amortizationYears, setAmortizationYears] = useState<number>(initialProfile?.amortizationYears || 25);
   const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>(initialProfile?.paymentFrequency || 'monthly');
+  const [termYears, setTermYears] = useState<number>(initialProfile?.termYears || 5);
+  const [maturityDate, setMaturityDate] = useState<string>(initialProfile?.maturityDate || '');
   
   // Prepayments
   const [showPrepayments, setShowPrepayments] = useState<boolean>(
@@ -59,6 +61,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       interestRate,
       amortizationYears,
       paymentFrequency,
+      termYears,
+      maturityDate,
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
@@ -67,7 +71,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, paymentFrequency, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [principal, interestRate, amortizationYears, paymentFrequency, termYears, maturityDate, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -90,6 +94,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       interestRate,
       amortizationYears,
       paymentFrequency,
+      termYears,
+      maturityDate,
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
@@ -298,6 +304,36 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <option value="regular_weekly">Regular Weekly</option>
               <option value="accelerated_weekly">Accelerated Weekly (Acc. 52/yr)</option>
             </select>
+          </div>
+
+          {/* Term Length */}
+          <div className="form-group">
+            <label className="form-label">Current Term Length</label>
+            <select 
+              className="form-select" 
+              value={termYears} 
+              onChange={(e) => setTermYears(parseInt(e.target.value) || 5)}
+            >
+              <option value="1">1 Year</option>
+              <option value="2">2 Years</option>
+              <option value="3">3 Years</option>
+              <option value="4">4 Years</option>
+              <option value="5">5 Years</option>
+              <option value="7">7 Years</option>
+              <option value="10">10 Years</option>
+            </select>
+          </div>
+
+          {/* Maturity Date */}
+          <div className="form-group">
+            <label className="form-label">Current Term Maturity Date</label>
+            <input 
+              type="date" 
+              className="form-input" 
+              value={maturityDate} 
+              onChange={(e) => setMaturityDate(e.target.value)} 
+              style={{ colorScheme: 'dark' }} // Ensure the date picker icon is visible/styled nicely in dark mode
+            />
           </div>
 
           {/* Prepayments Toggle Button */}

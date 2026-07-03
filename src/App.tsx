@@ -93,9 +93,7 @@ function App() {
       case 'rate':
         return (
           <RateComparer 
-            currentBalance={profile?.principal || 0} 
-            currentRate={profile?.interestRate || 0}
-            currentAmortization={profile?.amortizationYears || 0}
+            profile={profile}
           />
         );
       case 'heloc':

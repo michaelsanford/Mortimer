@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate } from '../utils/mortgageMath';
+import type { MortgageInputs } from '../utils/mortgageMath';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,24 +31,30 @@ interface Offer {
 }
 
 interface RateComparerProps {
-  currentBalance: number;
-  currentRate: number;
-  currentAmortization: number;
+  profile: MortgageInputs | null;
 }
 
-export const RateComparer: React.FC<RateComparerProps> = ({ 
-  currentBalance: defaultBalance, 
-  currentRate: defaultRate,
-  currentAmortization: defaultAmortization 
-}) => {
+const calculateRemainingMonths = (maturityDateStr: string) => {
+  if (!maturityDateStr) return 36;
+  const maturity = new Date(maturityDateStr);
+  const today = new Date();
+  const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
+  return Math.max(1, diffMonths);
+};
+
+export const RateComparer: React.FC<RateComparerProps> = ({ profile }) => {
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
 
+  const defaultBalance = profile?.principal || 400000;
+  const defaultRate = profile?.interestRate || 4.85;
+  const defaultAmortization = profile?.amortizationYears || 25;
+
   // Renewal states
-  const [renewalBalance, setRenewalBalance] = useState<number>(defaultBalance || 400000);
-  const [renewalAmortization, setRenewalAmortization] = useState<number>(defaultAmortization || 25);
+  const [renewalBalance, setRenewalBalance] = useState<number>(defaultBalance);
+  const [renewalAmortization, setRenewalAmortization] = useState<number>(defaultAmortization);
   
   const [offers, setOffers] = useState<Offer[]>([
-    { id: 'baseline', name: 'Baseline Offer', rate: defaultRate || 5.85, term: 5, type: 'fixed' },
+    { id: 'baseline', name: 'Baseline Offer', rate: defaultRate, term: profile?.termYears || 5, type: 'fixed' },
     { id: 'offer_2', name: 'Option B', rate: 5.15, term: 3, type: 'fixed' },
     { id: 'offer_3', name: 'Option C', rate: 4.45, term: 5, type: 'variable' }
   ]);
@@ -74,10 +81,12 @@ export const RateComparer: React.FC<RateComparerProps> = ({
   };
 
   // Refinance states
-  const [refinanceBalance, setRefinanceBalance] = useState<number>(defaultBalance || 400000);
-  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(defaultRate || 5.85);
-  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number>(36); // 36 months left
-  const [refinanceAmortization, setRefinanceAmortization] = useState<number>(defaultAmortization || 20);
+  const [refinanceBalance, setRefinanceBalance] = useState<number>(defaultBalance);
+  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(defaultRate);
+  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number>(() => {
+    return profile?.maturityDate ? calculateRemainingMonths(profile.maturityDate) : 36;
+  });
+  const [refinanceAmortization, setRefinanceAmortization] = useState<number>(defaultAmortization);
   const [refinanceNewRate, setRefinanceNewRate] = useState<number>(4.49);
   const [refinancePenaltyType, setRefinancePenaltyType] = useState<'three_months_interest' | 'ird' | 'custom'>('ird');
   const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number>(0);

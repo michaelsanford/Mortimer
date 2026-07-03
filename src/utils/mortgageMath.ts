@@ -5,6 +5,8 @@ export interface MortgageInputs {
   paymentFrequency: PaymentFrequency;
   prepayments?: PrepaymentInputs;
   compounding?: 'semi_annual' | 'monthly';
+  termYears?: number; // Current term length in years (e.g. 5)
+  maturityDate?: string; // YYYY-MM-DD date string
 }
 
 export type PaymentFrequency =

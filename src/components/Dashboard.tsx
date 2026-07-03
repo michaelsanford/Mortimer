@@ -63,9 +63,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Mortgage Overview</h2>
-        <p style={{ fontSize: '0.95rem' }}>Here is a summary of your active paydown strategy.</p>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h2 style={{ marginBottom: '0.25rem', fontSize: '1.75rem' }}>Mortgage Overview</h2>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Here is a summary of your active paydown strategy.</p>
+        </div>
+        {profile.maturityDate && (
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Term Maturity: <strong style={{ color: 'var(--text-primary)' }}>{new Date(profile.maturityDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 mb-4">
