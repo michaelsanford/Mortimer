@@ -12,9 +12,10 @@ import {
 interface SettingsProps {
   onClearProfile: () => void;
   onImportSuccess: () => void;
+  currentPin?: string;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess }) => {
+export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin }) => {
   // Passcode States
   const [passcodeEnabled, setPasscodeEnabled] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
@@ -34,7 +35,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
   // Handle export
   const handleExport = async () => {
     try {
-      const dataStr = await exportAppData(pin || undefined);
+      const dataStr = await exportAppData(currentPin || pin || undefined);
       if (!dataStr) {
         setPasscodeError('Please unlock the app or verify passcode to export.');
         return;

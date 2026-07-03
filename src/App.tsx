@@ -109,6 +109,7 @@ function App() {
           <Settings 
             onClearProfile={handleClearProfile} 
             onImportSuccess={handleReloadProfile} 
+            currentPin={currentPin}
           />
         );
       default:

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
-import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate } from '../utils/mortgageMath';
-import type { MortgageInputs } from '../utils/mortgageMath';
+import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear } from '../utils/mortgageMath';
+import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -113,6 +113,9 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number>(() => {
     return profile?.renewalAmortizationMonths !== undefined ? profile.renewalAmortizationMonths : (profile?.amortizationMonths || 0);
   });
+  const [renewalFrequency, setRenewalFrequency] = useState<PaymentFrequency>(() => {
+    return (profile?.rateComparerPaymentFrequency as PaymentFrequency) || profile?.paymentFrequency || 'monthly';
+  });
   
   const [offers, setOffers] = useState<Offer[]>(() => {
     if (profile?.offers && profile.offers.length > 0) {
@@ -183,6 +186,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     const offersChanged = JSON.stringify(offers) !== JSON.stringify(profile.offers);
     const othersChanged = 
       renewalBalance !== profile.renewalBalance ||
+      renewalFrequency !== profile.rateComparerPaymentFrequency ||
       renewalAmortizationYears !== profile.renewalAmortizationYears ||
       renewalAmortizationMonths !== profile.renewalAmortizationMonths ||
       refinanceBalance !== profile.refinanceBalance ||
@@ -207,6 +211,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         ...profile,
         offers,
         renewalBalance,
+        rateComparerPaymentFrequency: renewalFrequency,
         renewalAmortizationYears,
         renewalAmortizationMonths,
         refinanceBalance,
@@ -229,6 +234,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   }, [
     offers,
     renewalBalance,
+    renewalFrequency,
     renewalAmortizationYears,
     renewalAmortizationMonths,
     refinanceBalance,
@@ -251,16 +257,17 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     // Helper to calculate term details
     const getTermDetails = (rate: number, termYears: number, type: 'fixed' | 'variable') => {
       const compounding = type === 'variable' ? 'monthly' : 'semi_annual';
-      const monthlyPayment = calculateRegularPayment(renewalBalance, rate, renewalAmortization, 'monthly', compounding);
-      const monthlyRate = getPeriodInterestRate(rate, 'monthly', compounding);
+      const monthlyPayment = calculateRegularPayment(renewalBalance, rate, renewalAmortization, renewalFrequency, compounding);
+      const periodRate = getPeriodInterestRate(rate, renewalFrequency, compounding);
+      const ppy = getPaymentsPerYear(renewalFrequency);
       
       let balance = renewalBalance;
       let totalInterest = 0;
       let totalPrincipal = 0;
-      const termMonths = termYears * 12;
+      const termPayments = termYears * ppy;
 
-      for (let m = 0; m < termMonths; m++) {
-        const interest = balance * monthlyRate;
+      for (let m = 0; m < termPayments; m++) {
+        const interest = balance * periodRate;
         let principalPaid = monthlyPayment - interest;
         if (principalPaid > balance) principalPaid = balance;
         
@@ -281,7 +288,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       ...o,
       results: getTermDetails(o.rate, o.term, o.type)
     }));
-  }, [renewalBalance, renewalAmortizationYears, renewalAmortizationMonths, offers]);
+  }, [renewalBalance, renewalFrequency, renewalAmortizationYears, renewalAmortizationMonths, offers]);
 
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
@@ -483,6 +490,23 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               </div>
             </div>
 
+            {/* Frequency */}
+            <div className="form-group">
+              <label className="form-label">Payment Frequency</label>
+              <select 
+                className="form-select" 
+                value={renewalFrequency} 
+                onChange={(e) => setRenewalFrequency(e.target.value as PaymentFrequency)}
+              >
+                <option value="monthly">Monthly</option>
+                <option value="semi_monthly">Semi-Monthly</option>
+                <option value="regular_bi_weekly">Regular Bi-Weekly</option>
+                <option value="accelerated_bi_weekly">Accelerated Bi-Weekly (Acc. 26/yr)</option>
+                <option value="regular_weekly">Regular Weekly</option>
+                <option value="accelerated_weekly">Accelerated Weekly (Acc. 52/yr)</option>
+              </select>
+            </div>
+
             {/* Dynamic Offers list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {offers.map((offer) => (
@@ -629,7 +653,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                       ))}
                     </tr>
                     <tr>
-                      <td>Monthly Payment</td>
+                      <td>{renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}{renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment</td>
                       {renewalResults.map(o => (
                         <td key={o.id} style={{ textAlign: 'right' }}>
                           ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

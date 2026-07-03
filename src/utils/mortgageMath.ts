@@ -17,6 +17,7 @@ export interface MortgageInputs {
   // Rate Comparer Persistence
   offers?: any[];
   renewalBalance?: number;
+  rateComparerPaymentFrequency?: string;
   renewalAmortizationYears?: number;
   renewalAmortizationMonths?: number;
   refinanceBalance?: number;
