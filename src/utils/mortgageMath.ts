@@ -14,6 +14,10 @@ export interface MortgageInputs {
   originalAmortizationMonths?: number; // Original amortization period in months
   originalTermYears?: number; // Original term length in years
 
+  // Household affordability
+  householdIncome?: number; // Annual household income (gross or net per incomeType)
+  incomeType?: 'gross' | 'net'; // Whether householdIncome is gross or net; defaults to gross
+
   // Rate Comparer Persistence
   offers?: any[];
   renewalBalance?: number;
