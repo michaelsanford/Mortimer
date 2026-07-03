@@ -3,6 +3,14 @@ import { Landmark, TrendingDown, Clock, ShieldAlert, Award } from 'lucide-react'
 import { calculateAmortization } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
 
+const calculateRemainingMonths = (maturityDateStr: string) => {
+  if (!maturityDateStr) return 36;
+  const maturity = new Date(maturityDateStr);
+  const today = new Date();
+  const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
+  return Math.max(1, diffMonths);
+};
+
 interface DashboardProps {
   profile: MortgageInputs | null;
   onNavigate: (tab: string) => void;
@@ -209,6 +217,93 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
           </button>
         </div>
       </div>
+
+      {/* Original vs Current Parameters Card */}
+      {(profile.originalPrincipal || profile.originalAmortizationYears || profile.originalTermYears) ? (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            Original vs. Current Progress
+          </h3>
+          <div className="grid grid-cols-3" style={{ gap: '1.5rem', alignItems: 'start' }}>
+            
+            {/* Amount Progress */}
+            {profile.originalPrincipal ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <span>Mortgage Balance</span>
+                  <span>{((profile.originalPrincipal - profile.principal) / profile.originalPrincipal * 100).toFixed(1)}% Paid</span>
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
+                  ${profile.principal.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>of ${profile.originalPrincipal.toLocaleString()}</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, Math.max(0, ((profile.originalPrincipal - profile.principal) / profile.originalPrincipal * 100)))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
+                  Paid Off: ${(profile.originalPrincipal - profile.principal).toLocaleString()}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', height: '60px' }}>
+                Original amount tracking not configured.
+              </div>
+            )}
+
+            {/* Amortization Progress */}
+            {profile.originalAmortizationYears ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <span>Amortization Period</span>
+                  <span>{profile.originalAmortizationYears - profile.amortizationYears} Yrs Progress</span>
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
+                  {profile.amortizationYears} Years <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>of {profile.originalAmortizationYears} Yrs</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, Math.max(0, ((profile.originalAmortizationYears - profile.amortizationYears) / profile.originalAmortizationYears * 100)))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Years Remaining: {profile.amortizationYears}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', height: '60px' }}>
+                Original amortization tracking not configured.
+              </div>
+            )}
+
+            {/* Term Progress */}
+            {profile.originalTermYears && profile.maturityDate ? (() => {
+              const remainingMonths = calculateRemainingMonths(profile.maturityDate);
+              const originalMonths = profile.originalTermYears * 12;
+              const elapsedMonths = Math.max(0, originalMonths - remainingMonths);
+              const percentElapsed = originalMonths > 0 ? (elapsedMonths / originalMonths * 100) : 0;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <span>Current Term Progress</span>
+                    <span>{percentElapsed.toFixed(0)}% Elapsed</span>
+                  </div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
+                    {remainingMonths} Months <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>of {originalMonths} Mos</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.max(0, percentElapsed))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Remaining: {remainingMonths} months ({profile.originalTermYears} Yr term)
+                  </div>
+                </div>
+              );
+            })() : (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', height: '60px' }}>
+                Original term or maturity date not configured.
+              </div>
+            )}
+
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 mt-4">
         {/* Key Recommendations */}

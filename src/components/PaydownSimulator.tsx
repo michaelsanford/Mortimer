@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, DollarSign, Calendar, Percent, Sparkles } from 'lucide-react';
-import { calculateAmortization, getPaymentsPerYear } from '../utils/mortgageMath';
+import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import {
   Chart as ChartJS,
@@ -40,6 +40,14 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [termYears, setTermYears] = useState<number>(initialProfile?.termYears || 5);
   const [maturityDate, setMaturityDate] = useState<string>(initialProfile?.maturityDate || '');
   
+  // Custom Payment Override
+  const [confirmedPayment, setConfirmedPayment] = useState<number>(initialProfile?.confirmedPayment || 0);
+
+  // Original Parameters
+  const [originalPrincipal, setOriginalPrincipal] = useState<number>(initialProfile?.originalPrincipal || 0);
+  const [originalAmortizationYears, setOriginalAmortizationYears] = useState<number>(initialProfile?.originalAmortizationYears || 0);
+  const [originalTermYears, setOriginalTermYears] = useState<number>(initialProfile?.originalTermYears || 0);
+
   // Prepayments
   const [showPrepayments, setShowPrepayments] = useState<boolean>(
     !!(initialProfile?.prepayments && 
@@ -54,6 +62,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
+  const calculatedRegularPayment = useMemo(() => {
+    return calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency);
+  }, [principal, interestRate, amortizationYears, paymentFrequency]);
+
   // Amortization results
   const results = useMemo(() => {
     const inputs: MortgageInputs = {
@@ -63,6 +75,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       paymentFrequency,
       termYears,
       maturityDate,
+      confirmedPayment,
+      originalPrincipal,
+      originalAmortizationYears,
+      originalTermYears,
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
@@ -71,7 +87,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, paymentFrequency, termYears, maturityDate, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [principal, interestRate, amortizationYears, paymentFrequency, termYears, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -84,9 +100,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       interestRate,
       amortizationYears,
       paymentFrequency: baseFreq,
+      confirmedPayment,
       prepayments: undefined
     });
-  }, [principal, interestRate, amortizationYears, paymentFrequency]);
+  }, [principal, interestRate, amortizationYears, paymentFrequency, confirmedPayment]);
 
   const handleSave = () => {
     onSaveProfile({
@@ -96,6 +113,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       paymentFrequency,
       termYears,
       maturityDate,
+      confirmedPayment,
+      originalPrincipal,
+      originalAmortizationYears,
+      originalTermYears,
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
@@ -210,130 +231,230 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             Mortgage Parameters
           </h3>
           
-          {/* Principal */}
-          <div className="form-group">
-            <label className="form-label">
-              <span>Mortgage Balance</span>
-              <span className="form-label-val">${principal.toLocaleString()}</span>
-            </label>
-            <div className="form-input-wrapper">
-              <DollarSign size={16} className="form-input-prefix" />
+          {/* Group 1: Current Term & Balance */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.25rem', marginBottom: '0.25rem' }}>
+              Current Balance & Payments
+            </h4>
+
+            {/* Remaining Principal */}
+            <div className="form-group">
+              <label className="form-label">
+                <span>Remaining Mortgage Balance</span>
+                <span className="form-label-val">${principal.toLocaleString()}</span>
+              </label>
+              <div className="form-input-wrapper">
+                <DollarSign size={16} className="form-input-prefix" />
+                <input 
+                  type="number" 
+                  className="form-input form-input-with-prefix" 
+                  value={principal} 
+                  onChange={(e) => setPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
               <input 
-                type="number" 
-                className="form-input form-input-with-prefix" 
+                type="range" 
+                className="slider-input" 
+                min="50000" 
+                max="2000000" 
+                step="10000"
                 value={principal} 
-                onChange={(e) => setPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => setPrincipal(parseInt(e.target.value))}
               />
             </div>
-            <input 
-              type="range" 
-              className="slider-input" 
-              min="50000" 
-              max="2000000" 
-              step="10000"
-              value={principal} 
-              onChange={(e) => setPrincipal(parseInt(e.target.value))}
-            />
-          </div>
 
-          {/* Interest Rate */}
-          <div className="form-group">
-            <label className="form-label">
-              <span>Annual Interest Rate (Compounded Semi-Annually)</span>
-              <span className="form-label-val">{interestRate.toFixed(2)}%</span>
-            </label>
-            <div className="form-input-wrapper">
-              <Percent size={16} className="form-input-suffix" />
+            {/* Interest Rate */}
+            <div className="form-group">
+              <label className="form-label">
+                <span>Annual Interest Rate (Compounded Semi-Annually)</span>
+                <span className="form-label-val">{interestRate.toFixed(2)}%</span>
+              </label>
+              <div className="form-input-wrapper">
+                <Percent size={16} className="form-input-suffix" />
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="form-input form-input-with-suffix" 
+                  value={interestRate} 
+                  onChange={(e) => setInterestRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                />
+              </div>
               <input 
-                type="number" 
-                step="0.01"
-                className="form-input form-input-with-suffix" 
+                type="range" 
+                className="slider-input" 
+                min="1" 
+                max="15" 
+                step="0.05"
                 value={interestRate} 
-                onChange={(e) => setInterestRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={(e) => setInterestRate(parseFloat(e.target.value))}
               />
             </div>
-            <input 
-              type="range" 
-              className="slider-input" 
-              min="1" 
-              max="15" 
-              step="0.05"
-              value={interestRate} 
-              onChange={(e) => setInterestRate(parseFloat(e.target.value))}
-            />
-          </div>
 
-          {/* Amortization */}
-          <div className="form-group">
-            <label className="form-label">
-              <span>Amortization Period</span>
-              <span className="form-label-val">{amortizationYears} Years</span>
-            </label>
-            <div className="form-input-wrapper">
-              <Calendar size={16} className="form-input-suffix" />
+            {/* Remaining Amortization */}
+            <div className="form-group">
+              <label className="form-label">
+                <span>Remaining Amortization</span>
+                <span className="form-label-val">{amortizationYears} Years</span>
+              </label>
+              <div className="form-input-wrapper">
+                <Calendar size={16} className="form-input-suffix" />
+                <input 
+                  type="number" 
+                  className="form-input form-input-with-suffix" 
+                  value={amortizationYears} 
+                  onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                />
+              </div>
               <input 
-                type="number" 
-                className="form-input form-input-with-suffix" 
+                type="range" 
+                className="slider-input" 
+                min="5" 
+                max="30" 
+                step="1"
                 value={amortizationYears} 
-                onChange={(e) => setAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                onChange={(e) => setAmortizationYears(parseInt(e.target.value))}
               />
             </div>
-            <input 
-              type="range" 
-              className="slider-input" 
-              min="5" 
-              max="30" 
-              step="1"
-              value={amortizationYears} 
-              onChange={(e) => setAmortizationYears(parseInt(e.target.value))}
-            />
+
+            {/* Frequency */}
+            <div className="form-group">
+              <label className="form-label">Payment Frequency</label>
+              <select 
+                className="form-select" 
+                value={paymentFrequency} 
+                onChange={(e) => setPaymentFrequency(e.target.value as PaymentFrequency)}
+              >
+                <option value="monthly">Monthly</option>
+                <option value="semi_monthly">Semi-Monthly</option>
+                <option value="regular_bi_weekly">Regular Bi-Weekly</option>
+                <option value="accelerated_bi_weekly">Accelerated Bi-Weekly (Acc. 26/yr)</option>
+                <option value="regular_weekly">Regular Weekly</option>
+                <option value="accelerated_weekly">Accelerated Weekly (Acc. 52/yr)</option>
+              </select>
+            </div>
+
+            {/* Confirmed Payment */}
+            <div className="form-group">
+              <label className="form-label flex justify-between align-center">
+                <span>Confirmed Payment Override</span>
+                <span className="form-label-val" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Calculated: ${calculatedRegularPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </label>
+              <div className="form-input-wrapper">
+                <DollarSign size={16} className="form-input-prefix" />
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="form-input form-input-with-prefix" 
+                  placeholder={calculatedRegularPayment.toFixed(2)}
+                  value={confirmedPayment || ''} 
+                  onChange={(e) => setConfirmedPayment(Math.max(0, parseFloat(e.target.value) || 0))}
+                />
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                Leave empty or 0 to use the calculated regular payment.
+              </span>
+            </div>
           </div>
 
-          {/* Frequency */}
-          <div className="form-group">
-            <label className="form-label">Payment Frequency</label>
-            <select 
-              className="form-select" 
-              value={paymentFrequency} 
-              onChange={(e) => setPaymentFrequency(e.target.value as PaymentFrequency)}
-            >
-              <option value="monthly">Monthly</option>
-              <option value="semi_monthly">Semi-Monthly</option>
-              <option value="regular_bi_weekly">Regular Bi-Weekly</option>
-              <option value="accelerated_bi_weekly">Accelerated Bi-Weekly (Acc. 26/yr)</option>
-              <option value="regular_weekly">Regular Weekly</option>
-              <option value="accelerated_weekly">Accelerated Weekly (Acc. 52/yr)</option>
-            </select>
+          {/* Group 2: Current Term Timeline */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+              Current Term Timeline
+            </h4>
+
+            {/* Remaining Term Length */}
+            <div className="form-group">
+              <label className="form-label">Remaining Term Length</label>
+              <select 
+                className="form-select" 
+                value={termYears} 
+                onChange={(e) => setTermYears(parseInt(e.target.value) || 5)}
+              >
+                <option value="1">1 Year</option>
+                <option value="2">2 Years</option>
+                <option value="3">3 Years</option>
+                <option value="4">4 Years</option>
+                <option value="5">5 Years</option>
+                <option value="7">7 Years</option>
+                <option value="10">10 Years</option>
+              </select>
+            </div>
+
+            {/* Maturity Date */}
+            <div className="form-group">
+              <label className="form-label">Current Term Maturity Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={maturityDate} 
+                onChange={(e) => setMaturityDate(e.target.value)} 
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
           </div>
 
-          {/* Term Length */}
-          <div className="form-group">
-            <label className="form-label">Current Term Length</label>
-            <select 
-              className="form-select" 
-              value={termYears} 
-              onChange={(e) => setTermYears(parseInt(e.target.value) || 5)}
-            >
-              <option value="1">1 Year</option>
-              <option value="2">2 Years</option>
-              <option value="3">3 Years</option>
-              <option value="4">4 Years</option>
-              <option value="5">5 Years</option>
-              <option value="7">7 Years</option>
-              <option value="10">10 Years</option>
-            </select>
-          </div>
+          {/* Group 3: Original Parameters */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+              Original parameters (for tracking)
+            </h4>
 
-          {/* Maturity Date */}
-          <div className="form-group">
-            <label className="form-label">Current Term Maturity Date</label>
-            <input 
-              type="date" 
-              className="form-input" 
-              value={maturityDate} 
-              onChange={(e) => setMaturityDate(e.target.value)} 
-              style={{ colorScheme: 'dark' }} // Ensure the date picker icon is visible/styled nicely in dark mode
-            />
+            {/* Original Principal */}
+            <div className="form-group">
+              <label className="form-label">
+                <span>Original Mortgage Amount</span>
+                {originalPrincipal > 0 && <span className="form-label-val">${originalPrincipal.toLocaleString()}</span>}
+              </label>
+              <div className="form-input-wrapper">
+                <DollarSign size={16} className="form-input-prefix" />
+                <input 
+                  type="number" 
+                  className="form-input form-input-with-prefix" 
+                  placeholder="e.g. 500000"
+                  value={originalPrincipal || ''} 
+                  onChange={(e) => setOriginalPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
+            </div>
+
+            {/* Original Amortization */}
+            <div className="form-group">
+              <label className="form-label">
+                <span>Original Amortization</span>
+                {originalAmortizationYears > 0 && <span className="form-label-val">{originalAmortizationYears} Years</span>}
+              </label>
+              <div className="form-input-wrapper">
+                <Calendar size={16} className="form-input-suffix" />
+                <input 
+                  type="number" 
+                  className="form-input form-input-with-suffix" 
+                  placeholder="e.g. 25"
+                  value={originalAmortizationYears || ''} 
+                  onChange={(e) => setOriginalAmortizationYears(Math.max(0, Math.min(30, parseInt(e.target.value) || 0)))}
+                />
+              </div>
+            </div>
+
+            {/* Original Term */}
+            <div className="form-group">
+              <label className="form-label">Original Term Length</label>
+              <select 
+                className="form-select" 
+                value={originalTermYears} 
+                onChange={(e) => setOriginalTermYears(parseInt(e.target.value) || 0)}
+              >
+                <option value="0">Not Tracked</option>
+                <option value="1">1 Year</option>
+                <option value="2">2 Years</option>
+                <option value="3">3 Years</option>
+                <option value="4">4 Years</option>
+                <option value="5">5 Years</option>
+                <option value="7">7 Years</option>
+                <option value="10">10 Years</option>
+              </select>
+            </div>
           </div>
 
           {/* Prepayments Toggle Button */}

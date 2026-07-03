@@ -7,6 +7,10 @@ export interface MortgageInputs {
   compounding?: 'semi_annual' | 'monthly';
   termYears?: number; // Current term length in years (e.g. 5)
   maturityDate?: string; // YYYY-MM-DD date string
+  confirmedPayment?: number; // Confirmed payment override
+  originalPrincipal?: number; // Original mortgage amount
+  originalAmortizationYears?: number; // Original amortization period in years
+  originalTermYears?: number; // Original term length in years
 }
 
 export type PaymentFrequency =
@@ -125,9 +129,11 @@ export function calculateRegularPayment(principal: number, annualRatePercent: nu
 
 // Calculate the complete amortization schedule
 export function calculateAmortization(inputs: MortgageInputs): AmortizationSummary {
-  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual' } = inputs;
+  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual', confirmedPayment } = inputs;
   
-  const baseRegularPayment = calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency, compounding);
+  const baseRegularPayment = confirmedPayment && confirmedPayment > 0 
+    ? confirmedPayment 
+    : calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency, compounding);
   const periodRate = getPeriodInterestRate(interestRate, paymentFrequency, compounding);
   const ppy = getPaymentsPerYear(paymentFrequency);
   
