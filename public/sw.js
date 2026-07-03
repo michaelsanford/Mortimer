@@ -1,8 +1,8 @@
 // CACHE_NAME is stamped by swVersionPlugin at build time (e.g. 'mortimer-cache-1234567890')
 const CACHE_NAME = 'mortimer-cache-v1';
 
-// Core shell assets. Hashed JS/CSS chunks are injected into __VITE_ASSETS__ by
-// swVersionPlugin at build time so every chunk is pre-cached on install.
+// Core shell assets. Hashed JS/CSS chunks are injected by swVersionPlugin at
+// build time so every chunk is pre-cached on install.
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,7 @@ const SHELL_ASSETS = [
 
 // Placeholder replaced at build time with the full hashed-asset list.
 // In dev (sw.js served from public/ without a build step) this stays empty.
-const VITE_ASSETS = __VITE_ASSETS__;
+const VITE_ASSETS = /*VITE_ASSETS_PLACEHOLDER*/[];
 
 const ASSETS_TO_CACHE = [...new Set([...SHELL_ASSETS, ...VITE_ASSETS])];
 

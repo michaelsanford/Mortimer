@@ -55,7 +55,7 @@ function swVersionPlugin(): Plugin {
         }
 
         swContent = swContent.replace(
-          '__VITE_ASSETS__',
+          '/*VITE_ASSETS_PLACEHOLDER*/[]',
           JSON.stringify(viteAssets)
         )
 
