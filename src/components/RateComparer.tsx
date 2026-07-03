@@ -35,6 +35,58 @@ interface RateComparerProps {
   onSaveProfile?: (newProfile: MortgageInputs) => void;
 }
 
+const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving' }> = ({ status }) => {
+  const config = {
+    saved: { color: 'var(--color-success)', text: 'Saved', bg: 'rgba(16, 185, 129, 0.08)' },
+    pending: { color: 'var(--color-warning)', text: 'Pending', bg: 'rgba(245, 158, 11, 0.08)' },
+    saving: { color: 'var(--color-primary)', text: 'Saving...', bg: 'rgba(99, 102, 241, 0.08)' }
+  };
+  
+  const current = config[status];
+  
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.35rem',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      color: current.color,
+      background: current.bg,
+      padding: '0.2rem 0.5rem',
+      borderRadius: '0.375rem',
+      transition: 'all 0.3s ease',
+      border: `1px solid ${current.color}33`,
+      height: '22px'
+    }}>
+      {status === 'saving' && (
+        <span style={{
+          display: 'inline-block',
+          width: '8px',
+          height: '8px',
+          border: `1.5px solid ${current.color}`,
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 0.6s linear infinite'
+        }} />
+      )}
+      {status === 'pending' && (
+        <span style={{
+          width: '6px',
+          height: '6px',
+          background: current.color,
+          borderRadius: '50%',
+          animation: 'pulse 1.5s infinite ease-in-out'
+        }} />
+      )}
+      {status === 'saved' && (
+        <span style={{ color: current.color }}>✓</span>
+      )}
+      <span>{current.text}</span>
+    </div>
+  );
+};
+
 const calculateRemainingMonths = (maturityDateStr: string) => {
   if (!maturityDateStr) return 36;
   const maturity = new Date(maturityDateStr);
@@ -45,6 +97,7 @@ const calculateRemainingMonths = (maturityDateStr: string) => {
 
 export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfile }) => {
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
 
   const defaultBalance = profile?.principal || 400000;
   const defaultRate = profile?.interestRate || 4.85;
@@ -134,7 +187,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       refinanceCustomPenalty !== profile.refinanceCustomPenalty ||
       refinanceFees !== profile.refinanceFees;
 
-    if (offersChanged || othersChanged) {
+    if (!offersChanged && !othersChanged) {
+      setSaveStatus('saved');
+      return;
+    }
+
+    setSaveStatus('pending');
+    const timer = setTimeout(() => {
+      setSaveStatus('saving');
       onSaveProfile({
         ...profile,
         offers,
@@ -149,7 +209,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         refinanceCustomPenalty,
         refinanceFees
       });
-    }
+      const successTimer = setTimeout(() => {
+        setSaveStatus('saved');
+      }, 400);
+      return () => clearTimeout(successTimer);
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [
     offers,
     renewalBalance,
@@ -341,9 +407,17 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         /* RENEWAL COMPARE PANEL */
         <div className="grid-main">
           {/* Inputs */}
-          <div className="card flex flex-col gap-4">
-            <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-              Renewal Parameters
+          <div className={`card flex flex-col gap-4 card-${saveStatus}`}>
+            <h3 style={{ 
+              borderBottom: '1px solid var(--border-color)', 
+              paddingBottom: '0.5rem', 
+              marginBottom: '0.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>Renewal Parameters</span>
+              <SaveStatusBadge status={saveStatus} />
             </h3>
 
             {/* Balance */}
@@ -574,9 +648,17 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         /* REFINANCE PENALTY PANEL */
         <div className="grid-main">
           {/* Inputs */}
-          <div className="card flex flex-col gap-4">
-            <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-              Refinance Parameters
+          <div className={`card flex flex-col gap-4 card-${saveStatus}`}>
+            <h3 style={{ 
+              borderBottom: '1px solid var(--border-color)', 
+              paddingBottom: '0.5rem', 
+              marginBottom: '0.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>Refinance Parameters</span>
+              <SaveStatusBadge status={saveStatus} />
             </h3>
 
             {/* Current Mortgage Info */}

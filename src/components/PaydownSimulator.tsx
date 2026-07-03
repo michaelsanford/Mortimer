@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronUp, DollarSign, Percent, Sparkles } from 'lucide-react';
 import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
@@ -30,6 +30,58 @@ interface PaydownSimulatorProps {
   initialProfile: MortgageInputs | null;
   onSaveProfile: (profile: MortgageInputs) => void;
 }
+
+const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving' }> = ({ status }) => {
+  const config = {
+    saved: { color: 'var(--color-success)', text: 'Saved', bg: 'rgba(16, 185, 129, 0.08)' },
+    pending: { color: 'var(--color-warning)', text: 'Pending', bg: 'rgba(245, 158, 11, 0.08)' },
+    saving: { color: 'var(--color-primary)', text: 'Saving...', bg: 'rgba(99, 102, 241, 0.08)' }
+  };
+  
+  const current = config[status];
+  
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.35rem',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      color: current.color,
+      background: current.bg,
+      padding: '0.2rem 0.5rem',
+      borderRadius: '0.375rem',
+      transition: 'all 0.3s ease',
+      border: `1px solid ${current.color}33`,
+      height: '22px'
+    }}>
+      {status === 'saving' && (
+        <span style={{
+          display: 'inline-block',
+          width: '8px',
+          height: '8px',
+          border: `1.5px solid ${current.color}`,
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 0.6s linear infinite'
+        }} />
+      )}
+      {status === 'pending' && (
+        <span style={{
+          width: '6px',
+          height: '6px',
+          background: current.color,
+          borderRadius: '50%',
+          animation: 'pulse 1.5s infinite ease-in-out'
+        }} />
+      )}
+      {status === 'saved' && (
+        <span style={{ color: current.color }}>✓</span>
+      )}
+      <span>{current.text}</span>
+    </div>
+  );
+};
 
 export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfile, onSaveProfile }) => {
   // Local state for inputs
@@ -63,8 +115,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
 
   const calculatedRegularPayment = useMemo(() => {
     const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
@@ -154,11 +205,24 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
   ]);
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setShowSuccess(true);
+  // Set to pending when inputs change compared to initialProfile
+  useEffect(() => {
+    if (isDirty && saveStatus === 'saved') {
+      setSaveStatus('pending');
+    }
+  }, [isDirty, saveStatus]);
+
+  // Debounced autosave
+  useEffect(() => {
+    if (!isDirty) {
+      setSaveStatus('saved');
+      return;
+    }
+
+    setSaveStatus('pending');
+    const timer = setTimeout(() => {
+      setSaveStatus('saving');
+      
       onSaveProfile({
         principal,
         interestRate,
@@ -178,12 +242,21 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
           paymentIncreaseFixed
         } : undefined
       });
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
-    }, 450);
-  };
+
+      const successTimer = setTimeout(() => {
+        setSaveStatus('saved');
+      }, 400);
+      return () => clearTimeout(successTimer);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [
+    isDirty,
+    principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
+    originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed,
+    onSaveProfile
+  ]);
 
   // Line Chart Data
   const chartData = useMemo(() => {
@@ -285,9 +358,17 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
       <div className="grid-main">
         {/* Inputs panel */}
-        <div className="card flex flex-col gap-4">
-          <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-            Mortgage Parameters
+        <div className={`card flex flex-col gap-4 card-${saveStatus}`}>
+          <h3 style={{ 
+            borderBottom: '1px solid var(--border-color)', 
+            paddingBottom: '0.5rem', 
+            marginBottom: '0.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>Mortgage Parameters</span>
+            <SaveStatusBadge status={saveStatus} />
           </h3>
           
           {/* Group 1: Current Term & Balance */}
@@ -613,40 +694,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               </div>
             </div>
           )}
-
-          <button 
-            type="button" 
-            className="btn btn-primary w-full mt-4" 
-            onClick={handleSave}
-            disabled={!isDirty || isSaving}
-            style={{
-              background: showSuccess ? 'var(--color-success)' : undefined,
-              borderColor: showSuccess ? 'var(--color-success)' : undefined,
-              transition: 'all 0.3s ease',
-            }}
-          >
-            {isSaving ? (
-              <>
-                <span style={{
-                  display: 'inline-block',
-                  width: '14px',
-                  height: '14px',
-                  border: '2px solid rgba(255,255,255,0.3)',
-                  borderTopColor: '#fff',
-                  borderRadius: '50%',
-                  animation: 'spin 0.6s linear infinite',
-                  marginRight: '0.5rem'
-                }} />
-                Saving...
-              </>
-            ) : showSuccess ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', animation: 'scaleUp 0.2s ease-out' }}>
-                ✓ Profile Saved!
-              </span>
-            ) : (
-              'Save as Active Profile'
-            )}
-          </button>
         </div>
 
         {/* Charts & Outcomes Panel */}
