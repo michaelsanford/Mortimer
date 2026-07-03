@@ -111,6 +111,7 @@ function App() {
             onImportSuccess={handleReloadProfile} 
             currentPin={currentPin}
             onUpdatePin={setCurrentPin}
+            profile={profile}
           />
         );
       default:

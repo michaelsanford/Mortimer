@@ -5,8 +5,9 @@ import {
   setupPasscode, 
   disablePasscode, 
   clearAllAppData, 
-  exportAppData, 
-  importAppData 
+  importAppData,
+  loadRenoList,
+  loadCompareProfiles
 } from '../utils/storage';
 
 interface SettingsProps {
@@ -14,9 +15,10 @@ interface SettingsProps {
   onImportSuccess: () => void;
   currentPin?: string;
   onUpdatePin?: (pin: string) => void;
+  profile?: any;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin, onUpdatePin }) => {
+export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin: _currentPin, onUpdatePin, profile }) => {
   // Passcode States
   const [passcodeEnabled, setPasscodeEnabled] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
@@ -33,29 +35,21 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     setPasscodeEnabled(!!config?.isEnabled);
   }, []);
 
-  // Handle export
+  // Handle export — uses in-memory profile as the source of truth
   const handleExport = async () => {
     try {
       setPasscodeError('');
-      
-      // Try with current session PIN first
-      let dataStr = await exportAppData(currentPin || undefined);
-      
-      // If export returned null, the profile is encrypted and we don't have the right PIN
-      if (!dataStr) {
-        // Prompt user to re-enter their PIN
-        const enteredPin = window.prompt('Enter your 4-digit PIN to decrypt and export:');
-        if (!enteredPin) return; // User cancelled
-        
-        dataStr = await exportAppData(enteredPin);
-        if (!dataStr) {
-          setPasscodeError('Incorrect PIN. Unable to decrypt profile for export.');
-          return;
-        }
-        // Update the session PIN since it worked
-        if (onUpdatePin) onUpdatePin(enteredPin);
-      }
-      
+
+      // Build export object directly from in-memory state and unencrypted localStorage keys
+      const exportObj = {
+        version: '1.0.0',
+        profile: profile || null,
+        renoList: loadRenoList(),
+        compareProfiles: loadCompareProfiles(),
+        exportedAt: new Date().toISOString()
+      };
+
+      const dataStr = JSON.stringify(exportObj, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -102,8 +96,9 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     }
 
     if (passcodeEnabled) {
-      // Disable passcode
-      const success = await disablePasscode(pin);
+      // Disable passcode — pass the in-memory profile so it can be saved as cleartext
+      // even if the encrypted localStorage blob is corrupted
+      const success = await disablePasscode(pin, profile);
       if (success) {
         setPasscodeEnabled(false);
         if (onUpdatePin) onUpdatePin('');

@@ -243,7 +243,7 @@ export async function setupPasscode(pin: string, hint?: string): Promise<void> {
 }
 
 // Disable passcode lock
-export async function disablePasscode(pin: string): Promise<boolean> {
+export async function disablePasscode(pin: string, inMemoryProfile?: any): Promise<boolean> {
   const config = getPasscodeConfig();
   if (!config) return true;
   
@@ -252,13 +252,18 @@ export async function disablePasscode(pin: string): Promise<boolean> {
     return false; // Wrong PIN
   }
   
-  // Decrypt and save profile back as unencrypted
-  const decryptedProfile = await loadProfile(pin);
+  // Try to decrypt from localStorage first, fall back to in-memory profile
+  let profileToSave = await loadProfile(pin);
+  if (!profileToSave || profileToSave.__isEncrypted) {
+    // Decryption from localStorage failed; use in-memory profile as source of truth
+    profileToSave = inMemoryProfile || null;
+  }
+  
   localStorage.removeItem(KEYS.PASSCODE_CONFIG);
   localStorage.removeItem(KEYS.IS_LOCKED);
   
-  if (decryptedProfile) {
-    localStorage.setItem(KEYS.PROFILE, JSON.stringify(decryptedProfile));
+  if (profileToSave) {
+    localStorage.setItem(KEYS.PROFILE, JSON.stringify(profileToSave));
   }
   
   return true;
