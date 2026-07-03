@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -36,4 +37,8 @@ function swVersionPlugin(): Plugin {
 export default defineConfig({
   base: '/Mortimer/',
   plugins: [react(), swVersionPlugin()],
+  test: {
+    environment: 'happy-dom',
+    include: ['src/**/*.test.{ts,tsx}'],
+  },
 })
