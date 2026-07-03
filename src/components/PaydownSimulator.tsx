@@ -63,6 +63,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const calculatedRegularPayment = useMemo(() => {
     const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
     const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 
@@ -112,26 +115,74 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     });
   }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, confirmedPayment]);
 
+  const isDirty = useMemo(() => {
+    if (!initialProfile) return true;
+    const prepay = showPrepayments ? {
+      lumpSumAmount,
+      doubleUp,
+      paymentIncreasePercent,
+      paymentIncreaseFixed
+    } : undefined;
+    
+    const initPrepay = initialProfile.prepayments;
+
+    const prepaymentsEqual = (!prepay && !initPrepay) || (
+      !!prepay && !!initPrepay &&
+      prepay.lumpSumAmount === initPrepay.lumpSumAmount &&
+      prepay.doubleUp === initPrepay.doubleUp &&
+      prepay.paymentIncreasePercent === initPrepay.paymentIncreasePercent &&
+      prepay.paymentIncreaseFixed === initPrepay.paymentIncreaseFixed
+    );
+
+    return (
+      principal !== initialProfile.principal ||
+      interestRate !== initialProfile.interestRate ||
+      amortizationYears !== initialProfile.amortizationYears ||
+      (amortizationMonths || 0) !== (initialProfile.amortizationMonths || 0) ||
+      paymentFrequency !== initialProfile.paymentFrequency ||
+      (maturityDate || '') !== (initialProfile.maturityDate || '') ||
+      (confirmedPayment || 0) !== (initialProfile.confirmedPayment || 0) ||
+      (originalPrincipal || 0) !== (initialProfile.originalPrincipal || 0) ||
+      (originalAmortizationYears || 0) !== (initialProfile.originalAmortizationYears || 0) ||
+      (originalAmortizationMonths || 0) !== (initialProfile.originalAmortizationMonths || 0) ||
+      (originalTermYears || 0) !== (initialProfile.originalTermYears || 0) ||
+      !prepaymentsEqual
+    );
+  }, [
+    principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
+    originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    showPrepayments, lumpSumAmount, doubleUp, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
+  ]);
+
   const handleSave = () => {
-    onSaveProfile({
-      principal,
-      interestRate,
-      amortizationYears,
-      amortizationMonths,
-      paymentFrequency,
-      maturityDate,
-      confirmedPayment,
-      originalPrincipal,
-      originalAmortizationYears,
-      originalAmortizationMonths,
-      originalTermYears,
-      prepayments: showPrepayments ? {
-        lumpSumAmount,
-        doubleUp,
-        paymentIncreasePercent,
-        paymentIncreaseFixed
-      } : undefined
-    });
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowSuccess(true);
+      onSaveProfile({
+        principal,
+        interestRate,
+        amortizationYears,
+        amortizationMonths,
+        paymentFrequency,
+        maturityDate,
+        confirmedPayment,
+        originalPrincipal,
+        originalAmortizationYears,
+        originalAmortizationMonths,
+        originalTermYears,
+        prepayments: showPrepayments ? {
+          lumpSumAmount,
+          doubleUp,
+          paymentIncreasePercent,
+          paymentIncreaseFixed
+        } : undefined
+      });
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+    }, 450);
   };
 
   // Line Chart Data
@@ -567,8 +618,34 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             type="button" 
             className="btn btn-primary w-full mt-4" 
             onClick={handleSave}
+            disabled={!isDirty || isSaving}
+            style={{
+              background: showSuccess ? 'var(--color-success)' : undefined,
+              borderColor: showSuccess ? 'var(--color-success)' : undefined,
+              transition: 'all 0.3s ease',
+            }}
           >
-            Save as Active Profile
+            {isSaving ? (
+              <>
+                <span style={{
+                  display: 'inline-block',
+                  width: '14px',
+                  height: '14px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#fff',
+                  borderRadius: '50%',
+                  animation: 'spin 0.6s linear infinite',
+                  marginRight: '0.5rem'
+                }} />
+                Saving...
+              </>
+            ) : showSuccess ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', animation: 'scaleUp 0.2s ease-out' }}>
+                ✓ Profile Saved!
+              </span>
+            ) : (
+              'Save as Active Profile'
+            )}
           </button>
         </div>
 

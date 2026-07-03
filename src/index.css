@@ -420,6 +420,13 @@ p {
   border-radius: 0.375rem;
 }
 
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Badges & Alerts */
 .badge {
   display: inline-flex;
@@ -797,4 +804,13 @@ input:checked + .toggle-slider:before {
   h2 { font-size: 1.5rem; }
   .grid { gap: 1rem; }
   .card { padding: 1.25rem; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
