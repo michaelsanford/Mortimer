@@ -1,5 +1,8 @@
 # Mortimer – Canadian Mortgage Insights
 
+[![CI & Deploy](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A privacy-first Progressive Web App for simulating mortgage paydowns, comparing renewal and refinancing rates, and planning home equity (HELOC) borrowing — tailored for Canadian mortgages.
 
 All calculations run entirely in your browser. No data is collected, stored, or transmitted to any server.
@@ -67,4 +70,4 @@ If the **Setup Pages** step fails with `HttpError: Not Found`, ensure the reposi
 
 ## License
 
-See repository for license details.
+Released under the MIT License. See [LICENSE](LICENSE) for details.
