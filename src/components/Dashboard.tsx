@@ -16,7 +16,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
           <Landmark size={32} />
         </div>
         <h2 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Welcome to Mortimer</h2>
-        <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }} aria-label="Canadian Mortgage Tool">🇨🇦</div>
+        <img 
+          src="./flag-ca.svg" 
+          alt="Canada" 
+          style={{ width: '3.5rem', height: '1.75rem', display: 'block', margin: '0 auto 1.25rem', borderRadius: '0.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} 
+        />
         <p style={{ maxWidth: '500px', margin: '0 auto 2rem', fontSize: '1.1rem' }}>
            Mortimer runs entirely in your browser with strict local privacy. Configure your current mortgage to unlock your dashboard and explore payment optimization strategies.
         </p>
