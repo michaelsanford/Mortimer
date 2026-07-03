@@ -507,7 +507,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                     type="number" 
                     className="form-input" 
                     value={renewalAmortizationYears} 
-                    onChange={(e) => setRenewalAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 25)))}
+                    onChange={(e) => setRenewalAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
                     placeholder={t.rate.years}
                     style={{ paddingRight: '2rem' }}
                   />
@@ -602,7 +602,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         step="0.01" 
                         className="form-input" 
                         value={offer.rate} 
-                        onChange={(e) => handleUpdateOffer(offer.id, 'rate', parseFloat(e.target.value) || 0)} 
+                        onChange={(e) => handleUpdateOffer(offer.id, 'rate', parseFloat(e.target.value) || 0)}
                         style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
                       />
                     </div>
@@ -613,7 +613,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         className="form-select" 
                         value={offer.term} 
                         onChange={(e) => handleUpdateOffer(offer.id, 'term', parseInt(e.target.value) || 5)}
-                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                        style={{ padding: '0.4rem 1.75rem 0.4rem 0.5rem', fontSize: '0.85rem' }}
                       >
                         <option value="1">{t.rate.yr1}</option>
                         <option value="2">{t.rate.yrs2}</option>
@@ -631,7 +631,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         className="form-select" 
                         value={offer.type} 
                         onChange={(e) => handleUpdateOffer(offer.id, 'type', e.target.value as 'fixed' | 'variable')}
-                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                        style={{ padding: '0.4rem 1.75rem 0.4rem 0.5rem', fontSize: '0.85rem' }}
                       >
                         <option value="fixed">{t.rate.fixed}</option>
                         <option value="variable">{t.rate.variable}</option>
@@ -788,7 +788,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         type="number" 
                         className="form-input" 
                         value={refinanceAmortizationYears} 
-                        onChange={(e) => setRefinanceAmortizationYears(Math.max(1, Math.min(30, parseInt(e.target.value) || 20)))}
+                        onChange={(e) => setRefinanceAmortizationYears(Math.max(1, parseInt(e.target.value) || 20))}
                         placeholder={t.rate.yrs}
                         style={{ paddingRight: '1.8rem', fontSize: '0.85rem' }}
                       />
