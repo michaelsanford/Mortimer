@@ -129,11 +129,14 @@ export function calculateRegularPayment(principal: number, annualRatePercent: nu
 
 // Calculate the complete amortization schedule
 export function calculateAmortization(inputs: MortgageInputs): AmortizationSummary {
-  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual', confirmedPayment } = inputs;
+  const { principal, interestRate, amortizationYears, paymentFrequency, prepayments, compounding = 'semi_annual', confirmedPayment, originalPrincipal, originalAmortizationYears } = inputs;
   
+  const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
+  const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 ? originalAmortizationYears : amortizationYears;
+
   const baseRegularPayment = confirmedPayment && confirmedPayment > 0 
     ? confirmedPayment 
-    : calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency, compounding);
+    : calculateRegularPayment(principalForPayment, interestRate, amortizationForPayment, paymentFrequency, compounding);
   const periodRate = getPeriodInterestRate(interestRate, paymentFrequency, compounding);
   const ppy = getPaymentsPerYear(paymentFrequency);
   

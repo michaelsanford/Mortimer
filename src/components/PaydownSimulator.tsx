@@ -62,8 +62,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
   const calculatedRegularPayment = useMemo(() => {
-    return calculateRegularPayment(principal, interestRate, amortizationYears, paymentFrequency);
-  }, [principal, interestRate, amortizationYears, paymentFrequency]);
+    const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
+    const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 ? originalAmortizationYears : amortizationYears;
+    return calculateRegularPayment(principalForPayment, interestRate, amortizationForPayment, paymentFrequency);
+  }, [principal, interestRate, amortizationYears, paymentFrequency, originalPrincipal, originalAmortizationYears]);
 
   // Amortization results
   const results = useMemo(() => {
