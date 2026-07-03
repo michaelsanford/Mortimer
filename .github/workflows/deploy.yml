@@ -20,11 +20,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Deploy to GitHub Pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Separating prepare and deploy into distinct jobs is intentional.
+  # actions/deploy-pages@v4 fails if it finds more than one artifact named
+  # "github-pages" for the same workflow run. This happens when "Re-run failed
+  # jobs" is used after the deploy step fails — the re-run re-uploads a second
+  # artifact. By isolating the upload here, a re-run of the failing `deploy`
+  # job does not re-execute `prepare`, so only one artifact ever exists.
+  prepare:
+    name: Download & Prepare Pages Artifact
     runs-on: ubuntu-latest
     steps:
       - name: Download release asset
@@ -57,6 +60,14 @@ jobs:
         with:
           path: './extracted/dist'
 
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: prepare
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
