@@ -780,6 +780,7 @@ input:checked + .toggle-slider:before {
 .flex-row { flex-direction: row; }
 .align-center { align-items: center; }
 .justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
 .gap-2 { gap: 0.5rem; }
 .gap-4 { gap: 1rem; }
 .mt-4 { margin-top: 1rem; }

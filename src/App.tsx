@@ -198,24 +198,39 @@ function App() {
             <a href="#" className="footer-link" onClick={() => setActiveTab('settings')}>Settings & Privacy</a>
           </div>
 
-          <div className="flex align-center justify-center gap-4 mt-4" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            <span className="flex align-center gap-2">
+          <div className="flex align-center justify-center gap-4 mt-4" style={{ fontSize: '0.85rem' }}>
+            <a 
+              href="#" 
+              className="footer-link flex align-center gap-2" 
+              onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
+            >
               <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
               PIPEDA Compliant
-            </span>
+            </a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
-            <span className="flex align-center gap-2">
+            <a 
+              href="#" 
+              className="footer-link flex align-center gap-2" 
+              onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
+            >
               <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
               Loi 25 (Quebec) Compliant
-            </span>
+            </a>
           </div>
 
           <div className="footer-disclaimer">
             <strong>Disclaimer:</strong> I am not a financial professional. This is not financial advice. Make your own decisions. All calculation models are provided for informational and educational purposes only. Mortimer does not collect, store, or transmit your personal data.
           </div>
           
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
-            &copy; {new Date().getFullYear()} Mortimer. Hosted on GitHub Pages.
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span>&copy; {new Date().getFullYear()} Mortimer.</span>
+            <a href="https://github.com/michaelsanford/Mortimer" target="_blank" rel="noopener noreferrer" className="footer-link">
+              Hosted on GitHub Pages
+            </a>
+            <span style={{ color: 'var(--border-color)' }}>|</span>
+            <a href="https://github.com/michaelsanford/Mortimer/issues" target="_blank" rel="noopener noreferrer" className="footer-link">
+              Report an Issue
+            </a>
           </div>
         </div>
       </footer>
