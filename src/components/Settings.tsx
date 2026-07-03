@@ -13,9 +13,10 @@ interface SettingsProps {
   onClearProfile: () => void;
   onImportSuccess: () => void;
   currentPin?: string;
+  onUpdatePin?: (pin: string) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin }) => {
+export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin, onUpdatePin }) => {
   // Passcode States
   const [passcodeEnabled, setPasscodeEnabled] = useState<boolean>(false);
   const [pin, setPin] = useState<string>('');
@@ -35,10 +36,24 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
   // Handle export
   const handleExport = async () => {
     try {
-      const dataStr = await exportAppData(currentPin || pin || undefined);
+      setPasscodeError('');
+      
+      // Try with current session PIN first
+      let dataStr = await exportAppData(currentPin || undefined);
+      
+      // If export returned null, the profile is encrypted and we don't have the right PIN
       if (!dataStr) {
-        setPasscodeError('Please unlock the app or verify passcode to export.');
-        return;
+        // Prompt user to re-enter their PIN
+        const enteredPin = window.prompt('Enter your 4-digit PIN to decrypt and export:');
+        if (!enteredPin) return; // User cancelled
+        
+        dataStr = await exportAppData(enteredPin);
+        if (!dataStr) {
+          setPasscodeError('Incorrect PIN. Unable to decrypt profile for export.');
+          return;
+        }
+        // Update the session PIN since it worked
+        if (onUpdatePin) onUpdatePin(enteredPin);
       }
       
       const blob = new Blob([dataStr], { type: 'application/json' });
@@ -91,6 +106,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       const success = await disablePasscode(pin);
       if (success) {
         setPasscodeEnabled(false);
+        if (onUpdatePin) onUpdatePin('');
         setPin('');
         setHint('');
         setShowPinForm(false);
@@ -102,6 +118,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       // Enable passcode
       await setupPasscode(pin, hint || undefined);
       setPasscodeEnabled(true);
+      if (onUpdatePin) onUpdatePin(pin);
       setPin('');
       setHint('');
       setShowPinForm(false);

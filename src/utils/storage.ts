@@ -291,9 +291,20 @@ export function clearAllAppData(): void {
 
 // Export data to a JSON string
 export async function exportAppData(pin?: string): Promise<string | null> {
+  const stored = localStorage.getItem(KEYS.PROFILE);
+  let isProfileEncrypted = false;
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object' && 'ciphertext' in parsed && 'salt' in parsed && 'iv' in parsed) {
+        isProfileEncrypted = true;
+      }
+    } catch (e) {}
+  }
+
   const profile = await loadProfile(pin);
-  if (profile && profile.__isEncrypted) {
-    return null; // Needs unlock
+  if (isProfileEncrypted && (!profile || profile.__isEncrypted)) {
+    return null; // Needs unlock or incorrect PIN
   }
   
   const renoList = loadRenoList();

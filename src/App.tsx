@@ -110,6 +110,7 @@ function App() {
             onClearProfile={handleClearProfile} 
             onImportSuccess={handleReloadProfile} 
             currentPin={currentPin}
+            onUpdatePin={setCurrentPin}
           />
         );
       default:
