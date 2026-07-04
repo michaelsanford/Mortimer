@@ -58,7 +58,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && pin.length > 0) {
-        handleSubmit();
+        void handleSubmit();
       } else if (e.key === 'Backspace') {
         handleDelete();
       } else if (/^[0-9]$/.test(e.key)) {

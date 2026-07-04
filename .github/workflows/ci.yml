@@ -76,3 +76,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
+          # Ensure results are associated with the head commit of the PR to prevent merge block issues when main is updated
+          ref: ${{ github.event.pull_request.head.ref && format('refs/heads/{0}', github.event.pull_request.head.ref) || github.ref }}
+          sha: ${{ github.event.pull_request.head.sha || github.sha }}

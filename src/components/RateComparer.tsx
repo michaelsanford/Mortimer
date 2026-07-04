@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
-import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear } from '../utils/mortgageMath';
+import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
 import {
@@ -86,14 +86,6 @@ const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels
       <span>{current.text}</span>
     </div>
   );
-};
-
-const calculateRemainingMonths = (maturityDateStr: string) => {
-  if (!maturityDateStr) return 36;
-  const maturity = new Date(maturityDateStr);
-  const today = new Date();
-  const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
-  return Math.max(1, diffMonths);
 };
 
 const estimateRemainingAmortization = (

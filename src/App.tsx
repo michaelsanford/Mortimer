@@ -84,7 +84,7 @@ function App() {
         setProfile(loadedProfile);
       }
     };
-    initApp();
+    void initApp();
   }, []);
 
   // Unlock callback
