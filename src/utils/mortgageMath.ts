@@ -327,7 +327,7 @@ export function calculateRefinance(inputs: RefinanceInputs): RefinanceResult {
   } = inputs;
 
   // 1. Calculate Prepayment Penalty
-  let estimatedPenalty = 0;
+  let estimatedPenalty: number;
   
   if (prepaymentPenaltyType === 'custom') {
     estimatedPenalty = customPenaltyAmount;
@@ -439,3 +439,12 @@ export function calculateHELOC(inputs: HELOCInputs): HELOCResult {
     currentLtvPercent: Math.round(currentLtvPercent * 10) / 10,
   };
 }
+
+export function calculateRemainingMonths(maturityDateStr: string): number {
+  if (!maturityDateStr) return 36;
+  const maturity = new Date(maturityDateStr);
+  const today = new Date();
+  const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
+  return Math.max(1, diffMonths);
+}
+

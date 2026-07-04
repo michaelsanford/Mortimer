@@ -1,16 +1,8 @@
 import React, { useMemo } from 'react';
 import { Landmark, TrendingDown, Clock, ShieldAlert, Award } from 'lucide-react';
-import { calculateAmortization } from '../utils/mortgageMath';
+import { calculateAmortization, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
-
-const calculateRemainingMonths = (maturityDateStr: string) => {
-  if (!maturityDateStr) return 36;
-  const maturity = new Date(maturityDateStr);
-  const today = new Date();
-  const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
-  return Math.max(1, diffMonths);
-};
 
 interface DashboardProps {
   profile: MortgageInputs | null;

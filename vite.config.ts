@@ -28,7 +28,7 @@ function swVersionPlugin(): Plugin {
         // 1. Stamp cache version
         const buildVersion = `mortimer-cache-${Date.now()}`
         swContent = swContent.replace(
-          /const CACHE_NAME = ['\"].*?['\"]/,
+          /const CACHE_NAME = ['"].*?['"]/,
           `const CACHE_NAME = '${buildVersion}'`
         )
         console.log(`[sw-version] Stamped SW cache: ${buildVersion}`)
