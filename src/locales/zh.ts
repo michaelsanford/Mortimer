@@ -23,6 +23,7 @@ export const zh = {
     settings: '设置与隐私',
     pipeda: '符合 PIPEDA 规范',
     loi25: '符合魁北克第 25 号法案',
+    mortgageResources: '加拿大政府：抵押贷款指南',
     disclaimer: '我不是金融专业人士。本工具不构成财务建议。请自行做出决定。所有计算模型仅供参考和教育目的。Mortimer 不收集、存储或传输您的任何个人数据。',
     disclaimerLabel: '免责声明：',
     copyright: '由 Michael 用 <3 制作',

@@ -23,6 +23,7 @@ export const fr = {
     settings: 'Paramètres & Confidentialité',
     pipeda: 'Conforme à la LPRPDE',
     loi25: 'Conforme à la Loi 25 (Québec)',
+    mortgageResources: 'Gouvernement du Canada : guide sur les hypothèques',
     disclaimer: 'Je ne suis pas un professionnel de la finance. Ceci ne constitue pas un conseil financier. Prenez vos propres décisions. Tous les modèles de calcul sont fournis à des fins éducatives et informatives uniquement. Mortimer ne collecte, ne stocke ni ne transmet vos données personnelles.',
     disclaimerLabel: 'Avis :',
     copyright: 'Fait avec <3 par Michael',

@@ -23,6 +23,7 @@ export const en = {
     settings: 'Settings & Privacy',
     pipeda: 'PIPEDA Compliant',
     loi25: 'Loi 25 (Quebec) Compliant',
+    mortgageResources: 'Government of Canada: Mortgages guide',
     disclaimer: 'I am not a financial professional. This is not financial advice. Make your own decisions. All calculation models are provided for informational and educational purposes only. Mortimer does not collect, store, or transmit your personal data.',
     disclaimerLabel: 'Disclaimer:',
     copyright: 'Make with <3 by Michael',
