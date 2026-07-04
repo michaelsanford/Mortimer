@@ -28,3 +28,6 @@ bom.json
 *.njsproj
 *.sln
 *.sw?
+
+# Qodana reports
+*_qodana.sarif.json

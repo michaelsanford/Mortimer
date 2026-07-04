@@ -1,10 +1,21 @@
 # Mortimer – Canadian Mortgage Insights
 
-[![CI](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/michaelsanford/Mortimer?color=blue)](https://github.com/michaelsanford/Mortimer/releases)
 [![Deploy](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/deploy.yml)
-[![SBOM: CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-blue)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
-[![Security scan: Grype](https://img.shields.io/badge/security%20scan-Grype-8A2BE2)](https://github.com/michaelsanford/Mortimer/security/code-scanning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PWA](https://img.shields.io/badge/PWA-Progressive%20Web%20App-orange?logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
+
+[![CI](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![Qodana Scan](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml)
+[![Security scan: Grype](https://img.shields.io/badge/security%20scan-Grype-8A2BE2)](https://github.com/michaelsanford/Mortimer/security/code-scanning)
+[![SBOM: CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-blue)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![Linter: oxlint](https://img.shields.io/badge/linter-oxlint-blue)](https://github.com/oxc-project/oxc)
+
+[![GitHub issues](https://img.shields.io/github/issues/michaelsanford/Mortimer?color=red)](https://github.com/michaelsanford/Mortimer/issues)
+[![GitHub PRs](https://img.shields.io/github/issues-pr/michaelsanford/Mortimer?color=orange)](https://github.com/michaelsanford/Mortimer/pulls)
+[![GitHub contributors](https://img.shields.io/github/contributors/michaelsanford/Mortimer)](https://github.com/michaelsanford/Mortimer/graphs/contributors)
+[![GitHub repo size](https://img.shields.io/github/repo-size/michaelsanford/Mortimer)](https://github.com/michaelsanford/Mortimer)
+
 
 A privacy-first Progressive Web App for simulating mortgage paydowns, comparing renewal and refinancing rates, and planning home equity (HELOC) borrowing — tailored for Canadian mortgages.
 
