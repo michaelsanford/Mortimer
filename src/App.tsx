@@ -324,7 +324,7 @@ function App() {
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>{t.footer.copyright}</span>
+            <a href="https://github.com/michaelsanford/Mortimer" target="_blank" rel="noopener noreferrer" className="footer-link">{t.footer.copyright}</a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             {isDev ? (
               <span>{appVersion}</span>

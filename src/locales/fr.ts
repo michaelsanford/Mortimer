@@ -26,7 +26,7 @@ export const fr = {
     mortgageResources: 'Gouvernement du Canada : guide sur les hypothèques',
     disclaimer: 'Je ne suis pas un professionnel de la finance. Ceci ne constitue pas un conseil financier. Prenez vos propres décisions. Tous les modèles de calcul sont fournis à des fins éducatives et informatives uniquement. Mortimer ne collecte, ne stocke ni ne transmet vos données personnelles.',
     disclaimerLabel: 'Avis :',
-    copyright: 'Fait avec <3 par Michael',
+    copyright: 'Fait avec ❤️ par Michael',
     reportIssue: 'Signaler un problème',
     reportSecurity: 'Signaler une faille de sécurité',
   },

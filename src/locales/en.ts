@@ -26,7 +26,7 @@ export const en = {
     mortgageResources: 'Government of Canada: Mortgages guide',
     disclaimer: 'I am not a financial professional. This is not financial advice. Make your own decisions. All calculation models are provided for informational and educational purposes only. Mortimer does not collect, store, or transmit your personal data.',
     disclaimerLabel: 'Disclaimer:',
-    copyright: 'Make with <3 by Michael',
+    copyright: 'Made with ❤️ by Michael',
     reportIssue: 'Report an Issue',
     reportSecurity: 'Report a Security Finding',
   },

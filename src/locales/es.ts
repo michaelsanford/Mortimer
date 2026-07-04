@@ -26,7 +26,7 @@ export const es = {
     mortgageResources: 'Gobierno de Canadá: guía de hipotecas',
     disclaimer: 'No soy un profesional financiero. Esto no es asesoramiento financiero. Tome sus propias decisiones. Todos los modelos de cálculo se proporcionan únicamente con fines informativos y educativos. Mortimer no recopila, almacena ni transmite sus datos personales.',
     disclaimerLabel: 'Descargo de responsabilidad:',
-    copyright: 'Hecho con <3 por Michael',
+    copyright: 'Hecho con ❤️ por Michael',
     reportIssue: 'Reportar un Problema',
     reportSecurity: 'Reportar Hallazgo de Seguridad',
   },
