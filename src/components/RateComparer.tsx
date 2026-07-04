@@ -436,6 +436,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const saveStatusLabels = { saved: t.rate.saved, pending: t.rate.pending, saving: t.rate.saving };
 
+  // Household affordability: annualized payment as a % of household income (gross/net per profile)
+  const householdIncome = profile?.householdIncome || 0;
+  const incomeTypeLabel = profile?.incomeType === 'net' ? t.rate.incomeNet : t.rate.incomeGross;
+  const renewalPaymentsPerYear = getPaymentsPerYear(renewalFrequency);
+
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -696,6 +701,19 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                           ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       ))}
+                    </tr>
+                    <tr>
+                      <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
+                      {renewalResults.map(o => {
+                        const pct = householdIncome > 0
+                          ? (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome * 100
+                          : null;
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right' }}>
+                            {pct !== null ? `${pct.toFixed(1)}%` : '—'}
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{t.rate.interestPaidInTerm}</td>

@@ -104,6 +104,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const [originalAmortizationMonths, setOriginalAmortizationMonths] = useState<number>(initialProfile?.originalAmortizationMonths || 0);
   const [originalTermYears, setOriginalTermYears] = useState<number>(initialProfile?.originalTermYears || 0);
 
+  // Household affordability (persisted globally; not used by the amortization math)
+  const [householdIncome, setHouseholdIncome] = useState<number>(initialProfile?.householdIncome || 0);
+  const [incomeType, setIncomeType] = useState<'gross' | 'net'>(initialProfile?.incomeType || 'gross');
+
   // Prepayments
   const [showPrepayments, setShowPrepayments] = useState<boolean>(
     !!(initialProfile?.prepayments && 
@@ -115,7 +119,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   
   const [lumpSumAmount, setLumpSumAmount] = useState<number>(initialProfile?.prepayments?.lumpSumAmount || 0);
   const [doubleUp, setDoubleUp] = useState<boolean>(initialProfile?.prepayments?.doubleUp || false);
-  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(initialProfile?.prepayments?.doubleUpEvery || 1);
+  // Interval between double-ups, in payments. Defaults to once per year (ppy) for a fresh profile.
+  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(
+    initialProfile?.prepayments?.doubleUpEvery || getPaymentsPerYear(initialProfile?.paymentFrequency || 'monthly')
+  );
   const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
   const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
@@ -210,11 +217,14 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       (originalAmortizationYears || 0) !== (initialProfile.originalAmortizationYears || 0) ||
       (originalAmortizationMonths || 0) !== (initialProfile.originalAmortizationMonths || 0) ||
       (originalTermYears || 0) !== (initialProfile.originalTermYears || 0) ||
+      (householdIncome || 0) !== (initialProfile.householdIncome || 0) ||
+      (incomeType || 'gross') !== (initialProfile.incomeType || 'gross') ||
       !prepaymentsEqual
     );
   }, [
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    householdIncome, incomeType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
   ]);
 
@@ -248,6 +258,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         originalAmortizationYears,
         originalAmortizationMonths,
         originalTermYears,
+        householdIncome,
+        incomeType,
         prepayments: showPrepayments ? {
           lumpSumAmount,
           doubleUp,
@@ -268,6 +280,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     isDirty,
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
+    householdIncome, incomeType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
     onSaveProfile
   ]);
@@ -363,19 +376,26 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
 
   const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || paymentFrequency.includes('accelerated'));
 
-  // Payments per year for the current frequency — bounds the double-up interval slider (max once per year)
+  // Payments per year for the current frequency — drives the double-up interval slider.
   const ppy = getPaymentsPerYear(paymentFrequency);
 
-  // Keep the double-up interval at a sane floor (at least every payment)
+  // Double-up interval slider bounds (in payments): 1 = every payment (most frequent),
+  // ppy × term = once per term (least frequent, the "no less than 1/term" floor).
+  // Term falls back to the full amortization when the original term isn't tracked.
+  const doubleUpTermYears = originalTermYears > 0 ? originalTermYears : amortizationYears;
+  const maxDoubleUpInterval = Math.max(1, Math.round(ppy * doubleUpTermYears));
+
+  // Keep the double-up interval within [1, once-per-term] as frequency/term change.
   useEffect(() => {
-    setDoubleUpEvery((prev) => Math.max(1, prev));
-  }, [ppy]);
+    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev)));
+  }, [maxDoubleUpInterval]);
 
   // Human-friendly description of how often the double-up applies
   const doubleUpFrequencyLabel = useMemo(() => {
+    if (doubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
     if (doubleUpEvery <= 1) return t.paydown.everyPayment;
     return t.paydown.everyNPayments.replace('{n}', String(doubleUpEvery));
-  }, [doubleUpEvery, t]);
+  }, [doubleUpEvery, maxDoubleUpInterval, t]);
 
   const doubleUpTimesPerYear = useMemo(() => {
     const times = ppy / Math.max(1, doubleUpEvery);
@@ -526,6 +546,42 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                 {t.paydown.paymentOverrideHint}
               </span>
             </div>
+
+            {/* Household Income (with gross/net toggle) — persisted globally, used by the Rates Comparer */}
+            <div className="form-group">
+              <label className="form-label flex justify-between align-center">
+                <span>{t.paydown.householdIncome}</span>
+                <div style={{ display: 'inline-flex', border: '1px solid var(--border-color)', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                  {(['gross', 'net'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setIncomeType(type)}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.5rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: incomeType === type ? 'var(--color-primary)' : 'transparent',
+                        color: incomeType === type ? '#fff' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {type === 'gross' ? t.paydown.incomeGross : t.paydown.incomeNet}
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <div className="form-input-wrapper">
+                <DollarSign size={16} className="form-input-prefix" />
+                <input
+                  type="number"
+                  className="form-input form-input-with-prefix"
+                  value={householdIncome || ''}
+                  onChange={(e) => setHouseholdIncome(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Group 2: Current Term Timeline */}
@@ -630,41 +686,46 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         {/* Charts & Outcomes Panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          {/* Comparison Cards */}
-          <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
-            
-            {/* Standard Metrics */}
-            <div className="card">
-              <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                {t.paydown.baselineOutcome}
-              </h4>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
-                ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {t.paydown.totalInterestPaid.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-              </div>
-            </div>
+          {/* Combined Outcome Zone: baseline vs. active plan */}
+          <div className="card">
+            <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              {t.paydown.totalInterestZone}
+            </h4>
+            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
 
-            {/* Prepayment Metrics */}
-            <div className="card card-accent">
-              <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                {t.paydown.activePlanOutcome}
-              </h4>
-              <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-                ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {/* Baseline column */}
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  {t.paydown.baselineOutcome}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
+                  ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {t.paydown.overYears.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
+                  {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {t.paydown.totalInterestPaid.replace('{years}', results.yearsToPayoff.toFixed(1))}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-              </div>
-            </div>
 
+              {/* Active Plan column */}
+              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  {t.paydown.activePlanOutcome}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
+                  ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {t.paydown.overYears.replace('{years}', results.yearsToPayoff.toFixed(1))}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
+                  {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+
+            </div>
           </div>
 
           {/* Optimization Callout */}
@@ -683,9 +744,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
           )}
 
           {/* Graph Card */}
-          <div className="card" style={{ height: '320px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="card" style={{ height: '480px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.paydown.balanceProjection}</h3>
-            <div style={{ flexGrow: 1, position: 'relative', height: '240px' }}>
+            <div style={{ flexGrow: 1, position: 'relative', height: '360px' }}>
               <Line data={chartData} options={chartOptions} />
             </div>
           </div>
@@ -771,16 +832,22 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                         <span>{t.paydown.doubleUpFrequency}</span>
                         <span className="form-label-val">{doubleUpFrequencyLabel}</span>
                       </label>
-                      {/* Interval between double-up payments: 1 = every payment */}
+                      {/* Interval between double-ups, in payments: 1 = every payment (most frequent),
+                          ppy × term = once per term (least frequent). */}
                       <input
-                        type="number"
-                        className="form-input"
-                        min="1"
+                        type="range"
+                        className="slider-input"
+                        min={1}
+                        max={maxDoubleUpInterval}
+                        step={1}
                         value={doubleUpEvery}
-                        onChange={(e) => setDoubleUpEvery(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setDoubleUpEvery(Math.min(maxDoubleUpInterval, Math.max(1, parseInt(e.target.value) || 1)))}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
                         {t.paydown.doubleUpTimesPerYear.replace('{n}', String(doubleUpTimesPerYear))}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                        {t.paydown.doubleUpDistribution}
                       </span>
                     </div>
                   )}

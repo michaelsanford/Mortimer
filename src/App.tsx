@@ -8,7 +8,8 @@ import {
   LayoutDashboard,
   ShieldCheck,
   Globe,
-  ChevronDown
+  ChevronDown,
+  ExternalLink
 } from 'lucide-react';
 import type { Locale } from './utils/i18n';
 import type { MortgageInputs } from './utils/mortgageMath';
@@ -42,6 +43,11 @@ const releaseUrl = isDev
 function App() {
   const { t, locale, setLocale } = useI18n();
   const { updateState, applyUpdate } = useServiceWorker();
+
+  // Government of Canada (FCAC) mortgages guide — French page for the fr locale, English otherwise.
+  const mortgageResourcesUrl = locale === 'fr'
+    ? 'https://www.canada.ca/fr/agence-consommation-matiere-financiere/services/hypotheques.html'
+    : 'https://www.canada.ca/en/financial-consumer-agency/services/mortgages.html';
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [profile, setProfile] = useState<MortgageInputs | null>(null);
   const [isAppLocked, setIsAppLocked] = useState<boolean>(false);
@@ -290,13 +296,26 @@ function App() {
               {t.footer.pipeda}
             </a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
-            <a 
-              href="#" 
-              className="footer-link flex align-center gap-2" 
+            <a
+              href="#"
+              className="footer-link flex align-center gap-2"
               onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
             >
               <ShieldCheck size={16} style={{ color: 'var(--color-success)' }} />
               {t.footer.loi25}
+            </a>
+          </div>
+
+          <div className="flex align-center justify-center mt-4" style={{ fontSize: '0.9rem' }}>
+            <a
+              href={mortgageResourcesUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-link flex align-center gap-2"
+              style={{ fontWeight: 600, color: 'var(--color-primary)' }}
+            >
+              <ExternalLink size={16} />
+              {t.footer.mortgageResources}
             </a>
           </div>
 
@@ -305,7 +324,7 @@ function App() {
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span>{t.footer.copyright}</span>
+            <a href="https://github.com/michaelsanford/Mortimer" target="_blank" rel="noopener noreferrer" className="footer-link">{t.footer.copyright}</a>
             <span style={{ color: 'var(--border-color)' }}>|</span>
             {isDev ? (
               <span>{appVersion}</span>

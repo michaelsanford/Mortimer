@@ -172,6 +172,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
                 ${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
+            {profile.householdIncome ? (
+              <div className="flex justify-between align-center">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.householdIncome}</span>
+                <span style={{ fontWeight: 600, fontFamily: 'var(--font-heading)' }}>
+                  ${profile.householdIncome.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>({profile.incomeType === 'net' ? t.dashboard.incomeNet : t.dashboard.incomeGross})</span>
+                </span>
+              </div>
+            ) : null}
           </div>
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             {t.dashboard.amortizedOver} {profile.amortizationYears} {profile.amortizationYears !== 1 ? t.dashboard.years : t.dashboard.year}{profile.amortizationMonths ? ` ${t.dashboard.and} ${profile.amortizationMonths} ${profile.amortizationMonths !== 1 ? t.dashboard.months : t.dashboard.month}` : ''}
