@@ -134,7 +134,7 @@ const estimateRemainingAmortization = (
       return { years: years + 1, months: 0 };
     }
     return { years, months };
-  } catch (e) {
+  } catch {
     return null;
   }
 };

@@ -161,14 +161,14 @@ export async function loadProfile(pin?: string): Promise<any | null> {
       try {
         const decrypted = await decryptData(parsed.ciphertext, pin, parsed.salt, parsed.iv);
         return JSON.parse(decrypted);
-      } catch (err) {
+      } catch {
         console.error('Decryption failed. Incorrect PIN.');
         return null;
       }
     }
     
     return parsed;
-  } catch (e) {
+  } catch {
     // Stored string is raw JSON (not encrypted)
     try {
       return JSON.parse(stored);
@@ -363,7 +363,7 @@ export async function exportAppData(pin?: string): Promise<string | null> {
       if (parsed && typeof parsed === 'object' && 'ciphertext' in parsed && 'salt' in parsed && 'iv' in parsed) {
         isProfileEncrypted = true;
       }
-    } catch (e) {}
+    } catch {}
   }
 
   const profile = await loadProfile(pin);
