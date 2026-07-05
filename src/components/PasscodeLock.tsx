@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, AlertCircle, Check, Delete } from 'lucide-react';
 import { hashPin, getPasscodeConfig } from '../utils/storage';
 import { useI18n } from '../utils/i18n';
@@ -32,7 +32,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
     setError(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (pin.length === 0 || validating) return;
 
     setValidating(true);
@@ -52,7 +52,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
         setValidating(false);
       }, 300);
     }
-  };
+  }, [pin, validating, onUnlock]);
 
   // Allow Enter key to submit
   useEffect(() => {
@@ -67,7 +67,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pin, validating]);
+  }, [pin, handleSubmit]);
 
   return (
     <div className="pin-overlay">

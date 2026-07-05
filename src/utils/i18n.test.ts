@@ -114,7 +114,7 @@ describe('i18n locale completeness', () => {
       expect(topLevelSections).toContain('settings');
     });
 
-    Object.entries(locales).forEach(([code, locale]) => {
+    Object.entries(locales).forEach(([_code, locale]) => {
       it(`${locale.name} has the same top-level sections`, () => {
         expect(Object.keys(locale.data).sort()).toEqual(topLevelSections.sort());
       });
