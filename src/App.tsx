@@ -129,6 +129,7 @@ function App() {
           <PaydownSimulator 
             initialProfile={profile} 
             onSaveProfile={handleSaveProfile} 
+            onNavigate={setActiveTab}
           />
         );
       case 'rate':

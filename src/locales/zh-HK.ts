@@ -198,6 +198,10 @@ export const zhHK = {
     interestPaid: '已付利息',
     principalPaid: '已付本金',
     endingBalance: '期末餘額',
+    selectScenario: '選擇方案',
+    currentMortgageOption: '當前按揭',
+    linkedOfferNotice: '參數已連結至利率比較器中的 {name}。仍可模擬提前付款。',
+    editOfferBtn: '編輯方案',
   },
 
   // RateComparer

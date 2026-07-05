@@ -198,6 +198,10 @@ export const ar = {
     interestPaid: 'الفائدة المدفوعة',
     principalPaid: 'أصل المبلغ المدفوع',
     endingBalance: 'الرصيد النهائي',
+    selectScenario: 'اختر السيناريو',
+    currentMortgageOption: 'الرهن العقاري الحالي',
+    linkedOfferNotice: 'المعلمات مرتبطة بـ {name} من مقارن الأسعار. لا يزال بإمكانك محاكاة المدفوعات الإضافية.',
+    editOfferBtn: 'تعديل العرض',
   },
 
   // RateComparer

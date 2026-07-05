@@ -198,6 +198,10 @@ export const en = {
     interestPaid: 'Interest Paid',
     principalPaid: 'Principal Paid',
     endingBalance: 'Ending Balance',
+    selectScenario: 'Select Scenario',
+    currentMortgageOption: 'Current Mortgage',
+    linkedOfferNotice: 'Parameters are linked to {name} from the Rates Comparer. Prepayments can still be simulated.',
+    editOfferBtn: 'Edit Offer',
   },
 
   // RateComparer
