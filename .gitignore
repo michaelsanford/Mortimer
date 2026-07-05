@@ -18,6 +18,9 @@ Trace*.json
 # Generated SBOM (produced by `npm run sbom` / CI)
 bom.json
 
+# Coverage reports (produced by `npm run test:coverage` / CI)
+coverage
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

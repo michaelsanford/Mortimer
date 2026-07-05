@@ -15,6 +15,9 @@ jobs:
   test:
     name: Lint, Test & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # required for the coverage PR comment
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,8 +34,19 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      - name: Report coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Build
         run: npm run build
