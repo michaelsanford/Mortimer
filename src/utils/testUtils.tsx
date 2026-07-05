@@ -27,3 +27,30 @@ export function createTestContainer() {
     }
   };
 }
+
+/**
+ * Polls `predicate` until it returns true, flushing React work between attempts.
+ *
+ * Use this instead of a single fixed-delay flush when an interaction kicks off
+ * an async chain (crypto, storage, a lazy import()): the number of macrotasks
+ * needed to settle varies with machine speed, so a one-tick wait is flaky on
+ * slower CI runners. Throws if the condition is not met within `timeout` ms.
+ */
+export async function waitFor(predicate: () => boolean, timeout = 3000): Promise<void> {
+  const start = Date.now();
+  for (;;) {
+    let satisfied = false;
+    try {
+      satisfied = predicate();
+    } catch {
+      satisfied = false;
+    }
+    if (satisfied) return;
+    if (Date.now() - start > timeout) {
+      throw new Error(`waitFor: condition not met within ${timeout}ms`);
+    }
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    });
+  }
+}

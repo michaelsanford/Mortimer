@@ -1,15 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { Settings } from './Settings';
-import { createTestContainer } from '../utils/testUtils';
+import { createTestContainer, waitFor } from '../utils/testUtils';
 import { setupPasscode, getPasscodeConfig } from '../utils/storage';
-
-// Lets async storage/crypto work settle and the resulting state update flush.
-const flush = async () => {
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-};
 
 // Drives a controlled React input the way a user would, so onChange fires.
 function typeInto(input: HTMLInputElement, value: string) {
@@ -30,6 +23,8 @@ describe('Settings Component Integration Tests', () => {
     await testEnv.cleanup();
   });
 
+  const has = (text: string) => testEnv.container.innerHTML.includes(text);
+
   const clickButton = async (text: string) => {
     const btn = Array.from(testEnv.container.querySelectorAll('button'))
       .find(b => b.textContent?.includes(text)) as HTMLButtonElement | undefined;
@@ -49,16 +44,15 @@ describe('Settings Component Integration Tests', () => {
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
-    await flush();
   };
 
   it('renders the settings panels', async () => {
     await testEnv.render(<Settings onClearProfile={() => {}} onImportSuccess={() => {}} />);
 
-    expect(testEnv.container.innerHTML).toContain('Import / Export Data');
-    expect(testEnv.container.innerHTML).toContain('Local Security');
-    expect(testEnv.container.innerHTML).toContain('Passcode Protection');
-    expect(testEnv.container.innerHTML).toContain('Danger Zone');
+    expect(has('Import / Export Data')).toBe(true);
+    expect(has('Local Security')).toBe(true);
+    expect(has('Passcode Protection')).toBe(true);
+    expect(has('Danger Zone')).toBe(true);
   });
 
   it('rejects an empty PIN', async () => {
@@ -69,8 +63,8 @@ describe('Settings Component Integration Tests', () => {
 
     await clickButton('Enable PIN');
     await submitPin('');
+    await waitFor(() => has('PIN must be at least 1 digit.'));
 
-    expect(testEnv.container.innerHTML).toContain('PIN must be at least 1 digit.');
     expect(onUpdatePin).not.toHaveBeenCalled();
     expect(getPasscodeConfig()).toBeNull();
   });
@@ -83,8 +77,8 @@ describe('Settings Component Integration Tests', () => {
 
     await clickButton('Enable PIN');
     await submitPin('2468');
+    await waitFor(() => has('Passcode lock enabled'));
 
-    expect(testEnv.container.innerHTML).toContain('Passcode lock enabled');
     expect(onUpdatePin).toHaveBeenCalledWith('2468');
     expect(getPasscodeConfig()?.isEnabled).toBe(true);
   });
@@ -95,8 +89,8 @@ describe('Settings Component Integration Tests', () => {
 
     await clickButton('Disable PIN');
     await submitPin('0000');
+    await waitFor(() => has('Incorrect PIN'));
 
-    expect(testEnv.container.innerHTML).toContain('Incorrect PIN');
     expect(getPasscodeConfig()?.isEnabled).toBe(true);
   });
 
@@ -109,8 +103,8 @@ describe('Settings Component Integration Tests', () => {
 
     await clickButton('Disable PIN');
     await submitPin('1357');
+    await waitFor(() => has('Passcode lock disabled'));
 
-    expect(testEnv.container.innerHTML).toContain('Passcode lock disabled');
     expect(onUpdatePin).toHaveBeenCalledWith('');
     expect(getPasscodeConfig()).toBeNull();
   });
@@ -125,9 +119,9 @@ describe('Settings Component Integration Tests', () => {
     await testEnv.render(<Settings onClearProfile={onClearProfile} onImportSuccess={() => {}} />);
 
     await clickButton('Wipe Local Data');
+    await waitFor(() => getPasscodeConfig() === null);
 
     expect(onClearProfile).toHaveBeenCalled();
-    expect(getPasscodeConfig()).toBeNull();
 
     vi.unstubAllGlobals();
   });

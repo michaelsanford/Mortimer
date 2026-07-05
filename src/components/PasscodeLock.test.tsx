@@ -1,15 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { PasscodeLock } from './PasscodeLock';
-import { createTestContainer } from '../utils/testUtils';
+import { createTestContainer, waitFor } from '../utils/testUtils';
 import { setupPasscode } from '../utils/storage';
-
-// Lets the async crypto (hashPin) settle and any resulting state update flush.
-const flush = async () => {
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-};
 
 describe('PasscodeLock Component Integration Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
@@ -37,7 +30,6 @@ describe('PasscodeLock Component Integration Tests', () => {
     await act(async () => {
       btn.click();
     });
-    await flush();
   };
 
   it('renders the lock screen', async () => {
@@ -81,6 +73,7 @@ describe('PasscodeLock Component Integration Tests', () => {
     await pressKey('3');
     await pressKey('4');
     await submit();
+    await waitFor(() => onUnlock.mock.calls.length > 0);
 
     expect(onUnlock).toHaveBeenCalledWith('1234');
   });
@@ -95,9 +88,9 @@ describe('PasscodeLock Component Integration Tests', () => {
     await pressKey('9');
     await pressKey('9');
     await submit();
+    await waitFor(() => testEnv.container.querySelector('.pin-container')?.className.includes('shake') ?? false);
 
     expect(onUnlock).not.toHaveBeenCalled();
-    expect(testEnv.container.querySelector('.pin-container')?.className).toContain('shake');
   });
 
   it('reveals the hint on request when one is configured', async () => {
