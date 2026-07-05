@@ -49,7 +49,9 @@ describe('Dashboard Component Integration Tests', () => {
 
     expect(testEnv.container.innerHTML).toContain('Mortgage Overview');
     expect(testEnv.container.innerHTML).toContain('Amortization Stats');
-    expect(testEnv.container.innerHTML).toContain('400,000');
+    // Compare against the runtime-formatted value so the assertion holds
+    // regardless of the CI runner's default locale/grouping separator.
+    expect(testEnv.container.innerHTML).toContain((400000).toLocaleString());
     // No prepayments on the base profile -> savings placeholder is shown.
     expect(testEnv.container.innerHTML).toContain('No prepayments configured');
   });

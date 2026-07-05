@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import App from './App';
-import { createTestContainer } from './utils/testUtils';
+import { createTestContainer, waitFor } from './utils/testUtils';
 
 // The calculator tabs are lazy-loaded and pull in Chart.js; stub the wrappers
 // so navigating anywhere never touches a real canvas in happy-dom.
@@ -9,13 +9,6 @@ vi.mock('react-chartjs-2', () => ({
   Line: () => <div data-testid="mock-line-chart" />,
   Bar: () => <div data-testid="mock-bar-chart" />,
 }));
-
-// Lets a lazy import() resolve and its Suspense boundary re-render.
-const flush = async () => {
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-};
 
 describe('App Integration Smoke Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
@@ -58,9 +51,8 @@ describe('App Integration Smoke Tests', () => {
     await act(async () => {
       settingsTab.click();
     });
-    // Allow the lazy Settings chunk to resolve.
-    await flush();
-    await flush();
+    // Wait for the lazy Settings chunk to resolve and render.
+    await waitFor(() => testEnv.container.innerHTML.includes('Import / Export Data'));
 
     expect(testEnv.container.innerHTML).toContain('Import / Export Data');
   });

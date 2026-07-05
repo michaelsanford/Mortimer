@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   # Separating prepare and deploy into distinct jobs is intentional.
-  # actions/deploy-pages@v4 fails if it finds more than one artifact named
+  # actions/deploy-pages fails if it finds more than one artifact named
   # "github-pages" for the same workflow run. This happens when "Re-run failed
   # jobs" is used after the deploy step fails — the re-run re-uploads a second
   # artifact. By isolating the upload here, a re-run of the failing `deploy`
@@ -51,12 +51,12 @@ jobs:
           unzip "mortimer-$TAG_NAME.zip" -d extracted
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
       - name: Upload build artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './extracted/dist'
 
@@ -70,4 +70,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
