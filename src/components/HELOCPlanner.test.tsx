@@ -42,7 +42,8 @@ describe('HELOCPlanner Component Integration Tests', () => {
     });
 
     // Financing cost description echoes the selected renovation total.
-    expect(testEnv.container.innerHTML).toContain('35,000');
+    // Use the runtime-formatted value so the assertion is locale-agnostic.
+    expect(testEnv.container.innerHTML).toContain((35000).toLocaleString());
     expect(testEnv.container.innerHTML).toContain('/ month');
   });
 
