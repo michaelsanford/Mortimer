@@ -1,11 +1,7 @@
-// @ts-ignore
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { act } from 'react';
-import { createRoot, Root } from 'react-dom/client';
+import React from 'react';
 import { PaydownSimulator } from './PaydownSimulator';
-import { I18nProvider } from '../utils/i18n';
+import { createTestContainer } from '../utils/testUtils';
 
 // Mock react-chartjs-2 to prevent canvas context errors in happy-dom
 vi.mock('react-chartjs-2', () => ({
@@ -13,52 +9,28 @@ vi.mock('react-chartjs-2', () => ({
 }));
 
 describe('PaydownSimulator Component Integration Tests', () => {
-  let container: HTMLDivElement | null = null;
-  let root: Root | null = null;
+  let testEnv: ReturnType<typeof createTestContainer>;
 
   beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
+    testEnv = createTestContainer();
   });
 
   afterEach(async () => {
-    if (root) {
-      await act(async () => {
-        root!.unmount();
-      });
-    }
-    if (container) {
-      container.remove();
-    }
-    container = null;
-    root = null;
+    await testEnv.cleanup();
   });
 
   it('renders without crashing with null profile', async () => {
-    await act(async () => {
-      root!.render(
-        <I18nProvider>
-          <PaydownSimulator profile={null} onSaveProfile={() => {}} />
-        </I18nProvider>
-      );
-    });
+    await testEnv.render(<PaydownSimulator profile={null} onSaveProfile={() => {}} />);
 
-    expect(container!.innerHTML).toContain('Mortgage Parameters');
-    expect(container!.innerHTML).toContain('Simulate Extra Payments');
+    expect(testEnv.container.innerHTML).toContain('Mortgage Parameters');
+    expect(testEnv.container.innerHTML).toContain('Simulate Extra Payments');
   });
 
   it('renders inputs and extra payment rules', async () => {
-    await act(async () => {
-      root!.render(
-        <I18nProvider>
-          <PaydownSimulator profile={null} onSaveProfile={() => {}} />
-        </I18nProvider>
-      );
-    });
+    await testEnv.render(<PaydownSimulator profile={null} onSaveProfile={() => {}} />);
 
-    expect(container!.innerHTML).toContain('Balance');
-    expect(container!.innerHTML).toContain('Amortization');
-    expect(container!.innerHTML).toContain('Interest Rate');
+    expect(testEnv.container.innerHTML).toContain('Balance');
+    expect(testEnv.container.innerHTML).toContain('Amortization');
+    expect(testEnv.container.innerHTML).toContain('Interest Rate');
   });
 });

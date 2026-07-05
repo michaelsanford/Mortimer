@@ -939,7 +939,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         return (
                           <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest && pct !== null ? true : false, bestMetricOffers.pctIncome)}
+                              {renderBestIcon(isBest && pct !== null, bestMetricOffers.pctIncome)}
                               <span style={{ color: isBest && pct !== null ? 'var(--color-success)' : undefined }}>
                                 {pct !== null ? `${pct.toFixed(1)}%` : '—'}
                               </span>
@@ -1004,7 +1004,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         return (
                           <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined, fontWeight: 600 }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest && amort ? true : false, bestMetricOffers.amortAtEnd)}
+                              {renderBestIcon(!!(isBest && amort), bestMetricOffers.amortAtEnd)}
                               <span style={{ color: isBest && amort ? 'var(--color-success)' : undefined }}>
                                 {amort ? `${amort.years} ${t.rate.yrs}, ${amort.months} ${t.rate.mos}` : t.rate.neverPayoff}
                               </span>
