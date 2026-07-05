@@ -6,6 +6,7 @@
 [![PWA](https://img.shields.io/badge/PWA-Progressive%20Web%20App-orange?logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
 [![CI](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-report-blue?logo=vitest&logoColor=white)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
 [![Qodana Scan](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml)
 [![Security scan: Grype](https://img.shields.io/badge/security%20scan-Grype-8A2BE2)](https://github.com/michaelsanford/Mortimer/security/code-scanning)
 [![SBOM: CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-blue)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
@@ -67,6 +68,19 @@ Build for production:
 npm run build
 npm run preview
 ```
+
+## Testing & Coverage
+
+```bash
+npm test              # run the Vitest suite once
+npm run test:watch    # watch mode
+npm run test:coverage # run tests and generate a coverage report (./coverage)
+```
+
+Coverage is collected with the V8 provider. CI runs `test:coverage` on every push and pull
+request: results are posted as a comment on the PR, and the full HTML report is uploaded as
+the `coverage-report` artifact on each [CI run](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
+(open `index.html` after downloading).
 
 ## Supply Chain / SBOM
 

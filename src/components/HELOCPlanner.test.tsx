@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import React from 'react';
+import React, { act } from 'react';
 import { HELOCPlanner } from './HELOCPlanner';
 import { createTestContainer } from '../utils/testUtils';
+
+// Drives a controlled React input the way a user would, so onChange fires.
+function typeInto(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+  setter.call(input, value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
 
 describe('HELOCPlanner Component Integration Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
@@ -14,10 +21,68 @@ describe('HELOCPlanner Component Integration Tests', () => {
     await testEnv.cleanup();
   });
 
-  it('renders without crashing with null profile', async () => {
-    await testEnv.render(<HELOCPlanner profile={null} onSaveProfile={() => {}} />);
+  it('renders equity inputs and verified capacity for a healthy LTV', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
 
     expect(testEnv.container.innerHTML).toContain('Home Market Value');
     expect(testEnv.container.innerHTML).toContain('Outstanding Mortgage');
+    expect(testEnv.container.innerHTML).toContain('Canadian Equity Capacity');
+    // No renovations selected yet -> capacity is sufficient.
+    expect(testEnv.container.innerHTML).toContain('Equity Verified');
+  });
+
+  it('recomputes projected borrowing when a renovation is selected', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
+
+    // The first reno row's checkbox wrapper toggles that item (kitchen, $35,000).
+    const toggle = testEnv.container.querySelector('.flex.align-center.gap-2 > div') as HTMLElement;
+    expect(toggle).toBeTruthy();
+    await act(async () => {
+      toggle.click();
+    });
+
+    // Financing cost description echoes the selected renovation total.
+    expect(testEnv.container.innerHTML).toContain('35,000');
+    expect(testEnv.container.innerHTML).toContain('/ month');
+  });
+
+  it('warns when the mortgage LTV is too high to borrow', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={100000} currentBalance={90000} />);
+
+    expect(testEnv.container.innerHTML).toContain('HELOC Locked');
+  });
+
+  it('flags insufficient capacity after adding an oversized custom project', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
+
+    const form = testEnv.container.querySelector('form') as HTMLFormElement;
+    const nameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
+    const costInput = form.querySelector('input[type="number"]') as HTMLInputElement;
+
+    await act(async () => {
+      typeInto(nameInput, 'Full Gut Renovation');
+      typeInto(costInput, '250000');
+    });
+    await act(async () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+
+    expect(testEnv.container.innerHTML).toContain('Full Gut Renovation');
+    expect(testEnv.container.innerHTML).toContain('Insufficient Capacity');
+  });
+
+  it('removes a renovation item when deleted', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
+
+    const deleteButtons = () =>
+      Array.from(testEnv.container.querySelectorAll('button[type="button"]'));
+    const before = deleteButtons().length;
+    expect(before).toBeGreaterThan(0);
+
+    await act(async () => {
+      (deleteButtons()[0] as HTMLButtonElement).click();
+    });
+
+    expect(deleteButtons().length).toBe(before - 1);
   });
 });

@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "sbom": "cyclonedx-npm --output-format JSON --output-file bom.json"
   },
@@ -25,6 +26,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
     "happy-dom": "^20.10.6",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
