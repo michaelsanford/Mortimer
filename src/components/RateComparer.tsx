@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2, Trophy, Award, ArrowUp } from 'lucide-react';
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
@@ -22,6 +22,39 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+const getOverallBestLabel = (locale: string) => {
+  switch (locale) {
+    case 'fr': return 'Meilleur global';
+    case 'es': return 'Mejor general';
+    case 'zh': return '整体最佳';
+    case 'zh-HK': return '整體最佳';
+    case 'ar': return 'الأفضل بشكل عام';
+    case 'pa': return 'ਕੁੱਲ ਮਿਲਾ ਕੇ ਵਧੀਆ';
+    default: return 'Overall Best';
+  }
+};
+
+const getBestChoiceLabel = (locale: string) => {
+  switch (locale) {
+    case 'fr': return 'Meilleur choix';
+    case 'es': return 'Mejor opción';
+    case 'zh': return '最佳选择';
+    case 'zh-HK': return '最佳選擇';
+    case 'ar': return 'الخيار الأفضل';
+    case 'pa': return 'ਸਭ ਤੋਂ ਵਧੀਆ ਵਿਕਲਪ';
+    default: return 'Best Choice';
+  }
+};
+
+const renderBestIcon = (isBest: boolean | undefined, bestIds: string[] | undefined) => {
+  if (!isBest) return null;
+  const isTie = bestIds && bestIds.length > 1;
+  if (isTie) {
+    return <Award size={14} style={{ color: '#cbd5e1', flexShrink: 0 }} />;
+  }
+  return <Trophy size={14} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />;
+};
 
 interface Offer {
   id: string;
@@ -119,7 +152,7 @@ const estimateRemainingAmortization = (
 };
 
 export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfile }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
 
@@ -274,6 +307,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     onSaveProfile
   ]);
 
+  // Household affordability: annualized payment as a % of household income (gross/net per profile)
+  const householdIncome = profile?.householdIncome || 0;
+  const incomeTypeLabel = profile?.incomeType === 'net' ? t.rate.incomeNet : t.rate.incomeGross;
+  const renewalPaymentsPerYear = getPaymentsPerYear(renewalFrequency);
+
+  const isStackedLayout = activeSubTab === 'renewal' && offers.length > 3;
+
   // 1. Renewal calculations
   const renewalResults = useMemo(() => {
     const renewalAmortization = renewalAmortizationYears + renewalAmortizationMonths / 12;
@@ -317,6 +357,92 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     }));
   }, [renewalBalance, renewalFrequency, renewalAmortizationYears, renewalAmortizationMonths, offers]);
 
+  // 1.5. Calculate the best option for each metric in renewal results
+  const bestMetricOffers = useMemo(() => {
+    if (renewalResults.length <= 1) return {};
+
+    const findBest = (
+      extractor: (item: typeof renewalResults[0]) => number | null | undefined,
+      comparator: (a: number, b: number) => boolean
+    ) => {
+      let bestVal: number | null = null;
+      let worstVal: number | null = null;
+
+      for (const item of renewalResults) {
+        const val = extractor(item);
+        if (val === null || val === undefined || isNaN(val)) continue;
+        if (bestVal === null || comparator(val, bestVal)) {
+          bestVal = val;
+        }
+        if (worstVal === null || !comparator(val, worstVal)) {
+          worstVal = val;
+        }
+      }
+
+      if (bestVal === worstVal) return [];
+
+      const bestIds: string[] = [];
+      for (const item of renewalResults) {
+        const val = extractor(item);
+        if (val === bestVal) {
+          bestIds.push(item.id);
+        }
+      }
+      return bestIds;
+    };
+
+    const getRemainingAmortMonths = (item: typeof renewalResults[0]) => {
+      const amort = item.results.remainingAmortization;
+      if (!amort) return Infinity;
+      return amort.years * 12 + amort.months;
+    };
+
+    return {
+      rate: findBest(o => o.rate, (a, b) => a < b),
+      payment: findBest(o => o.results.monthlyPayment, (a, b) => a < b),
+      pctIncome: householdIncome > 0
+        ? findBest(o => (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome, (a, b) => a < b)
+        : [],
+      interest: findBest(o => o.results.totalInterest, (a, b) => a < b),
+      principal: findBest(o => o.results.totalPrincipal, (a, b) => a > b),
+      endingBalance: findBest(o => o.results.endingBalance, (a, b) => a < b),
+      amortAtEnd: findBest(getRemainingAmortMonths, (a, b) => a < b),
+    };
+  }, [renewalResults, householdIncome, renewalPaymentsPerYear]);
+
+  // 1.7. Compute overall best offer(s)
+  const overallBestOffers = useMemo(() => {
+    if (renewalResults.length <= 1) return [];
+
+    const counts: Record<string, number> = {};
+    for (const key of Object.keys(bestMetricOffers)) {
+      const ids = bestMetricOffers[key as keyof typeof bestMetricOffers] || [];
+      for (const id of ids) {
+        counts[id] = (counts[id] || 0) + 1;
+      }
+    }
+
+    let maxCount = 0;
+    let winners: string[] = [];
+
+    for (const [id, count] of Object.entries(counts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        winners = [id];
+      } else if (count === maxCount) {
+        winners.push(id);
+      }
+    }
+
+    // If there is a tie where all offers have the same max wins, or no category was won,
+    // we don't highlight any option as overall best.
+    if (maxCount === 0 || winners.length === renewalResults.length) {
+      return [];
+    }
+
+    return winners;
+  }, [bestMetricOffers, renewalResults.length]);
+
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
     return calculateRefinance({
@@ -331,48 +457,156 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     });
   }, [refinanceBalance, refinanceCurrentRate, refinanceRemainingTerm, refinanceAmortizationYears, refinanceAmortizationMonths, refinancePenaltyType, refinanceCustomPenalty, refinanceNewRate, refinanceFees]);
 
-  // Renewal Chart Data
-  const renewalChartData = {
-    labels: renewalResults.map(o => `${o.name} (${o.rate.toFixed(2)}% ${o.type === 'variable' ? t.rate.var : t.rate.fix})`),
-    datasets: [
-      {
-        label: t.rate.interestOverTerm,
-        data: renewalResults.map(o => o.results.totalInterest),
-        backgroundColor: renewalResults.map((_, i) => `hsla(${200 + (i * 35) % 160}, 75%, 65%, 0.7)`),
-        borderColor: renewalResults.map((_, i) => `hsla(${200 + (i * 35) % 160}, 75%, 65%, 1)`),
-        borderWidth: 1,
-        borderRadius: 8,
+  // Renewal Charts Helper Functions
+  const getBarColors = (
+    values: number[],
+    lowerIsBetter: boolean,
+    bestIds: string[] | undefined
+  ) => {
+    const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
+    const minVal = validValues.length > 0 ? Math.min(...validValues) : 0;
+    const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
+    const range = maxVal - minVal || 1;
+
+    return renewalResults.map((o, i) => {
+      const val = values[i];
+      if (val === null || val === undefined || isNaN(val) || !isFinite(val)) {
+        return { bg: 'rgba(148, 163, 184, 0.2)', border: 'rgba(148, 163, 184, 0.5)' };
       }
-    ]
+
+      // Calculate hue from red (10) to emerald green (130)
+      let pct = (val - minVal) / range;
+      if (lowerIsBetter) {
+        pct = 1 - pct; // lower values get higher pct (closer to green)
+      }
+
+      // If all values are identical, use a neutral theme color (e.g. blue/indigo)
+      const allIdentical = maxVal === minVal;
+      const hue = allIdentical ? 220 : Math.round(10 + pct * 120);
+
+      return {
+        bg: `hsla(${hue}, 75%, 55%, 0.7)`,
+        border: `hsla(${hue}, 75%, 45%, 1)`
+      };
+    });
   };
 
-  const renewalChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: function(context: any) {
-            return t.rate.interest + ' ' + new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(context.parsed.y);
+  const createChartData = (
+    label: string,
+    values: number[],
+    lowerIsBetter: boolean,
+    bestIds: string[] | undefined
+  ) => {
+    const colors = getBarColors(values, lowerIsBetter, bestIds);
+    return {
+      labels: renewalResults.map(o => {
+        const isBest = bestIds?.includes(o.id);
+        const isTie = bestIds && bestIds.length > 1;
+        const prefix = isBest ? (isTie ? '🎖️ ' : '🏆 ') : '';
+        return `${prefix}${o.name}`;
+      }),
+      datasets: [
+        {
+          label,
+          data: values,
+          backgroundColor: colors.map(c => c.bg),
+          borderColor: colors.map(c => c.border),
+          borderWidth: 1,
+          borderRadius: 8,
+        }
+      ]
+    };
+  };
+
+  const createChartOptions = (yTickCallback: (value: any) => string) => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context: any) {
+              return context.dataset.label + ': ' + yTickCallback(context.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8' }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { 
+            color: '#94a3b8',
+            callback: yTickCallback
           }
         }
       }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: '#94a3b8' }
-      },
-      y: {
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { 
-          color: '#94a3b8',
-          callback: function(value: any) { return '$' + (value / 1000) + 'k'; }
-        }
-      }
-    }
+    };
   };
+
+  // Generate 6 Comparison Charts Configuration
+  const chartRateData = createChartData(
+    t.rate.rateTerm,
+    renewalResults.map(o => o.rate),
+    true,
+    bestMetricOffers.rate
+  );
+  const chartRateOptions = createChartOptions(val => val.toFixed(2) + '%');
+
+  const chartPaymentData = createChartData(
+    'Payment',
+    renewalResults.map(o => o.results.monthlyPayment),
+    true,
+    bestMetricOffers.payment
+  );
+  const chartPaymentOptions = createChartOptions(val => '$' + val.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+
+  const chartPctIncomeData = createChartData(
+    t.rate.percentOfIncome,
+    renewalResults.map(o => householdIncome > 0 ? (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome * 100 : 0),
+    true,
+    bestMetricOffers.pctIncome
+  );
+  const chartPctIncomeOptions = createChartOptions(val => val.toFixed(1) + '%');
+
+  const chartInterestData = createChartData(
+    t.rate.interestPaidInTerm,
+    renewalResults.map(o => o.results.totalInterest),
+    true,
+    bestMetricOffers.interest
+  );
+  const chartInterestOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+
+  const chartPrincipalData = createChartData(
+    t.rate.principalPaidInTerm,
+    renewalResults.map(o => o.results.totalPrincipal),
+    false,
+    bestMetricOffers.principal
+  );
+  const chartPrincipalOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+
+  const chartEndingBalanceData = createChartData(
+    t.rate.endingBalance,
+    renewalResults.map(o => o.results.endingBalance),
+    true,
+    bestMetricOffers.endingBalance
+  );
+  const chartEndingBalanceOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+
+  const chartAmortAtEndData = createChartData(
+    t.rate.amortAtTermEnd,
+    renewalResults.map(o => {
+      const amort = o.results.remainingAmortization;
+      return amort ? amort.years + amort.months / 12 : 50; // cap at 50 if never payoff
+    }),
+    true,
+    bestMetricOffers.amortAtEnd
+  );
+  const chartAmortAtEndOptions = createChartOptions(val => val === 50 ? 'Never' : val.toFixed(1) + ' yrs');
 
   // Refinance Chart Data
   const refinanceChartData = {
@@ -428,11 +662,6 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const saveStatusLabels = { saved: t.rate.saved, pending: t.rate.pending, saving: t.rate.saving };
 
-  // Household affordability: annualized payment as a % of household income (gross/net per profile)
-  const householdIncome = profile?.householdIncome || 0;
-  const incomeTypeLabel = profile?.incomeType === 'net' ? t.rate.incomeNet : t.rate.incomeGross;
-  const renewalPaymentsPerYear = getPaymentsPerYear(renewalFrequency);
-
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -460,7 +689,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
       {activeSubTab === 'renewal' ? (
         /* RENEWAL COMPARE PANEL */
-        <div className="grid-main">
+        <div className={`grid-main ${isStackedLayout ? 'grid-main-stacked' : ''}`}>
           {/* Inputs */}
           <div className={`card flex flex-col gap-4 card-${saveStatus}`}>
             <h3 style={{ 
@@ -475,74 +704,77 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               <SaveStatusBadge status={saveStatus} labels={saveStatusLabels} />
             </h3>
 
-            {/* Balance */}
-            <div className="form-group">
-              <label className="form-label">
-                <span>{t.rate.balanceToRenew}</span>
-                <span className="form-label-val">${renewalBalance.toLocaleString()}</span>
-              </label>
-              <div className="form-input-wrapper">
-                <DollarSign size={16} className="form-input-prefix" />
-                <input 
-                  type="number" 
-                  className="form-input form-input-with-prefix" 
-                  value={renewalBalance} 
-                  onChange={(e) => setRenewalBalance(Math.max(0, parseInt(e.target.value) || 0))}
-                />
-              </div>
-            </div>
-
-            {/* Amortization */}
-            <div className="form-group">
-              <label className="form-label">
-                <span>{t.rate.remainingAmort}</span>
-                <span className="form-label-val">{renewalAmortizationYears} {t.rate.yrs}, {renewalAmortizationMonths} {t.rate.mos}</span>
-              </label>
-              <div className="flex gap-2">
-                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+            {/* Core Parameters */}
+            <div className={isStackedLayout ? "grid grid-cols-3 gap-4" : "flex flex-col gap-4"}>
+              {/* Balance */}
+              <div className="form-group" style={{ marginBottom: isStackedLayout ? 0 : undefined }}>
+                <label className="form-label">
+                  <span>{t.rate.balanceToRenew}</span>
+                  <span className="form-label-val">${renewalBalance.toLocaleString()}</span>
+                </label>
+                <div className="form-input-wrapper">
+                  <DollarSign size={16} className="form-input-prefix" />
                   <input 
                     type="number" 
-                    className="form-input" 
-                    value={renewalAmortizationYears} 
-                    onChange={(e) => setRenewalAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
-                    placeholder={t.rate.years}
-                    style={{ paddingRight: '2rem' }}
+                    className="form-input form-input-with-prefix" 
+                    value={renewalBalance} 
+                    onChange={(e) => setRenewalBalance(Math.max(0, parseInt(e.target.value) || 0))}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.yrs}</span>
-                </div>
-                <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    value={renewalAmortizationMonths} 
-                    onChange={(e) => setRenewalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
-                    placeholder={t.rate.months}
-                    style={{ paddingRight: '2.2rem' }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.mos}</span>
                 </div>
               </div>
-            </div>
 
-            {/* Frequency */}
-            <div className="form-group">
-              <label className="form-label">{t.rate.paymentFrequency}</label>
-              <select 
-                className="form-select" 
-                value={renewalFrequency} 
-                onChange={(e) => setRenewalFrequency(e.target.value as PaymentFrequency)}
-              >
-                <option value="monthly">{t.rate.monthly}</option>
-                <option value="semi_monthly">{t.rate.semiMonthly}</option>
-                <option value="regular_bi_weekly">{t.rate.biWeekly}</option>
-                <option value="accelerated_bi_weekly">{t.rate.accBiWeekly}</option>
-                <option value="regular_weekly">{t.rate.weekly}</option>
-                <option value="accelerated_weekly">{t.rate.accWeekly}</option>
-              </select>
+              {/* Amortization */}
+              <div className="form-group" style={{ marginBottom: isStackedLayout ? 0 : undefined }}>
+                <label className="form-label">
+                  <span>{t.rate.remainingAmort}</span>
+                  <span className="form-label-val">{renewalAmortizationYears} {t.rate.yrs}, {renewalAmortizationMonths} {t.rate.mos}</span>
+                </label>
+                <div className="flex gap-2">
+                  <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={renewalAmortizationYears} 
+                      onChange={(e) => setRenewalAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
+                      placeholder={t.rate.years}
+                      style={{ paddingRight: '2rem' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.yrs}</span>
+                  </div>
+                  <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={renewalAmortizationMonths} 
+                      onChange={(e) => setRenewalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                      placeholder={t.rate.months}
+                      style={{ paddingRight: '2.2rem' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.mos}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Frequency */}
+              <div className="form-group" style={{ marginBottom: isStackedLayout ? 0 : undefined }}>
+                <label className="form-label">{t.rate.paymentFrequency}</label>
+                <select 
+                  className="form-select" 
+                  value={renewalFrequency} 
+                  onChange={(e) => setRenewalFrequency(e.target.value as PaymentFrequency)}
+                >
+                  <option value="monthly">{t.rate.monthly}</option>
+                  <option value="semi_monthly">{t.rate.semiMonthly}</option>
+                  <option value="regular_bi_weekly">{t.rate.biWeekly}</option>
+                  <option value="accelerated_bi_weekly">{t.rate.accBiWeekly}</option>
+                  <option value="regular_weekly">{t.rate.weekly}</option>
+                  <option value="accelerated_weekly">{t.rate.accWeekly}</option>
+                </select>
+              </div>
             </div>
 
             {/* Dynamic Offers list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className={isStackedLayout ? "grid grid-cols-3" : "flex flex-col"} style={{ gap: '1rem' }}>
               {offers.map((offer) => (
                 <div 
                   key={offer.id} 
@@ -669,7 +901,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                           style={{ 
                             color: `hsla(${200 + (index * 35) % 160}, 85%, 65%, 1)`,
                             textAlign: 'right',
-                            minWidth: '100px'
+                            minWidth: '130px'
                           }}
                         >
                           {o.name}
@@ -680,19 +912,35 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   <tbody>
                     <tr>
                       <td>{t.rate.rateTerm}</td>
-                      {renewalResults.map(o => (
-                        <td key={o.id} style={{ textAlign: 'right' }}>
-                          <strong>{o.rate.toFixed(2)}%</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? t.rate.var : t.rate.fix})
-                        </td>
-                      ))}
+                      {renewalResults.map(o => {
+                        const isBest = bestMetricOffers.rate?.includes(o.id);
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest, bestMetricOffers.rate)}
+                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                <strong>{o.rate.toFixed(2)}%</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? t.rate.var : t.rate.fix})
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}{renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment</td>
-                      {renewalResults.map(o => (
-                        <td key={o.id} style={{ textAlign: 'right' }}>
-                          ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      ))}
+                      {renewalResults.map(o => {
+                        const isBest = bestMetricOffers.payment?.includes(o.id);
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest, bestMetricOffers.payment)}
+                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
@@ -700,58 +948,182 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         const pct = householdIncome > 0
                           ? (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome * 100
                           : null;
+                        const isBest = bestMetricOffers.pctIncome?.includes(o.id);
                         return (
-                          <td key={o.id} style={{ textAlign: 'right' }}>
-                            {pct !== null ? `${pct.toFixed(1)}%` : '—'}
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest && pct !== null ? true : false, bestMetricOffers.pctIncome)}
+                              <span style={{ color: isBest && pct !== null ? 'var(--color-success)' : undefined }}>
+                                {pct !== null ? `${pct.toFixed(1)}%` : '—'}
+                              </span>
+                            </div>
                           </td>
                         );
                       })}
                     </tr>
                     <tr>
                       <td>{t.rate.interestPaidInTerm}</td>
-                      {renewalResults.map(o => (
-                        <td key={o.id} style={{ color: 'var(--color-danger)', textAlign: 'right' }}>
-                          ${o.results.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        </td>
-                      ))}
+                      {renewalResults.map(o => {
+                        const isBest = bestMetricOffers.interest?.includes(o.id);
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest, bestMetricOffers.interest)}
+                              <span style={{ color: isBest ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                                ${o.results.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{t.rate.principalPaidInTerm}</td>
-                      {renewalResults.map(o => (
-                        <td key={o.id} style={{ color: 'var(--color-success)', textAlign: 'right' }}>
-                          ${o.results.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        </td>
-                      ))}
+                      {renewalResults.map(o => {
+                        const isBest = bestMetricOffers.principal?.includes(o.id);
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest, bestMetricOffers.principal)}
+                              <span style={{ color: 'var(--color-success)' }}>
+                                ${o.results.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{t.rate.endingBalance}</td>
-                      {renewalResults.map(o => (
-                        <td key={o.id} style={{ textAlign: 'right' }}>
-                          <strong>${o.results.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
-                        </td>
-                      ))}
+                      {renewalResults.map(o => {
+                        const isBest = bestMetricOffers.endingBalance?.includes(o.id);
+                        return (
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest, bestMetricOffers.endingBalance)}
+                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                <strong>${o.results.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                     <tr>
                       <td>{t.rate.amortAtTermEnd}</td>
                       {renewalResults.map(o => {
                         const amort = o.results.remainingAmortization;
+                        const isBest = bestMetricOffers.amortAtEnd?.includes(o.id);
                         return (
-                          <td key={o.id} style={{ textAlign: 'right', fontWeight: 600 }}>
-                            {amort ? `${amort.years} ${t.rate.yrs}, ${amort.months} ${t.rate.mos}` : t.rate.neverPayoff}
+                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined, fontWeight: 600 }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              {renderBestIcon(isBest && amort ? true : false, bestMetricOffers.amortAtEnd)}
+                              <span style={{ color: isBest && amort ? 'var(--color-success)' : undefined }}>
+                                {amort ? `${amort.years} ${t.rate.yrs}, ${amort.months} ${t.rate.mos}` : t.rate.neverPayoff}
+                              </span>
+                            </div>
                           </td>
                         );
                       })}
                     </tr>
+                    {overallBestOffers.length > 0 && (
+                      <tr style={{ borderTop: '2px solid var(--border-color)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                        <td style={{ fontWeight: 'bold', color: 'var(--color-success)' }}>
+                          {getOverallBestLabel(locale)}
+                        </td>
+                        {renewalResults.map(o => {
+                          const isOverallBest = overallBestOffers.includes(o.id);
+                          const isOverallTie = overallBestOffers.length > 1;
+                          return (
+                            <td key={o.id} style={{ textAlign: 'center', background: isOverallBest ? 'rgba(16, 185, 129, 0.08)' : undefined }}>
+                              {isOverallBest ? (
+                                <div style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}>
+                                  {isOverallTie ? (
+                                    <Award size={15} style={{ color: '#cbd5e1', flexShrink: 0 }} />
+                                  ) : (
+                                    <ArrowUp size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                                  )}
+                                </div>
+                              ) : null}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Trophy size={13} style={{ color: 'var(--color-warning)' }} />
+                  <span>{locale === 'fr' ? 'Meilleure option' : locale === 'es' ? 'Mejor opción' : locale === 'zh' ? '最佳选项' : locale === 'zh-HK' ? '最佳選項' : locale === 'ar' ? 'الخيار الأفضل' : locale === 'pa' ? 'ਸਭ ਤੋਂ ਵਧੀਆ ਵਿਕਲਪ' : 'Best Option'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Award size={13} style={{ color: '#cbd5e1' }} />
+                  <span>{locale === 'fr' ? 'Égalité (meilleures options)' : locale === 'es' ? 'Empate (mejores opciones)' : locale === 'zh' ? '并列最佳' : locale === 'zh-HK' ? '並列最佳' : locale === 'ar' ? 'تعادل (الأفضل)' : locale === 'pa' ? 'ਬਰਾਬਰ (ਸਭ ਤੋਂ ਵਧੀਆ)' : 'Tie (Best Options)'}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Interest Chart */}
-            <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.interestCostComparison}</h3>
-              <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                <Bar data={renewalChartData} options={renewalChartOptions} />
+            {/* Comparison Charts Grid */}
+            <div className="grid grid-cols-2" style={{ gap: '1.5rem', width: '100%' }}>
+              {/* Chart 1: Interest Rate */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.rateTerm}</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartRateData} options={chartRateOptions} />
+                </div>
+              </div>
+
+              {/* Chart 2: Regular Payment */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                  {renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}
+                  {renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment
+                </h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartPaymentData} options={chartPaymentOptions} />
+                </div>
+              </div>
+
+              {/* Chart 3: Percent of Income */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.percentOfIncome} ({incomeTypeLabel})</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartPctIncomeData} options={chartPctIncomeOptions} />
+                </div>
+              </div>
+
+              {/* Chart 4: Interest Paid */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.interestPaidInTerm}</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartInterestData} options={chartInterestOptions} />
+                </div>
+              </div>
+
+              {/* Chart 5: Principal Paid */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.principalPaidInTerm}</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartPrincipalData} options={chartPrincipalOptions} />
+                </div>
+              </div>
+
+              {/* Chart 6: Ending Balance */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.endingBalance}</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartEndingBalanceData} options={chartEndingBalanceOptions} />
+                </div>
+              </div>
+
+              {/* Chart 7: Amortization at Term End */}
+              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.amortAtTermEnd}</h3>
+                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                  <Bar data={chartAmortAtEndData} options={chartAmortAtEndOptions} />
+                </div>
               </div>
             </div>
           </div>
