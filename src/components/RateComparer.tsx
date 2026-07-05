@@ -35,18 +35,6 @@ const getOverallBestLabel = (locale: string) => {
   }
 };
 
-const getBestChoiceLabel = (locale: string) => {
-  switch (locale) {
-    case 'fr': return 'Meilleur choix';
-    case 'es': return 'Mejor opción';
-    case 'zh': return '最佳选择';
-    case 'zh-HK': return '最佳選擇';
-    case 'ar': return 'الخيار الأفضل';
-    case 'pa': return 'ਸਭ ਤੋਂ ਵਧੀਆ ਵਿਕਲਪ';
-    default: return 'Best Choice';
-  }
-};
-
 const renderBestIcon = (isBest: boolean | undefined, bestIds: string[] | undefined) => {
   if (!isBest) return null;
   const isTie = bestIds && bestIds.length > 1;
@@ -460,15 +448,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   // Renewal Charts Helper Functions
   const getBarColors = (
     values: number[],
-    lowerIsBetter: boolean,
-    bestIds: string[] | undefined
+    lowerIsBetter: boolean
   ) => {
     const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
     const minVal = validValues.length > 0 ? Math.min(...validValues) : 0;
     const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
     const range = maxVal - minVal || 1;
 
-    return renewalResults.map((o, i) => {
+    return renewalResults.map((_, i) => {
       const val = values[i];
       if (val === null || val === undefined || isNaN(val) || !isFinite(val)) {
         return { bg: 'rgba(148, 163, 184, 0.2)', border: 'rgba(148, 163, 184, 0.5)' };
@@ -497,7 +484,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     lowerIsBetter: boolean,
     bestIds: string[] | undefined
   ) => {
-    const colors = getBarColors(values, lowerIsBetter, bestIds);
+    const colors = getBarColors(values, lowerIsBetter);
     return {
       labels: renewalResults.map(o => {
         const isBest = bestIds?.includes(o.id);
