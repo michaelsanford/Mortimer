@@ -8,7 +8,12 @@ import {
   clearAllAppData, 
   importAppData,
   loadRenoList,
-  loadCompareProfiles
+  loadCompareProfiles,
+  enableBiometrics,
+  disableBiometrics,
+  isBiometricsEnabled,
+  setAutoLockDuration,
+  getAutoLockDuration
 } from '../utils/storage';
 
 interface SettingsProps {
@@ -19,7 +24,7 @@ interface SettingsProps {
   profile?: any;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin: _currentPin, onUpdatePin, profile }) => {
+export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSuccess, currentPin, onUpdatePin, profile }) => {
   const { t } = useI18n();
 
   // Passcode States
@@ -29,6 +34,45 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
   const [passcodeError, setPasscodeError] = useState<string>('');
   const [passcodeSuccess, setPasscodeSuccess] = useState<string>('');
   const [showPinForm, setShowPinForm] = useState<boolean>(false);
+
+  // Biometrics & Auto-lock States
+  const [biometricsActive, setBiometricsActive] = useState<boolean>(() => isBiometricsEnabled());
+  const [autoLockDuration, setAutoLockDurationState] = useState<number>(() => getAutoLockDuration());
+
+  const handleToggleBiometrics = async () => {
+    try {
+      setPasscodeError('');
+      setPasscodeSuccess('');
+      if (biometricsActive) {
+        disableBiometrics();
+        setBiometricsActive(false);
+        setPasscodeSuccess(t.settings.biometricsDisabled || 'Biometrics Disabled');
+      } else {
+        if (!passcodeEnabled || !currentPin) {
+          setPasscodeError('Please enable PIN lock first to use biometrics.');
+          return;
+        }
+        await enableBiometrics(currentPin);
+        setBiometricsActive(true);
+        setPasscodeSuccess(t.settings.biometricsEnabled || 'Biometrics Enabled');
+      }
+    } catch (err: any) {
+      console.warn('Biometric configuration error:', err);
+      if (err.name === 'NotAllowedError' || err.message?.includes('timed out')) {
+        setPasscodeError(t.settings.biometricTimedOut || 'Biometric verification was not completed. Please try again.');
+      } else if (err.name === 'NotSupportedError') {
+        setPasscodeError(t.settings.biometricNotSupported || 'Biometrics are not supported on this device or browser.');
+      } else {
+        setPasscodeError(t.settings.biometricFailed || 'Biometric configuration failed. Please try again.');
+      }
+    }
+  };
+
+  const handleAutoLockChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const duration = parseInt(e.target.value) || 0;
+    setAutoLockDuration(duration);
+    setAutoLockDurationState(duration);
+  };
 
   // Import Status
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -44,8 +88,8 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       setPasscodeError('');
 
       // Build export object from in-memory profile and decrypted localStorage keys
-      const renoList = await loadRenoList(_currentPin || undefined);
-      const compareProfiles = await loadCompareProfiles(_currentPin || undefined);
+      const renoList = await loadRenoList(currentPin || undefined);
+      const compareProfiles = await loadCompareProfiles(currentPin || undefined);
 
       const exportObj = {
         version: '1.0.0',
@@ -79,7 +123,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      const success = await importAppData(content, _currentPin || undefined);
+      const success = await importAppData(content, currentPin || undefined);
       if (success) {
         setImportStatus({ type: 'success', message: t.settings.importSuccess });
         onImportSuccess();
@@ -107,6 +151,8 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
       const success = await disablePasscode(pin, profile);
       if (success) {
         setPasscodeEnabled(false);
+        disableBiometrics();
+        setBiometricsActive(false);
         if (onUpdatePin) onUpdatePin('');
         setPin('');
         setHint('');
@@ -131,6 +177,10 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
   const handleClearData = () => {
     if (window.confirm(t.settings.wipeConfirm)) {
       clearAllAppData();
+      disableBiometrics();
+      setBiometricsActive(false);
+      setAutoLockDuration(0);
+      setAutoLockDurationState(0);
       onClearProfile();
       setPasscodeEnabled(false);
       setPin('');
@@ -251,6 +301,48 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
 
             {passcodeError && <p className="color-danger" style={{ fontSize: '0.85rem', marginTop: '0.75rem' }}>{passcodeError}</p>}
             {passcodeSuccess && <p className="color-success" style={{ fontSize: '0.85rem', marginTop: '0.75rem' }}>{passcodeSuccess}</p>}
+
+            {passcodeEnabled && (
+              <>
+                {/* Biometrics Toggle Option */}
+                <div className="settings-item" style={{ borderTop: '1px solid var(--border-color)', marginTop: '1.25rem', paddingTop: '1.25rem' }}>
+                  <div className="settings-item-info">
+                    <span className="settings-item-title">{t.settings.biometricProtection}</span>
+                    <span className="settings-item-desc">{t.settings.biometricProtectionDesc}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={`btn ${biometricsActive ? 'btn-danger' : 'btn-primary'} btn-sm`}
+                    onClick={handleToggleBiometrics}
+                  >
+                    {biometricsActive ? t.settings.disableBiometrics : t.settings.enableBiometrics}
+                  </button>
+                </div>
+
+                {/* Auto-Lock Duration Option */}
+                <div className="settings-item" style={{ borderTop: '1px solid var(--border-color)', marginTop: '1.25rem', paddingTop: '1.25rem', borderBottom: 'none', paddingBottom: 0 }}>
+                  <div className="settings-item-info">
+                    <span className="settings-item-title">{t.settings.autoLockSession}</span>
+                    <span className="settings-item-desc">{t.settings.autoLockSessionDesc}</span>
+                  </div>
+                  <div style={{ minWidth: '150px' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>{t.settings.autoLockDuration}</label>
+                    <select
+                      className="form-select"
+                      style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem' }}
+                      value={autoLockDuration}
+                      onChange={handleAutoLockChange}
+                    >
+                      <option value="0">{t.settings.autoLockDisabled}</option>
+                      <option value="30">{t.settings.autoLock30s}</option>
+                      <option value="60">{t.settings.autoLock1m}</option>
+                      <option value="300">{t.settings.autoLock5m}</option>
+                      <option value="900">{t.settings.autoLock15m}</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Destructive Actions Card */}

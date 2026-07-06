@@ -10,6 +10,8 @@ vi.mock('react-chartjs-2', () => ({
   Bar: () => <div data-testid="mock-bar-chart" />,
 }));
 
+import { setupPasscode } from './utils/storage';
+
 describe('App Integration Smoke Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
 
@@ -55,6 +57,40 @@ describe('App Integration Smoke Tests', () => {
     await waitFor(() => testEnv.container.innerHTML.includes('Import / Export Data'));
 
     expect(testEnv.container.innerHTML).toContain('Import / Export Data');
+  });
+
+  it('locks the app automatically after inactivity duration', async () => {
+    await setupPasscode('1357');
+    localStorage.setItem('auto_lock_duration', '30');
+
+    await testEnv.render(<App />);
+    await waitFor(() => testEnv.container.innerHTML.includes('App Locked'));
+
+    const digits = ['1', '3', '5', '7'];
+    for (const d of digits) {
+      const btn = Array.from(testEnv.container.querySelectorAll('button.pin-key'))
+        .find(b => b.textContent?.trim() === d) as HTMLButtonElement;
+      await act(async () => { btn.click(); });
+    }
+    const submitBtn = testEnv.container.querySelector('button[aria-label="Submit PIN"]') as HTMLButtonElement;
+    await act(async () => { submitBtn.click(); });
+
+    await waitFor(() => !testEnv.container.innerHTML.includes('App Locked'));
+    expect(testEnv.container.innerHTML).not.toContain('App Locked');
+
+    // Enable fake timers now that the initial load and unlocks are completed
+    vi.useFakeTimers();
+
+    // Trigger user activity to reset and start the auto-lock timer
+    window.dispatchEvent(new Event('mousemove'));
+
+    await act(async () => {
+      vi.advanceTimersByTime(31000);
+    });
+
+    expect(testEnv.container.innerHTML).toContain('App Locked');
+
+    vi.useRealTimers();
   });
 
   it('calls window.print when the floating print button is clicked', async () => {

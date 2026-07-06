@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { PasscodeLock } from './PasscodeLock';
 import { createTestContainer, waitFor } from '../utils/testUtils';
-import { setupPasscode } from '../utils/storage';
+import { setupPasscode, enableBiometrics } from '../utils/storage';
 
 describe('PasscodeLock Component Integration Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
@@ -106,5 +106,61 @@ describe('PasscodeLock Component Integration Tests', () => {
     });
 
     expect(testEnv.container.innerHTML).toContain('first pet');
+  });
+
+  it('allows unlocking using biometrics when enabled', async () => {
+    (window as any).PublicKeyCredential = class {};
+    Object.defineProperty(navigator, 'credentials', {
+      writable: true,
+      value: {
+        create: vi.fn().mockResolvedValue({
+          rawId: new Uint8Array([1, 2, 3, 4]).buffer
+        }),
+        get: vi.fn().mockResolvedValue({ id: 'test-cred-id' })
+      }
+    });
+
+    await enableBiometrics('1234');
+
+    const onUnlock = vi.fn();
+    await testEnv.render(<PasscodeLock onUnlock={onUnlock} />);
+
+    const bioBtn = Array.from(testEnv.container.querySelectorAll('button'))
+      .find(b => b.textContent?.includes('Unlock with Biometrics')) as HTMLButtonElement;
+    
+    expect(bioBtn).toBeDefined();
+
+    await act(async () => {
+      bioBtn.click();
+    });
+
+    await waitFor(() => onUnlock.mock.calls.length > 0);
+    expect(onUnlock).toHaveBeenCalled();
+
+    delete (window as any).PublicKeyCredential;
+  });
+
+  it('wipes all local data when forgot PIN is clicked and confirmed', async () => {
+    const confirmFn = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirmFn);
+    const onWipeData = vi.fn();
+    
+    localStorage.setItem('mortimer_profile', JSON.stringify({ balance: 400000 }));
+    
+    await testEnv.render(<PasscodeLock onUnlock={() => {}} onWipeData={onWipeData} />);
+    
+    const wipeBtn = Array.from(testEnv.container.querySelectorAll('button'))
+      .find(b => b.textContent?.includes('Forgot PIN? Wipe Data')) as HTMLButtonElement | undefined;
+    expect(wipeBtn, 'Forgot PIN button').toBeDefined();
+    
+    await act(async () => {
+      wipeBtn!.click();
+    });
+    
+    expect(confirmFn).toHaveBeenCalled();
+    expect(onWipeData).toHaveBeenCalled();
+    expect(localStorage.getItem('mortimer_profile')).toBeNull();
+    
+    vi.unstubAllGlobals();
   });
 });

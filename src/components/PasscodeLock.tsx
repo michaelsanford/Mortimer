@@ -1,19 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, AlertCircle, Check, Delete } from 'lucide-react';
-import { hashPin, getPasscodeConfig } from '../utils/storage';
+import { Lock, AlertCircle, Check, Delete, Fingerprint, Trash2 } from 'lucide-react';
+import { hashPin, getPasscodeConfig, isBiometricsEnabled, unlockWithBiometrics, clearAllAppData, disableBiometrics } from '../utils/storage';
 import { useI18n } from '../utils/i18n';
 
 interface PasscodeLockProps {
   onUnlock: (pin: string) => void;
+  onWipeData?: () => void;
 }
 
-export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
+export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock, onWipeData }) => {
   const { t } = useI18n();
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<boolean>(false);
   const [hint, setHint] = useState<string | undefined>(undefined);
   const [showHint, setShowHint] = useState<boolean>(false);
   const [validating, setValidating] = useState<boolean>(false);
+
+  const [biometricsAvailable] = useState<boolean>(() => isBiometricsEnabled());
+  const [biometricsError, setBiometricsError] = useState<string>('');
+
+  const handleBiometricsUnlock = useCallback(async () => {
+    try {
+      setBiometricsError('');
+      const unlockedPin = await unlockWithBiometrics();
+      if (unlockedPin) {
+        onUnlock(unlockedPin);
+      }
+    } catch (err: any) {
+      console.warn('Biometric unlock failed/cancelled:', err);
+      // Only show user-facing errors for genuine failures, not cancellations
+      if (err.name === 'NotAllowedError' || err.message?.includes('cancelled')) {
+        // User cancelled or timed out — silent
+      } else if (err.name === 'NotSupportedError') {
+        setBiometricsError(t.settings?.biometricNotSupported || 'Biometrics are not supported on this device or browser.');
+      } else {
+        setBiometricsError(t.settings?.biometricFailed || 'Biometric unlock failed. Please enter your PIN.');
+      }
+    }
+  }, [onUnlock]);
+
+  useEffect(() => {
+    if (biometricsAvailable) {
+      const timer = setTimeout(() => {
+        void handleBiometricsUnlock();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [biometricsAvailable, handleBiometricsUnlock]);
 
   useEffect(() => {
     const config = getPasscodeConfig();
@@ -142,6 +175,25 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
           </button>
         </div>
 
+        {biometricsAvailable && (
+          <div style={{ marginTop: '1.25rem' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm flex align-center gap-2"
+              style={{ margin: '0 auto', padding: '0.4rem 1rem' }}
+              onClick={handleBiometricsUnlock}
+            >
+              <Fingerprint size={16} />
+              {t.settings?.unlockBiometricsBtn || 'Unlock with Biometrics'}
+            </button>
+            {biometricsError && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.5rem' }}>
+                {biometricsError}
+              </p>
+            )}
+          </div>
+        )}
+
         {hint && (
           <div style={{ marginTop: '1rem' }}>
             {showHint ? (
@@ -160,6 +212,32 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock }) => {
             )}
           </div>
         )}
+
+        {/* PIN disclaimer and forgot PIN option */}
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+            {t.passcode.pinDisclaimer || 'Your PIN is never stored. It is used to encrypt your data and lock the app. If you forget your PIN, you will need to wipe your saved data.'}
+          </p>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', opacity: 0.85 }}
+            onClick={() => {
+              if (window.confirm(t.passcode.forgotPinConfirm || 'This will permanently delete all your saved mortgage data, renovation checklists, and security settings. This cannot be undone. Continue?')) {
+                clearAllAppData();
+                disableBiometrics();
+                if (onWipeData) {
+                  onWipeData();
+                } else {
+                  window.location.reload();
+                }
+              }
+            }}
+          >
+            <Trash2 size={12} />
+            {t.passcode.forgotPinBtn || 'Forgot PIN? Wipe Data'}
+          </button>
+        </div>
       </div>
     </div>
   );

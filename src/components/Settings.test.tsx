@@ -125,4 +125,44 @@ describe('Settings Component Integration Tests', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('shows biometric toggle and auto-lock options when PIN is enabled, and handles change', async () => {
+    (window as any).PublicKeyCredential = class {};
+    Object.defineProperty(navigator, 'credentials', {
+      writable: true,
+      value: {
+        create: vi.fn().mockResolvedValue({
+          rawId: new Uint8Array([1, 2, 3, 4]).buffer
+        })
+      }
+    });
+
+    await setupPasscode('1357');
+    await testEnv.render(
+      <Settings 
+        onClearProfile={() => {}} 
+        onImportSuccess={() => {}} 
+        currentPin="1357"
+      />
+    );
+
+    expect(has('Biometric Unlock')).toBe(true);
+    expect(has('Session Auto-Lock')).toBe(true);
+
+    await clickButton('Enable Biometrics');
+    await waitFor(() => has('Biometrics Enabled'));
+
+    const select = testEnv.container.querySelector('select') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')!.set!;
+      setter.call(select, '300');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(select.value).toBe('300');
+
+    delete (window as any).PublicKeyCredential;
+  });
 });

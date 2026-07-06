@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   hashPin,
   encryptData,
@@ -360,5 +360,57 @@ describe('exportAppData / importAppData', () => {
 
     const loaded = await loadProfile('1111');
     expect(loaded).toEqual(profile);
+  });
+});
+
+describe('Biometrics and Auto-Lock Storage Helpers', () => {
+  beforeEach(() => {
+    (window as any).PublicKeyCredential = class {};
+    Object.defineProperty(navigator, 'credentials', {
+      writable: true,
+      value: {
+        create: vi.fn().mockResolvedValue({
+          rawId: new Uint8Array([1, 2, 3, 4]).buffer
+        }),
+        get: vi.fn().mockResolvedValue({
+          id: 'test-credential-id'
+        })
+      }
+    });
+  });
+
+  afterEach(() => {
+    delete (window as any).PublicKeyCredential;
+    Object.defineProperty(navigator, 'credentials', {
+      writable: true,
+      value: undefined
+    });
+  });
+
+  it('enables, disables, checks biometrics status and unlocks', async () => {
+    const { enableBiometrics, disableBiometrics, isBiometricsEnabled, unlockWithBiometrics } = await import('./storage');
+
+    expect(isBiometricsEnabled()).toBe(false);
+
+    await enableBiometrics('1234');
+    expect(isBiometricsEnabled()).toBe(true);
+
+    const pin = await unlockWithBiometrics();
+    expect(pin).toBe('1234');
+
+    disableBiometrics();
+    expect(isBiometricsEnabled()).toBe(false);
+  });
+
+  it('sets and gets auto-lock duration', async () => {
+    const { setAutoLockDuration, getAutoLockDuration } = await import('./storage');
+
+    expect(getAutoLockDuration()).toBe(0);
+
+    setAutoLockDuration(300);
+    expect(getAutoLockDuration()).toBe(300);
+
+    setAutoLockDuration(0);
+    expect(getAutoLockDuration()).toBe(0);
   });
 });

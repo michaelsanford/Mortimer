@@ -18,7 +18,8 @@ import {
   loadProfile, 
   saveProfile, 
   getPasscodeConfig, 
-  setAppLockedStatus 
+  setAppLockedStatus,
+  getAutoLockDuration 
 } from './utils/storage';
 import { useI18n } from './utils/i18n';
 import { useServiceWorker } from './hooks/useServiceWorker';
@@ -62,6 +63,35 @@ function App() {
     window.addEventListener('click', handleClose);
     return () => window.removeEventListener('click', handleClose);
   }, [isLangOpen]);
+
+  // Session Inactivity Auto-Lock
+  useEffect(() => {
+    const config = getPasscodeConfig();
+    if (!config?.isEnabled || isAppLocked) return;
+
+    const durationSeconds = getAutoLockDuration();
+    if (durationSeconds <= 0) return;
+
+    let timer: any;
+
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setIsAppLocked(true);
+        setAppLockedStatus(true);
+      }, durationSeconds * 1000);
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'touchstart'];
+    events.forEach(evt => window.addEventListener(evt, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, [isAppLocked]);
 
   const languages: { code: Locale; label: string; short: string }[] = [
     { code: 'en', label: 'English', short: 'EN' },
@@ -166,7 +196,11 @@ function App() {
   if (isAppLocked) {
     return (
       <Suspense fallback={<div className="container" style={{ padding: '2rem' }} />}>
-        <PasscodeLock onUnlock={handleUnlock} />
+        <PasscodeLock onUnlock={handleUnlock} onWipeData={() => {
+          setProfile(null);
+          setCurrentPin('');
+          setIsAppLocked(false);
+        }} />
       </Suspense>
     );
   }
