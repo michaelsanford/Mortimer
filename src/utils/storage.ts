@@ -411,3 +411,94 @@ export async function importAppData(jsonStr: string, pin?: string): Promise<bool
     return false;
   }
 }
+
+export async function enableBiometrics(pin: string): Promise<void> {
+  if (!window.PublicKeyCredential) {
+    throw new Error("Biometrics not supported on this device");
+  }
+
+  const challenge = new Uint8Array(32);
+  window.crypto.getRandomValues(challenge);
+  const userId = new Uint8Array(16);
+  window.crypto.getRandomValues(userId);
+
+  const credential = await navigator.credentials.create({
+    publicKey: {
+      challenge,
+      rp: { name: "Mortimer" },
+      user: {
+        id: userId,
+        name: "mortimer-user",
+        displayName: "Mortimer User"
+      },
+      pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+      authenticatorSelection: { userVerification: "required" }
+    }
+  }) as PublicKeyCredential;
+
+  if (!credential) {
+    throw new Error("Biometric registration cancelled");
+  }
+
+  const credentialIdHex = bufferToHex(credential.rawId);
+  localStorage.setItem('biometric_credential_id', credentialIdHex);
+  
+  const bioKey = "mortimer-bio-secret-key-123";
+  const encryptedPin = await encryptData(pin, bioKey);
+  
+  localStorage.setItem('biometric_encrypted_pin', JSON.stringify(encryptedPin));
+  localStorage.setItem('biometric_enabled', 'true');
+}
+
+export function disableBiometrics(): void {
+  localStorage.removeItem('biometric_credential_id');
+  localStorage.removeItem('biometric_encrypted_pin');
+  localStorage.removeItem('biometric_enabled');
+}
+
+export function isBiometricsEnabled(): boolean {
+  return localStorage.getItem('biometric_enabled') === 'true';
+}
+
+export async function unlockWithBiometrics(): Promise<string> {
+  if (!isBiometricsEnabled()) {
+    throw new Error("Biometrics not enabled");
+  }
+
+  const credentialIdHex = localStorage.getItem('biometric_credential_id');
+  const encryptedPinStr = localStorage.getItem('biometric_encrypted_pin');
+  
+  if (!credentialIdHex || !encryptedPinStr) {
+    throw new Error("Biometric configuration corrupted");
+  }
+
+  const challenge = new Uint8Array(32);
+  window.crypto.getRandomValues(challenge);
+  const credentialId = hexToUint8Array(credentialIdHex);
+
+  const assertion = await navigator.credentials.get({
+    publicKey: {
+      challenge,
+      allowCredentials: [{ id: credentialId as any, type: "public-key" }],
+      userVerification: "required"
+    }
+  });
+
+  if (!assertion) {
+    throw new Error("Biometric authentication cancelled");
+  }
+
+  const bioKey = "mortimer-bio-secret-key-123";
+  const parsed = JSON.parse(encryptedPinStr);
+  const pin = await decryptData(parsed.ciphertext, bioKey, parsed.salt, parsed.iv);
+  return pin;
+}
+
+export function setAutoLockDuration(seconds: number): void {
+  localStorage.setItem('auto_lock_duration', String(seconds));
+}
+
+export function getAutoLockDuration(): number {
+  const stored = localStorage.getItem('auto_lock_duration');
+  return stored ? parseInt(stored) || 0 : 0;
+}
