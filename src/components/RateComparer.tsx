@@ -3,6 +3,8 @@ import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2, Trophy, Award, ArrowUp
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
+import { useSystemTheme } from '../hooks/useSystemTheme';
+import { cadCurrencyTooltipLabel } from '../utils/formatters';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,21 +29,6 @@ ChartJS.register(
   Legend
 );
 
-function useSystemTheme() {
-  const [isDark, setIsDark] = useState(() => 
-    !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
-
-  useEffect(() => {
-    if (!window.matchMedia) return;
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
-  }, []);
-
-  return isDark ? 'dark' : 'light';
-}
 
 const getOverallBestLabel = (locale: string) => {
   switch (locale) {
@@ -707,14 +694,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       },
       tooltip: {
         callbacks: {
-          label: function(context: any) {
-            let label = context.dataset.label || '';
-            if (label) label += ': ';
-            if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(context.parsed.y);
-            }
-            return label;
-          }
+          label: cadCurrencyTooltipLabel
         }
       }
     },

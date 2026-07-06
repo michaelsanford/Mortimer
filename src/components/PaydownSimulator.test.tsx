@@ -150,54 +150,35 @@ describe('PaydownSimulator Component Integration Tests', () => {
     clickSpy.mockRestore();
   });
 
-  it('models VRM stress testing correctly (fixed payments, trigger alert)', async () => {
+  async function renderAndMoveStressSlider(variableType: 'vrm' | 'arm', amortizationYears: number) {
     const mockProfile = {
       principal: 300000,
       interestRate: 4.5,
-      amortizationYears: 25,
+      amortizationYears,
       amortizationMonths: 0,
       paymentFrequency: 'monthly' as const,
       rateType: 'variable' as const,
-      variableType: 'vrm' as const
+      variableType,
     };
-
     await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
-
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
     expect(slider).toBeTruthy();
-
     await act(async () => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
       setter.call(slider, '3');
       slider.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    return slider;
+  }
 
+  it('models VRM stress testing correctly (fixed payments, trigger alert)', async () => {
+    await renderAndMoveStressSlider('vrm', 25);
     expect(testEnv.container.innerHTML).toContain('Trigger Rate Alert!');
     expect(testEnv.container.innerHTML).not.toContain('Payment Recalculated');
   });
 
   it('models ARM stress testing correctly (recalculated payments, no trigger alert)', async () => {
-    const mockProfile = {
-      principal: 300000,
-      interestRate: 4.5,
-      amortizationYears: 20,
-      amortizationMonths: 0,
-      paymentFrequency: 'monthly' as const,
-      rateType: 'variable' as const,
-      variableType: 'arm' as const
-    };
-
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
-
-    const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
-    expect(slider).toBeTruthy();
-
-    await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
-      setter.call(slider, '3');
-      slider.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
+    await renderAndMoveStressSlider('arm', 20);
     expect(testEnv.container.innerHTML).toContain('Payment Recalculated');
     expect(testEnv.container.innerHTML).not.toContain('Trigger Rate Alert!');
   });
