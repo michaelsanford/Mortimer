@@ -198,6 +198,10 @@ export const zh = {
     interestPaid: '已付利息',
     principalPaid: '已付本金',
     endingBalance: '期末余额',
+    selectScenario: '选择方案',
+    currentMortgageOption: '当前贷款',
+    linkedOfferNotice: '参数已链接至利率比较器中的 {name}。仍可模拟提前还款。',
+    editOfferBtn: '编辑方案',
   },
 
   // RateComparer

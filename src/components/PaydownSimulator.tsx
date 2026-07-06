@@ -30,6 +30,7 @@ ChartJS.register(
 interface PaydownSimulatorProps {
   initialProfile: MortgageInputs | null;
   onSaveProfile: (profile: MortgageInputs) => void;
+  onNavigate?: (tab: string) => void;
 }
 
 const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels: Record<'saved' | 'pending' | 'saving', string> }> = ({ status, labels }) => {
@@ -84,8 +85,19 @@ const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels
   );
 };
 
-export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfile, onSaveProfile }) => {
+export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfile, onSaveProfile, onNavigate }) => {
   const { t } = useI18n();
+
+  // Load offers configured in the RateComparer tab (from initialProfile) or fall back to default offers
+  const defaultRate = initialProfile?.interestRate || 4.85;
+  const defaultOffers = [
+    { id: 'baseline', name: t.rate?.baselineOffer || 'Baseline Offer', rate: defaultRate, term: 5, type: 'fixed' as const },
+    { id: 'offer_2', name: t.rate?.optionB || 'Option B', rate: 5.15, term: 3, type: 'fixed' as const },
+    { id: 'offer_3', name: t.rate?.optionC || 'Option C', rate: 4.45, term: 5, type: 'variable' as const }
+  ];
+  const offers = initialProfile?.offers || defaultOffers;
+
+  const [selectedScenario, setSelectedScenario] = useState<string>('current');
 
   // Local state for inputs
   const [principal, setPrincipal] = useState<number>(initialProfile?.principal || 450000);
@@ -134,28 +146,50 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     saving: t.paydown.saving,
   }), [t]);
 
+  // Find selected offer if any
+  const selectedOffer = useMemo(() => {
+    if (selectedScenario === 'current') return null;
+    return offers.find(o => o.id === selectedScenario) || null;
+  }, [selectedScenario, offers]);
+
+  // Effective parameters used for calculations and read-only inputs
+  const effPrincipal = selectedOffer ? (initialProfile?.renewalBalance || principal) : principal;
+  const effInterestRate = selectedOffer ? selectedOffer.rate : interestRate;
+  const effAmortizationYears = selectedOffer ? (initialProfile?.renewalAmortizationYears || amortizationYears) : amortizationYears;
+  const effAmortizationMonths = selectedOffer ? (initialProfile?.renewalAmortizationMonths !== undefined ? initialProfile.renewalAmortizationMonths : amortizationMonths) : amortizationMonths;
+  const effPaymentFrequency = selectedOffer ? ((initialProfile?.rateComparerPaymentFrequency as PaymentFrequency) || paymentFrequency) : paymentFrequency;
+  
+  // Under offer renewal scenario, we don't have a direct maturity date (term starts at renewal time)
+  const effMaturityDate = selectedOffer ? '' : maturityDate;
+  const effConfirmedPayment = selectedOffer ? 0 : confirmedPayment;
+
+  const effOriginalPrincipal = selectedOffer ? 0 : originalPrincipal;
+  const effOriginalAmortizationYears = selectedOffer ? 0 : originalAmortizationYears;
+  const effOriginalAmortizationMonths = selectedOffer ? 0 : originalAmortizationMonths;
+  const effOriginalTermYears = selectedOffer ? selectedOffer.term : originalTermYears;
+
   const calculatedRegularPayment = useMemo(() => {
-    const principalForPayment = originalPrincipal && originalPrincipal > 0 ? originalPrincipal : principal;
-    const amortizationForPayment = originalAmortizationYears && originalAmortizationYears > 0 
-      ? originalAmortizationYears + (originalAmortizationMonths || 0) / 12 
-      : amortizationYears + (amortizationMonths || 0) / 12;
-    return calculateRegularPayment(principalForPayment, interestRate, amortizationForPayment, paymentFrequency);
-  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, originalPrincipal, originalAmortizationYears, originalAmortizationMonths]);
+    const principalForPayment = effOriginalPrincipal && effOriginalPrincipal > 0 ? effOriginalPrincipal : effPrincipal;
+    const amortizationForPayment = effOriginalAmortizationYears && effOriginalAmortizationYears > 0 
+      ? effOriginalAmortizationYears + (effOriginalAmortizationMonths || 0) / 12 
+      : effAmortizationYears + (effAmortizationMonths || 0) / 12;
+    return calculateRegularPayment(principalForPayment, effInterestRate, amortizationForPayment, effPaymentFrequency);
+  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths]);
 
   // Amortization results
   const results = useMemo(() => {
     const inputs: MortgageInputs = {
-      principal,
-      interestRate,
-      amortizationYears,
-      amortizationMonths,
-      paymentFrequency,
-      maturityDate,
-      confirmedPayment,
-      originalPrincipal,
-      originalAmortizationYears,
-      originalAmortizationMonths,
-      originalTermYears,
+      principal: effPrincipal,
+      interestRate: effInterestRate,
+      amortizationYears: effAmortizationYears,
+      amortizationMonths: effAmortizationMonths,
+      paymentFrequency: effPaymentFrequency,
+      maturityDate: effMaturityDate,
+      confirmedPayment: effConfirmedPayment,
+      originalPrincipal: effOriginalPrincipal,
+      originalAmortizationYears: effOriginalAmortizationYears,
+      originalAmortizationMonths: effOriginalAmortizationMonths,
+      originalTermYears: effOriginalTermYears,
       prepayments: showPrepayments ? {
         lumpSumAmount,
         doubleUp,
@@ -165,24 +199,24 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment, originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effMaturityDate, effConfirmedPayment, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, effOriginalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
-    const baseFreq = paymentFrequency.includes('accelerated')
-      ? (paymentFrequency === 'accelerated_bi_weekly' ? 'regular_bi_weekly' : 'regular_weekly')
-      : paymentFrequency;
+    const baseFreq = effPaymentFrequency.includes('accelerated')
+      ? (effPaymentFrequency === 'accelerated_bi_weekly' ? 'regular_bi_weekly' : 'regular_weekly')
+      : effPaymentFrequency;
 
     return calculateAmortization({
-      principal,
-      interestRate,
-      amortizationYears,
-      amortizationMonths,
+      principal: effPrincipal,
+      interestRate: effInterestRate,
+      amortizationYears: effAmortizationYears,
+      amortizationMonths: effAmortizationMonths,
       paymentFrequency: baseFreq,
-      confirmedPayment,
+      confirmedPayment: effConfirmedPayment,
       prepayments: undefined
     });
-  }, [principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, confirmedPayment]);
+  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effConfirmedPayment]);
 
   const isDirty = useMemo(() => {
     if (!initialProfile) return true;
@@ -289,10 +323,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const chartData = useMemo(() => {
     // Generate data points for chart (e.g. plot ending balance at the end of each year)
     const labels: string[] = [t.paydown.year0];
-    const baselineDataPoints: number[] = [principal];
-    const prepaymentDataPoints: number[] = [principal];
+    const baselineDataPoints: number[] = [effPrincipal];
+    const prepaymentDataPoints: number[] = [effPrincipal];
 
-    const maxYears = amortizationYears;
+    const maxYears = effAmortizationYears;
     
     // Find baseline balances at the end of each year
     const baselinePpy = baselineResults.schedule.length / baselineResults.yearsToPayoff;
@@ -331,7 +365,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         }
       ]
     };
-  }, [principal, amortizationYears, results, baselineResults, t]);
+  }, [effPrincipal, effAmortizationYears, results, baselineResults, t]);
 
   const chartOptions = {
     responsive: true,
@@ -374,15 +408,15 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     }
   };
 
-  const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || paymentFrequency.includes('accelerated'));
+  const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || effPaymentFrequency.includes('accelerated'));
 
   // Payments per year for the current frequency — drives the double-up interval slider.
-  const ppy = getPaymentsPerYear(paymentFrequency);
+  const ppy = getPaymentsPerYear(effPaymentFrequency);
 
   // Double-up interval slider bounds (in payments): 1 = every payment (most frequent),
   // ppy × term = once per term (least frequent, the "no less than 1/term" floor).
   // Term falls back to the full amortization when the original term isn't tracked.
-  const doubleUpTermYears = originalTermYears > 0 ? originalTermYears : amortizationYears;
+  const doubleUpTermYears = effOriginalTermYears > 0 ? effOriginalTermYears : effAmortizationYears;
   const maxDoubleUpInterval = Math.max(1, Math.round(ppy * doubleUpTermYears));
 
   // Keep the double-up interval within [1, once-per-term] as frequency/term change.
@@ -421,6 +455,45 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       <div className="grid-main">
         {/* Inputs panel */}
         <div className={`card flex flex-col gap-4 card-${saveStatus}`}>
+          {/* Scenario Selector */}
+          <div className="form-group" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '0.5rem' }}>
+            <label className="form-label" style={{ fontWeight: 600 }}>{t.paydown.selectScenario}</label>
+            <div className="flex gap-2">
+              <select
+                className="form-select"
+                value={selectedScenario}
+                onChange={(e) => setSelectedScenario(e.target.value)}
+                style={{ flexGrow: 1 }}
+              >
+                <option value="current">{t.paydown.currentMortgageOption}</option>
+                {offers.map(offer => (
+                  <option key={offer.id} value={offer.id}>
+                    {offer.name} ({offer.rate.toFixed(2)}% - {offer.term} Yr {offer.type === 'fixed' ? t.rate.fixed : t.rate.variable})
+                  </option>
+                ))}
+              </select>
+              {selectedScenario !== 'current' && onNavigate && (
+                <button
+                  key="edit-offer-btn"
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => onNavigate('rate')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}
+                >
+                  {t.paydown.editOfferBtn}
+                </button>
+              )}
+            </div>
+            {selectedScenario !== 'current' && (
+              <div className="alert alert-info" style={{ marginTop: '0.75rem', padding: '0.75rem', gap: '0.5rem', marginBottom: 0 }}>
+                <Sparkles size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.85rem', lineHeight: 1.4 }}>
+                  {t.paydown.linkedOfferNotice.replace('{name}', offers.find(o => o.id === selectedScenario)?.name || '')}
+                </span>
+              </div>
+            )}
+          </div>
+
           <h3 style={{ 
             borderBottom: '1px solid var(--border-color)', 
             paddingBottom: '0.5rem', 
@@ -443,15 +516,16 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.remainingBalance}</span>
-                <span className="form-label-val">${principal.toLocaleString()}</span>
+                <span className="form-label-val">${effPrincipal.toLocaleString()}</span>
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
                 <input 
                   type="number" 
                   className="form-input form-input-with-prefix" 
-                  value={principal} 
+                  value={selectedOffer ? effPrincipal : principal} 
                   onChange={(e) => setPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                  disabled={!!selectedOffer}
                 />
               </div>
             </div>
@@ -460,7 +534,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.annualRate}</span>
-                <span className="form-label-val">{interestRate.toFixed(2)}%</span>
+                <span className="form-label-val">{effInterestRate.toFixed(2)}%</span>
               </label>
               <div className="form-input-wrapper">
                 <Percent size={16} className="form-input-suffix" />
@@ -468,8 +542,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   type="number" 
                   step="0.01"
                   className="form-input form-input-with-suffix" 
-                  value={interestRate} 
+                  value={selectedOffer ? effInterestRate : interestRate} 
                   onChange={(e) => setInterestRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                  disabled={!!selectedOffer}
                 />
               </div>
             </div>
@@ -478,17 +553,18 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.remainingAmort}</span>
-                <span className="form-label-val">{amortizationYears} {t.paydown.yrs}, {amortizationMonths} {t.paydown.mos}</span>
+                <span className="form-label-val">{effAmortizationYears} {t.paydown.yrs}, {effAmortizationMonths} {t.paydown.mos}</span>
               </label>
               <div className="flex gap-2">
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
                   <input 
                     type="number" 
                     className="form-input" 
-                    value={amortizationYears} 
+                    value={selectedOffer ? effAmortizationYears : amortizationYears} 
                     onChange={(e) => setAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
                     placeholder={t.paydown.years}
                     style={{ paddingRight: '2rem' }}
+                    disabled={!!selectedOffer}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
@@ -496,10 +572,11 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   <input 
                     type="number" 
                     className="form-input" 
-                    value={amortizationMonths} 
+                    value={selectedOffer ? effAmortizationMonths : amortizationMonths} 
                     onChange={(e) => setAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
                     placeholder={t.paydown.months}
                     style={{ paddingRight: '2.2rem' }}
+                    disabled={!!selectedOffer}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.mos}</span>
                 </div>
@@ -511,8 +588,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <label className="form-label">{t.paydown.paymentFrequency}</label>
               <select 
                 className="form-select" 
-                value={paymentFrequency} 
+                value={effPaymentFrequency} 
                 onChange={(e) => setPaymentFrequency(e.target.value as PaymentFrequency)}
+                disabled={!!selectedOffer}
               >
                 <option value="monthly">{t.paydown.monthly}</option>
                 <option value="semi_monthly">{t.paydown.semiMonthly}</option>
@@ -538,8 +616,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   step="0.01"
                   className="form-input form-input-with-prefix" 
                   placeholder={calculatedRegularPayment.toFixed(2)}
-                  value={confirmedPayment || ''} 
+                  value={selectedOffer ? '' : (confirmedPayment || '')} 
                   onChange={(e) => setConfirmedPayment(Math.max(0, parseFloat(e.target.value) || 0))}
+                  disabled={!!selectedOffer}
                 />
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
@@ -596,9 +675,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <input 
                 type="date" 
                 className="form-input" 
-                value={maturityDate} 
+                value={effMaturityDate} 
                 onChange={(e) => setMaturityDate(e.target.value)} 
                 style={{ colorScheme: 'dark' }}
+                disabled={!!selectedOffer}
               />
             </div>
           </div>
@@ -613,7 +693,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmount}</span>
-                {originalPrincipal > 0 && <span className="form-label-val">${originalPrincipal.toLocaleString()}</span>}
+                {!selectedOffer && originalPrincipal > 0 && <span className="form-label-val">${originalPrincipal.toLocaleString()}</span>}
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
@@ -621,8 +701,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   type="number" 
                   className="form-input form-input-with-prefix" 
                   placeholder={t.paydown.originalAmountPlaceholder}
-                  value={originalPrincipal || ''} 
+                  value={selectedOffer ? '' : (originalPrincipal || '')} 
                   onChange={(e) => setOriginalPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                  disabled={!!selectedOffer}
                 />
               </div>
             </div>
@@ -631,7 +712,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmort}</span>
-                {(originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
+                {!selectedOffer && (originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
                   <span className="form-label-val">{originalAmortizationYears} {t.paydown.yrs}, {originalAmortizationMonths} {t.paydown.mos}</span>
                 )}
               </label>
@@ -641,9 +722,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     type="number" 
                     className="form-input" 
                     placeholder={t.paydown.years}
-                    value={originalAmortizationYears || ''} 
+                    value={selectedOffer ? '' : (originalAmortizationYears || '')} 
                     onChange={(e) => setOriginalAmortizationYears(Math.max(0, parseInt(e.target.value) || 0))}
                     style={{ paddingRight: '2rem' }}
+                    disabled={!!selectedOffer}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
@@ -652,9 +734,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                     type="number" 
                     className="form-input" 
                     placeholder={t.paydown.months}
-                    value={originalAmortizationMonths || ''} 
+                    value={selectedOffer ? '' : (originalAmortizationMonths || '')} 
                     onChange={(e) => setOriginalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
                     style={{ paddingRight: '2.2rem' }}
+                    disabled={!!selectedOffer}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.mos}</span>
                 </div>
@@ -666,8 +749,9 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <label className="form-label">{t.paydown.originalTerm}</label>
               <select 
                 className="form-select" 
-                value={originalTermYears} 
+                value={selectedOffer ? 0 : originalTermYears} 
                 onChange={(e) => setOriginalTermYears(parseInt(e.target.value) || 0)}
+                disabled={!!selectedOffer}
               >
                 <option value="0">{t.paydown.notTracked}</option>
                 <option value="1">{t.paydown.year1}</option>
@@ -915,7 +999,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             <tbody>
               {/* Aggregate schedule by year */}
               {(() => {
-                const ppy = getPaymentsPerYear(paymentFrequency);
+                const ppy = getPaymentsPerYear(effPaymentFrequency);
                 const yearlyRows = [];
                 let yearInterest = 0;
                 let yearRegularPrincipal = 0;

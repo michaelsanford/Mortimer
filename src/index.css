@@ -371,6 +371,14 @@ p {
   box-shadow: 0 0 0 3px var(--border-focus);
 }
 
+.form-input:disabled, .form-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary);
+}
+
 /* Custom dropdown caret: replace the browser-native arrow (which jams to the
    right edge) with a chevron inset to match the field's horizontal padding. */
 .form-select {

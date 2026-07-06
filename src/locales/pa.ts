@@ -198,6 +198,10 @@ export const pa = {
     interestPaid: 'ਭੁਗਤਾਨ ਕੀਤਾ ਵਿਆਜ',
     principalPaid: 'ਭੁਗਤਾਨ ਕੀਤਾ ਮੂਲਧਨ',
     endingBalance: 'ਅੰਤਮ ਬਕਾਇਆ',
+    selectScenario: 'ਦ੍ਰਿਸ਼ ਚੁਣੋ',
+    currentMortgageOption: 'ਮੌਜੂਦਾ ਮੌਰਗੇਜ',
+    linkedOfferNotice: 'ਪੈਰਾਮੀਟਰ ਦਰ ਤੁਲਨਾਕਾਰ ਤੋਂ {name} ਨਾਲ ਲਿੰਕ ਕੀਤੇ ਗਏ ਹਨ। ਅਗਾਊਂ ਭੁਗਤਾਨ ਅਜੇ ਵੀ ਸਿਮੂਲੇਟ ਕੀਤੇ ਜਾ ਸਕਦੇ ਹਨ।',
+    editOfferBtn: 'ਪੇਸ਼ਕਸ਼ ਸੰਪਾਦਿਤ ਕਰੋ',
   },
 
   // RateComparer

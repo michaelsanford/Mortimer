@@ -198,6 +198,10 @@ export const es = {
     interestPaid: 'Interés Pagado',
     principalPaid: 'Capital Pagado',
     endingBalance: 'Saldo Final',
+    selectScenario: 'Seleccionar escenario',
+    currentMortgageOption: 'Hipoteca actual',
+    linkedOfferNotice: 'Los parámetros están vinculados a {name} del Comparador de tarifas. Todavía se pueden simular pagos anticipados.',
+    editOfferBtn: 'Editar oferta',
   },
 
   // RateComparer
