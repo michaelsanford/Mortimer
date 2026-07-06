@@ -963,7 +963,87 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             </div>
           </div>
 
-          {/* Variable Rate Stress Test Card */}
+
+        </div>
+
+        {/* Charts & Outcomes Panel */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Combined Outcome Zone: baseline vs. active plan */}
+          <div className="card">
+            <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              {t.paydown.totalInterestZone}
+            </h4>
+            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+
+              {/* Baseline column */}
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  {t.paydown.baselineOutcome}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
+                  ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {isTriggerRateReached ? (
+                    <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
+                  ) : (
+                    t.paydown.overYears.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))
+                  )}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
+                  {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+
+              {/* Active Plan column */}
+              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  {t.paydown.activePlanOutcome}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
+                  ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {isTriggerRateReached ? (
+                    <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
+                  ) : (
+                    t.paydown.overYears.replace('{years}', results.yearsToPayoff.toFixed(1))
+                  )}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
+                  {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Optimization Callout */}
+          {hasPrepaymentsActive && (
+            <div className="alert alert-info" style={{ marginBottom: 0 }}>
+              <Sparkles size={20} />
+              <div>
+                <strong style={{ display: 'block', fontSize: '0.95rem' }}>{t.paydown.optimizationSuccess}</strong>
+                <span style={{ fontSize: '0.85rem' }}>
+                  {t.paydown.shaveOff
+                    .replace('{years}', results.yearsSaved.toFixed(1))
+                    .replace('{amount}', results.interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 }))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Graph Card */}
+          <div className="card" style={{ height: '480px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.paydown.balanceProjection}</h3>
+            <div style={{ flexGrow: 1, position: 'relative', height: '360px' }}>
+              <Line data={chartData} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* Variable Rate Stress Test Card — only shown for non-fixed rates */}
+          {!!effVariableType && (
           <div className="card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
             <h4 style={{ fontSize: '0.85rem', color: 'var(--color-warning)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldAlert size={16} />
@@ -1056,84 +1136,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               </div>
             )}
           </div>
-
-        </div>
-
-        {/* Charts & Outcomes Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          {/* Combined Outcome Zone: baseline vs. active plan */}
-          <div className="card">
-            <h4 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              {t.paydown.totalInterestZone}
-            </h4>
-            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
-
-              {/* Baseline column */}
-              <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  {t.paydown.baselineOutcome}
-                </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
-                  ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {isTriggerRateReached ? (
-                    <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
-                  ) : (
-                    t.paydown.overYears.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))
-                  )}
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                  {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                </div>
-              </div>
-
-              {/* Active Plan column */}
-              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  {t.paydown.activePlanOutcome}
-                </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-                  ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {isTriggerRateReached ? (
-                    <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
-                  ) : (
-                    t.paydown.overYears.replace('{years}', results.yearsToPayoff.toFixed(1))
-                  )}
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                  {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Optimization Callout */}
-          {hasPrepaymentsActive && (
-            <div className="alert alert-info" style={{ marginBottom: 0 }}>
-              <Sparkles size={20} />
-              <div>
-                <strong style={{ display: 'block', fontSize: '0.95rem' }}>{t.paydown.optimizationSuccess}</strong>
-                <span style={{ fontSize: '0.85rem' }}>
-                  {t.paydown.shaveOff
-                    .replace('{years}', results.yearsSaved.toFixed(1))
-                    .replace('{amount}', results.interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 }))}
-                </span>
-              </div>
-            </div>
           )}
-
-          {/* Graph Card */}
-          <div className="card" style={{ height: '480px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.paydown.balanceProjection}</h3>
-            <div style={{ flexGrow: 1, position: 'relative', height: '360px' }}>
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          </div>
 
           {/* Reminders & Calendar Sync Card */}
           <div className="card">
