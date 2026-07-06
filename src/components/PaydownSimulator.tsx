@@ -695,36 +695,38 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               <label className="form-label">{t.paydown.rateType || 'Interest Rate Type'}</label>
               <select
                 className="form-select"
-                value={selectedOffer ? (selectedOffer.type === 'variable' ? 'variable' : 'fixed') : rateType}
+                value={
+                  selectedOffer
+                    ? selectedOffer.type === 'variable'
+                      ? selectedOffer.variableType === 'arm'
+                        ? 'variable_arm'
+                        : 'variable_vrm'
+                      : 'fixed'
+                    : rateType === 'variable'
+                    ? variableType === 'arm'
+                      ? 'variable_arm'
+                      : 'variable_vrm'
+                    : 'fixed'
+                }
                 onChange={(e) => {
-                  const val = e.target.value as 'fixed' | 'variable';
-                  setRateType(val);
+                  const val = e.target.value;
+                  if (val === 'fixed') {
+                    setRateType('fixed');
+                  } else if (val === 'variable_vrm') {
+                    setRateType('variable');
+                    setVariableType('vrm');
+                  } else if (val === 'variable_arm') {
+                    setRateType('variable');
+                    setVariableType('arm');
+                  }
                 }}
                 disabled={!!selectedOffer}
               >
                 <option value="fixed">{t.paydown.fixedRate || 'Fixed Rate'}</option>
-                <option value="variable">{t.paydown.variableRate || 'Variable/Floating Rate'}</option>
+                <option value="variable_vrm">{t.paydown.variableVrm || 'Variable Rate'}</option>
+                <option value="variable_arm">{t.paydown.variableArm || 'Adjustable Rate'}</option>
               </select>
             </div>
-
-            {/* Variable Type */}
-            {(selectedOffer ? selectedOffer.type === 'variable' : rateType === 'variable') && (
-              <div className="form-group" style={{ animation: 'fadeIn 0.2s ease-out' }}>
-                <label className="form-label">{t.paydown.variableType || 'Variable Type'}</label>
-                <select
-                  className="form-select"
-                  value={selectedOffer ? (selectedOffer.variableType || 'vrm') : variableType}
-                  onChange={(e) => {
-                    const val = e.target.value as 'vrm' | 'arm';
-                    setVariableType(val);
-                  }}
-                  disabled={!!selectedOffer}
-                >
-                  <option value="vrm">{t.paydown.vrmLabel || 'Fixed Payments (VRM - TD style)'}</option>
-                  <option value="arm">{t.paydown.armLabel || 'Adjustable Payments (ARM - Scotiabank style)'}</option>
-                </select>
-              </div>
-            )}
 
             {/* Interest Rate */}
             <div className="form-group">
