@@ -124,7 +124,7 @@ function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard profile={profile} onNavigate={setActiveTab} />;
+        return <Dashboard profile={profile} onNavigate={setActiveTab} onSaveProfile={handleSaveProfile} />;
       case 'paydown':
         return (
           <PaydownSimulator 
@@ -158,7 +158,7 @@ function App() {
           />
         );
       default:
-        return <Dashboard profile={profile} onNavigate={setActiveTab} />;
+        return <Dashboard profile={profile} onNavigate={setActiveTab} onSaveProfile={handleSaveProfile} />;
     }
   };
 

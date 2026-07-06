@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Landmark, TrendingDown, Clock, ShieldAlert, Award } from 'lucide-react';
 import { calculateAmortization, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
@@ -7,10 +7,20 @@ import { useI18n } from '../utils/i18n';
 interface DashboardProps {
   profile: MortgageInputs | null;
   onNavigate: (tab: string) => void;
+  onSaveProfile: (profile: MortgageInputs) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSaveProfile }) => {
   const { t } = useI18n();
+
+  // Onboarding Tour states
+  const [onboardingMode, setOnboardingMode] = useState<'welcome' | 'tour'>('welcome');
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [tourBalance, setTourBalance] = useState<number>(450000);
+  const [tourRate, setTourRate] = useState<number>(4.85);
+  const [tourAmortYears, setTourAmortYears] = useState<number>(25);
+  const [tourAmortMonths, setTourAmortMonths] = useState<number>(0);
+  const [tourFreq, setTourFreq] = useState<'monthly' | 'semi_monthly' | 'regular_bi_weekly' | 'accelerated_bi_weekly' | 'regular_weekly' | 'accelerated_weekly'>('monthly');
 
   // Amortization is recomputed only when the profile changes, not on every render.
   // Hooks must run unconditionally, so these are computed above the null-profile guard.
@@ -24,27 +34,193 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
   );
 
   if (!profile) {
-    return (
-      <div className="text-center" style={{ padding: '4rem 1.5rem' }}>
-        <div className="logo-icon mb-4" style={{ margin: '0 auto', width: '4rem', height: '4rem', borderRadius: '1rem' }}>
-          <Landmark size={32} />
+    if (onboardingMode === 'welcome') {
+      return (
+        <div className="text-center" style={{ padding: '4rem 1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
+          <div className="logo-icon mb-4" style={{ margin: '0 auto', width: '4rem', height: '4rem', borderRadius: '1rem' }}>
+            <Landmark size={32} />
+          </div>
+          <h2 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>{t.dashboard.welcome}</h2>
+          <img 
+            src="./flag-ca.svg" 
+            alt={t.dashboard.canada} 
+            style={{ width: '3.5rem', height: '1.75rem', display: 'block', margin: '0 auto 1.25rem', borderRadius: '0.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} 
+          />
+          <p style={{ maxWidth: '500px', margin: '0 auto 2rem', fontSize: '1.1rem' }}>
+             {t.dashboard.privacyIntro}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={() => setOnboardingMode('tour')}
+            >
+              {t.dashboard.startTour}
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={() => onNavigate('paydown')}
+            >
+              {t.dashboard.skipTour}
+            </button>
+          </div>
         </div>
-        <h2 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>{t.dashboard.welcome}</h2>
-        <img 
-          src="./flag-ca.svg" 
-          alt={t.dashboard.canada} 
-          style={{ width: '3.5rem', height: '1.75rem', display: 'block', margin: '0 auto 1.25rem', borderRadius: '0.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} 
-        />
-        <p style={{ maxWidth: '500px', margin: '0 auto 2rem', fontSize: '1.1rem' }}>
-           {t.dashboard.privacyIntro}
-        </p>
-        <button 
-          type="button" 
-          className="btn btn-primary" 
-          onClick={() => onNavigate('paydown')}
-        >
-          {t.dashboard.configureMortgage}
-        </button>
+      );
+    }
+
+    const totalSteps = 4;
+    const handleNext = () => {
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        onSaveProfile({
+          principal: tourBalance,
+          interestRate: tourRate,
+          amortizationYears: tourAmortYears,
+          amortizationMonths: tourAmortMonths,
+          paymentFrequency: tourFreq,
+        });
+      }
+    };
+
+    const handlePrev = () => {
+      if (currentStep > 1) {
+        setCurrentStep(currentStep - 1);
+      }
+    };
+
+    return (
+      <div style={{ maxWidth: '550px', margin: '2rem auto', animation: 'fadeIn 0.3s ease-out' }}>
+        <div className="card" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{t.dashboard.tourTitle}</h3>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              {t.dashboard.stepLabel.replace('{current}', String(currentStep)).replace('{total}', String(totalSteps))}
+            </span>
+          </div>
+
+          <div style={{ width: '100%', height: '4px', background: 'var(--border-color)', borderRadius: '2px', marginBottom: '2rem', overflow: 'hidden' }}>
+            <div style={{ width: `${(currentStep / totalSteps) * 100}%`, height: '100%', background: 'var(--gradient-primary)', borderRadius: '2px', transition: 'width 0.3s ease' }} />
+          </div>
+
+          <div style={{ minHeight: '180px', marginBottom: '2rem' }}>
+            {currentStep === 1 && (
+              <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.dashboard.step1Title}</h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>{t.dashboard.step1Desc}</p>
+                <div className="form-group">
+                  <div className="form-input-wrapper" style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>$</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      style={{ paddingLeft: '2rem' }}
+                      value={tourBalance} 
+                      onChange={(e) => setTourBalance(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.dashboard.step2Title}</h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>{t.dashboard.step2Desc}</p>
+                <div className="form-group">
+                  <div className="form-input-wrapper" style={{ position: 'relative' }}>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="form-input" 
+                      style={{ paddingRight: '2rem' }}
+                      value={tourRate} 
+                      onChange={(e) => setTourRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                    />
+                    <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.dashboard.step3Title}</h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>{t.dashboard.step3Desc}</p>
+                <div className="flex gap-4">
+                  <div className="form-group w-full">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.paydown.years}</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={tourAmortYears} 
+                      onChange={(e) => setTourAmortYears(Math.max(1, parseInt(e.target.value) || 25))}
+                    />
+                  </div>
+                  <div className="form-group w-full">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.paydown.months}</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={tourAmortMonths} 
+                      onChange={(e) => setTourAmortMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.dashboard.step4Title}</h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>{t.dashboard.step4Desc}</p>
+                <div className="form-group">
+                  <select 
+                    className="form-select" 
+                    value={tourFreq} 
+                    onChange={(e) => setTourFreq(e.target.value as any)}
+                  >
+                    <option value="monthly">{t.paydown.monthly}</option>
+                    <option value="semi_monthly">{t.paydown.semiMonthly}</option>
+                    <option value="regular_bi_weekly">{t.paydown.biWeekly}</option>
+                    <option value="accelerated_bi_weekly">{t.paydown.accBiWeekly}</option>
+                    <option value="regular_weekly">{t.paydown.weekly}</option>
+                    <option value="accelerated_weekly">{t.paydown.accWeekly}</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={handlePrev}
+              disabled={currentStep === 1}
+              style={{ opacity: currentStep === 1 ? 0.3 : 1 }}
+            >
+              {t.dashboard.prevStep}
+            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setOnboardingMode('welcome')}
+              >
+                {t.dashboard.skipTour}
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleNext}
+              >
+                {currentStep === totalSteps ? t.dashboard.completeTour : t.dashboard.nextStep}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -81,7 +257,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
           <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>{t.dashboard.overviewDesc}</p>
         </div>
         {profile.maturityDate && (
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <div style={{ background: 'var(--bg-badge)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             {t.dashboard.termMaturity} <strong style={{ color: 'var(--text-primary)' }}>{new Date(profile.maturityDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</strong>
           </div>
         )}
@@ -101,7 +277,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
                 cy="65" 
                 r="55" 
                 fill="transparent" 
-                stroke="rgba(255,255,255,0.05)" 
+                stroke="var(--progress-track)" 
                 strokeWidth="10" 
               />
               <circle 
