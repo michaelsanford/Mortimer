@@ -219,16 +219,16 @@ export const fr = {
     vrmLabel: 'Paiements fixes (VRM - style TD)',
     armLabel: 'Paiements ajustables (ARM - style Scotiabank)',
     armPaymentIncrease: 'Paiement ajusté : votre paiement augmente à ${payment} (+${diff}/mois) pour maintenir votre période d\'amortissement.',
-    variableVrm: 'Variable (VRM)',
-    variableArm: 'Variable (ARM)',
+    variableVrm: 'Taux variable',
+    variableArm: 'Taux ajustable',
   },
 
   // RateComparer
   rate: {
     title: 'Comparaisons de taux et refinancement',
     subtitle: 'Comparez plusieurs offres hypothécaires côte à côte ou évaluez la pénalité de résiliation et les économies nettes du refinancement.',
-    variableVrm: 'Variable (VRM)',
-    variableArm: 'Variable (ARM)',
+    variableVrm: 'Taux variable',
+    variableArm: 'Taux ajustable',
     saved: 'Enregistré',
     pending: 'En attente',
     saving: 'Enregistrement...',

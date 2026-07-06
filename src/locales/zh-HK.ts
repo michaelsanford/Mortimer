@@ -219,16 +219,16 @@ export const zhHK = {
     vrmLabel: '固定付款 (VRM - TD 銀行風格)',
     armLabel: '可調付款 (ARM - 豐業銀行風格)',
     armPaymentIncrease: '已調整付款：您的付款增加到 ${payment}（+${diff}/月），以保持您的還款期。',
-    variableVrm: '浮動 (VRM)',
-    variableArm: '浮動 (ARM)',
+    variableVrm: '浮動利率',
+    variableArm: '可調利率',
   },
 
   // RateComparer
   rate: {
     title: '利率對比與再融資',
     subtitle: '並排對比多個按揭報價，或評估提前解約罰金與轉貸的淨節省。',
-    variableVrm: '浮動 (VRM)',
-    variableArm: '浮動 (ARM)',
+    variableVrm: '浮動利率',
+    variableArm: '可調利率',
     saved: '已儲存',
     pending: '待處理',
     saving: '儲存中...',

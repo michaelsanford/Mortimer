@@ -219,16 +219,16 @@ export const en = {
     vrmLabel: 'Fixed Payments (VRM - TD style)',
     armLabel: 'Adjustable Payments (ARM - Scotiabank style)',
     armPaymentIncrease: 'Adjusted Payment: your payment increases to ${payment} (+${diff}/mo) to maintain your amortization schedule.',
-    variableVrm: 'Variable (VRM)',
-    variableArm: 'Variable (ARM)',
+    variableVrm: 'Variable Rate',
+    variableArm: 'Adjustable Rate',
   },
 
   // RateComparer
   rate: {
     title: 'Rate Comparisons & Refinancing',
     subtitle: 'Compare multiple mortgage offers side-by-side or evaluate the breaking penalty and net savings of refinancing.',
-    variableVrm: 'Variable (VRM)',
-    variableArm: 'Variable (ARM)',
+    variableVrm: 'Variable Rate',
+    variableArm: 'Adjustable Rate',
     saved: 'Saved',
     pending: 'Pending',
     saving: 'Saving...',

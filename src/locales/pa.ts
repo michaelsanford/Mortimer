@@ -219,16 +219,16 @@ export const pa = {
     vrmLabel: 'ਫਿਕਸਡ ਭੁਗਤਾਨ (VRM - TD ਸ਼ੈਲੀ)',
     armLabel: 'ਅਡਜੱਸਟੇਬਲ ਭੁਗਤਾਨ (ARM - ਸਕੋਸ਼ੀਆਬੈਂਕ ਸ਼ੈਲੀ)',
     armPaymentIncrease: 'ਸਮਾਯੋਜਿਤ ਭੁਗਤਾਨ: ਤੁਹਾਡਾ ਭੁਗਤਾਨ ਅਮੋਰਟਾਈਜ਼ੇਸ਼ਨ ਨੂੰ ਬਣਾਈ ਰੱਖਣ ਲਈ ${payment} (+${diff}/ਮਹੀਨਾ) ਤੱਕ ਵਧਦਾ ਹੈ।',
-    variableVrm: 'ਵੇਰੀਏਬਲ (VRM)',
-    variableArm: 'ਵੇਰੀਏਬਲ (ARM)',
+    variableVrm: 'ਵੇਰੀਏਬਲ ਦਰ',
+    variableArm: 'ਅਡਜੱਸਟੇਬਲ ਦਰ',
   },
 
   // RateComparer
   rate: {
     title: 'ਦਰਾਂ ਦੀ ਤੁਲਨਾ ਅਤੇ ਰੀਫਾਈਨੈਂਸਿੰਗ',
     subtitle: 'ਕਈ ਮਾਰਗੇਜ ਪੇਸ਼ਕਸ਼ਾਂ ਦੀ ਨਾਲ-ਨਾਲ ਤੁਲਨਾ ਕਰੋ ਜਾਂ ਜੁਰਮਾਨੇ ਅਤੇ ਰੀਫਾਈਨੈਂਸਿੰਗ ਦੀ ਸ਼ੁੱਧ ਬਚਤ ਦਾ ਮੁਲਾਂਕਣ ਕਰੋ।',
-    variableVrm: 'ਵੇਰੀਏਬl (VRM)',
-    variableArm: 'ਵੇਰੀਏਬਲ (ARM)',
+    variableVrm: 'ਵੇਰੀਏਬਲ ਦਰ',
+    variableArm: 'ਅਡਜੱਸਟੇਬਲ ਦਰ',
     saved: 'ਸੁਰੱਖਿਅਤ ਕੀਤਾ',
     pending: 'ਲੰਬਿਤ',
     saving: 'ਸੁਰੱਖਿਅਤ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ...',

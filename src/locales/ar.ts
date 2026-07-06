@@ -219,16 +219,16 @@ export const ar = {
     vrmLabel: 'دفعات ثابتة (VRM - أسلوب TD)',
     armLabel: 'دفعات قابلة للتعديل (ARM - أسلوب Scotiabank)',
     armPaymentIncrease: 'الدفعة المعدلة: تزيد دفعتك إلى ${payment} (+${diff}/شهرياً) للحفاظ على جدول الاستهلاك الخاص بك.',
-    variableVrm: 'متغير (VRM)',
-    variableArm: 'متغير (ARM)',
+    variableVrm: 'سعر متغير',
+    variableArm: 'سعر قابل للتعديل',
   },
 
   // RateComparer
   rate: {
     title: 'مقارنات الأسعار وإعادة التمويل',
     subtitle: 'قارن بين عروض رهن عقاري متعددة جنبًا إلى جنب أو قيم غرامة الإنهاء وصافي المدخرات لإعادة التمويل.',
-    variableVrm: 'متغير (VRM)',
-    variableArm: 'متغير (ARM)',
+    variableVrm: 'سعر متغير',
+    variableArm: 'سعر قابل للتعديل',
     saved: 'تم الحفظ',
     pending: 'معلق',
     saving: 'جاري الحفظ...',
