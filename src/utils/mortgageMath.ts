@@ -6,6 +6,8 @@ export interface MortgageInputs {
   paymentFrequency: PaymentFrequency;
   prepayments?: PrepaymentInputs;
   compounding?: 'semi_annual' | 'monthly';
+  rateType?: 'fixed' | 'variable';
+  variableType?: 'vrm' | 'arm';
   termYears?: number; // Current term length in years (e.g. 5)
   maturityDate?: string; // YYYY-MM-DD date string
   confirmedPayment?: number; // Confirmed payment override
@@ -446,5 +448,19 @@ export function calculateRemainingMonths(maturityDateStr: string): number {
   const today = new Date();
   const diffMonths = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
   return Math.max(1, diffMonths);
+}
+
+export function calculateTriggerRate(
+  principal: number,
+  payment: number,
+  frequency: PaymentFrequency,
+  compounding: 'semi_annual' | 'monthly' = 'semi_annual'
+): number {
+  if (principal <= 0 || payment <= 0) return 0;
+  const ppy = getPaymentsPerYear(frequency);
+  const c = compounding === 'monthly' ? 12 : 2;
+  const periodRateTrigger = payment / principal;
+  const nominalRate = c * (Math.pow(1 + periodRateTrigger, ppy / c) - 1);
+  return nominalRate * 100; // in percent
 }
 

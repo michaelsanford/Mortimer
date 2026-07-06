@@ -5,7 +5,8 @@ import { createTestContainer } from '../utils/testUtils';
 
 // Mock react-chartjs-2 to prevent canvas context errors in happy-dom
 vi.mock('react-chartjs-2', () => ({
-  Bar: () => <div data-testid="mock-bar-chart" />
+  Bar: () => <div data-testid="mock-bar-chart" />,
+  Line: () => <div data-testid="mock-line-chart" />
 }));
 
 describe('RateComparer Component Integration Tests', () => {
@@ -114,5 +115,26 @@ describe('RateComparer Component Integration Tests', () => {
     // Verify all 7 mock chart containers render in the DOM
     const charts = testEnv.container.querySelectorAll('[data-testid="mock-bar-chart"]');
     expect(charts.length).toBe(7);
+  });
+
+  it('renders refinance break-even crossover chart and timeline in refinance subtab', async () => {
+    await testEnv.render(<RateComparer profile={null} onSaveProfile={() => {}} />);
+
+    // Click Refinance Penalty & Break-Even sub-tab
+    const tabs = Array.from(testEnv.container.querySelectorAll('button'));
+    const refiTab = tabs.find(t => t.textContent?.includes('Refinance Penalty') || t.textContent?.includes('Break-Even'));
+    expect(refiTab).toBeDefined();
+
+    await act(async () => {
+      refiTab!.click();
+    });
+
+    // Verify it renders refinance parameters and the crossover line chart
+    expect(testEnv.container.innerHTML).toContain('Refinance Parameters');
+    expect(testEnv.container.innerHTML).toContain('Break-Even Summary');
+    
+    // Interest comparison bar chart and break-even crossover line chart should be present
+    expect(testEnv.container.querySelector('[data-testid="mock-bar-chart"]')).toBeTruthy();
+    expect(testEnv.container.querySelector('[data-testid="mock-line-chart"]')).toBeTruthy();
   });
 });
