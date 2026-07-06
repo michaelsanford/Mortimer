@@ -92,4 +92,18 @@ describe('App Integration Smoke Tests', () => {
 
     vi.useRealTimers();
   });
+
+  it('calls window.print when the floating print button is clicked', async () => {
+    window.print = vi.fn();
+    await testEnv.render(<App />);
+
+    const printBtn = testEnv.container.querySelector('.no-print') as HTMLButtonElement;
+    expect(printBtn).toBeTruthy();
+
+    await act(async () => {
+      printBtn.click();
+    });
+
+    expect(window.print).toHaveBeenCalled();
+  });
 });

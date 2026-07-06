@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Globe,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  Printer
 } from 'lucide-react';
 import type { Locale } from './utils/i18n';
 import type { MortgageInputs } from './utils/mortgageMath';
@@ -153,7 +154,7 @@ function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard profile={profile} onNavigate={setActiveTab} />;
+        return <Dashboard profile={profile} onNavigate={setActiveTab} onSaveProfile={handleSaveProfile} />;
       case 'paydown':
         return (
           <PaydownSimulator 
@@ -187,7 +188,7 @@ function App() {
           />
         );
       default:
-        return <Dashboard profile={profile} onNavigate={setActiveTab} />;
+        return <Dashboard profile={profile} onNavigate={setActiveTab} onSaveProfile={handleSaveProfile} />;
     }
   };
 
@@ -379,6 +380,41 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Print Report Action */}
+      <button
+        onClick={() => window.print()}
+        className="no-print"
+        style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          width: '3.5rem',
+          height: '3.5rem',
+          borderRadius: '50%',
+          backgroundColor: 'var(--color-primary)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          transition: 'transform 0.2s ease, background-color 0.2s ease',
+        }}
+        title={t.dashboard?.printReport || 'Print / Export PDF'}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.backgroundColor = 'var(--color-primary-hover, var(--color-primary))';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = 'var(--color-primary)';
+        }}
+      >
+        <Printer size={22} />
+      </button>
     </>
   );
 }

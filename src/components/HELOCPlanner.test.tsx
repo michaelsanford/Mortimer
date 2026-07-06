@@ -35,7 +35,7 @@ describe('HELOCPlanner Component Integration Tests', () => {
     await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
 
     // The first reno row's checkbox wrapper toggles that item (kitchen, $35,000).
-    const toggle = testEnv.container.querySelector('.flex.align-center.gap-2 > div') as HTMLElement;
+    const toggle = testEnv.container.querySelector('.heloc-checkbox') as HTMLElement;
     expect(toggle).toBeTruthy();
     await act(async () => {
       toggle.click();
@@ -76,7 +76,7 @@ describe('HELOCPlanner Component Integration Tests', () => {
     await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
 
     const deleteButtons = () =>
-      Array.from(testEnv.container.querySelectorAll('button[type="button"]'));
+      Array.from(testEnv.container.querySelectorAll('.heloc-delete-btn'));
     const before = deleteButtons().length;
     expect(before).toBeGreaterThan(0);
 
@@ -85,5 +85,29 @@ describe('HELOCPlanner Component Integration Tests', () => {
     });
 
     expect(deleteButtons().length).toBe(before - 1);
+  });
+
+  it('allows reordering/prioritizing projects using Up/Down buttons', async () => {
+    await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
+
+    // Get the first two project inputs to verify names
+    const names = () => Array.from(testEnv.container.querySelectorAll('input[type="text"]'))
+      .map(i => (i as HTMLInputElement).value);
+    
+    // Initial order: Kitchen, Bathroom, Basement...
+    expect(names()[0]).toBe('Kitchen Remodel');
+    expect(names()[1]).toBe('Bathroom Remodel');
+
+    // Click Down on the first project
+    const downButtons = () => Array.from(testEnv.container.querySelectorAll('button[title="Move Down"]')) as HTMLButtonElement[];
+    expect(downButtons().length).toBeGreaterThan(0);
+
+    await act(async () => {
+      downButtons()[0].click();
+    });
+
+    // Verify order is swapped: Bathroom, Kitchen, Basement...
+    expect(names()[0]).toBe('Bathroom Remodel');
+    expect(names()[1]).toBe('Kitchen Remodel');
   });
 });
