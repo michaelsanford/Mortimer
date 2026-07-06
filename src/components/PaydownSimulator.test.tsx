@@ -80,7 +80,17 @@ describe('PaydownSimulator Component Integration Tests', () => {
   });
 
   it('handles stress testing rate offset and triggers rate warnings', async () => {
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+    const mockVarProfile = {
+      principal: 450000,
+      interestRate: 4.85,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      rateType: 'variable' as const,
+      variableType: 'vrm' as const
+    };
+
+    await testEnv.render(<PaydownSimulator initialProfile={mockVarProfile} onSaveProfile={() => {}} />);
 
     // Get the range input (stress test slider)
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
@@ -138,5 +148,57 @@ describe('PaydownSimulator Component Integration Tests', () => {
     expect(clickSpy).toHaveBeenCalledTimes(2);
 
     clickSpy.mockRestore();
+  });
+
+  it('models VRM stress testing correctly (fixed payments, trigger alert)', async () => {
+    const mockProfile = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      rateType: 'variable' as const,
+      variableType: 'vrm' as const
+    };
+
+    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
+
+    const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(slider).toBeTruthy();
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(slider, '3');
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(testEnv.container.innerHTML).toContain('Trigger Rate Alert!');
+    expect(testEnv.container.innerHTML).not.toContain('Payment Recalculated');
+  });
+
+  it('models ARM stress testing correctly (recalculated payments, no trigger alert)', async () => {
+    const mockProfile = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 20,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      rateType: 'variable' as const,
+      variableType: 'arm' as const
+    };
+
+    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
+
+    const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(slider).toBeTruthy();
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(slider, '3');
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(testEnv.container.innerHTML).toContain('Payment Recalculated');
+    expect(testEnv.container.innerHTML).not.toContain('Trigger Rate Alert!');
   });
 });

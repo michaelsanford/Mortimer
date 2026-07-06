@@ -212,12 +212,23 @@ export const en = {
     exportPaymentScheduler: 'Export Payment Scheduler (.ics)',
     fixedValueLabel: '(Fixed Value)',
     approximateValueLabel: '(Approximate - Variable Rate)',
+    rateType: 'Interest Rate Type',
+    fixedRate: 'Fixed Rate',
+    variableRate: 'Variable/Floating Rate',
+    variableType: 'Variable Type',
+    vrmLabel: 'Fixed Payments (VRM - TD style)',
+    armLabel: 'Adjustable Payments (ARM - Scotiabank style)',
+    armPaymentIncrease: 'Adjusted Payment: your payment increases to ${payment} (+${diff}/mo) to maintain your amortization schedule.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
   },
 
   // RateComparer
   rate: {
     title: 'Rate Comparisons & Refinancing',
     subtitle: 'Compare multiple mortgage offers side-by-side or evaluate the breaking penalty and net savings of refinancing.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
     saved: 'Saved',
     pending: 'Pending',
     saving: 'Saving...',

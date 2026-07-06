@@ -212,12 +212,23 @@ export const es = {
     exportPaymentScheduler: 'Exportar programador de pagos (.ics)',
     fixedValueLabel: '(Monto fijo)',
     approximateValueLabel: '(Aproximado - Tasa variable)',
+    rateType: 'Tipo de tasa de interés',
+    fixedRate: 'Tasa fija',
+    variableRate: 'Tasa variable/flotante',
+    variableType: 'Tipo de tasa variable',
+    vrmLabel: 'Pagos fijos (VRM - estilo TD)',
+    armLabel: 'Pagos ajustables (ARM - estilo Scotiabank)',
+    armPaymentIncrease: 'Pago ajustado: su pago aumenta a ${payment} (+${diff}/mes) para mantener su plazo de amortización.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
   },
 
   // RateComparer
   rate: {
     title: 'Comparación de Tasas y Refinanciamiento',
     subtitle: 'Compare múltiples ofertas hipotecarias lado a lado o evalúe la penalización por cancelación y los ahorros netos de refinanciamiento.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
     saved: 'Guardado',
     pending: 'Pendiente',
     saving: 'Guardando...',

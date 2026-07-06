@@ -127,6 +127,10 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   // Custom Payment Override
   const [confirmedPayment, setConfirmedPayment] = useState<number>(initialProfile?.confirmedPayment || 0);
 
+  // Rate Type and Variable Type
+  const [rateType, setRateType] = useState<'fixed' | 'variable'>(initialProfile?.rateType || 'fixed');
+  const [variableType, setVariableType] = useState<'vrm' | 'arm'>(initialProfile?.variableType || 'vrm');
+
   // Original Parameters
   const [originalPrincipal, setOriginalPrincipal] = useState<number>(initialProfile?.originalPrincipal || 0);
   const [originalAmortizationYears, setOriginalAmortizationYears] = useState<number>(initialProfile?.originalAmortizationYears || 0);
@@ -186,24 +190,49 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
   const effOriginalAmortizationMonths = selectedOffer ? 0 : originalAmortizationMonths;
   const effOriginalTermYears = selectedOffer ? selectedOffer.term : originalTermYears;
 
+  const effVariableType = useMemo(() => {
+    if (selectedOffer) {
+      return selectedOffer.type === 'variable' ? (selectedOffer.variableType || 'vrm') : undefined;
+    }
+    return rateType === 'variable' ? variableType : undefined;
+  }, [selectedOffer, rateType, variableType]);
+
+  const compoundingToUse = useMemo(() => {
+    if (effVariableType) return 'monthly';
+    return initialProfile?.compounding || 'semi_annual';
+  }, [effVariableType, initialProfile]);
+
   const calculatedRegularPayment = useMemo(() => {
     const principalForPayment = effOriginalPrincipal && effOriginalPrincipal > 0 ? effOriginalPrincipal : effPrincipal;
     const amortizationForPayment = effOriginalAmortizationYears && effOriginalAmortizationYears > 0 
       ? effOriginalAmortizationYears + (effOriginalAmortizationMonths || 0) / 12 
       : effAmortizationYears + (effAmortizationMonths || 0) / 12;
-    return calculateRegularPayment(principalForPayment, effInterestRate, amortizationForPayment, effPaymentFrequency);
-  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths]);
+    return calculateRegularPayment(principalForPayment, effInterestRate, amortizationForPayment, effPaymentFrequency, compoundingToUse);
+  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, compoundingToUse]);
 
   const basePaymentForComp = effConfirmedPayment && effConfirmedPayment > 0 ? effConfirmedPayment : calculatedRegularPayment;
   const stressedRate = effInterestRate + interestRateOffset;
-  const compoundingToUse = interestRateOffset > 0 ? ('monthly' as const) : (initialProfile?.compounding || 'semi_annual' as const);
-  const confirmedPaymentToUse = interestRateOffset > 0 ? basePaymentForComp : effConfirmedPayment;
+
+  const stressedPayment = useMemo(() => {
+    if (interestRateOffset > 0 && effVariableType === 'arm') {
+      const amortizationForPayment = effAmortizationYears + (effAmortizationMonths || 0) / 12;
+      return calculateRegularPayment(effPrincipal, stressedRate, amortizationForPayment, effPaymentFrequency, compoundingToUse);
+    }
+    return basePaymentForComp;
+  }, [interestRateOffset, effVariableType, effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, compoundingToUse, basePaymentForComp]);
+
+  const confirmedPaymentToUse = useMemo(() => {
+    if (interestRateOffset > 0) {
+      return stressedPayment;
+    }
+    return effConfirmedPayment;
+  }, [interestRateOffset, stressedPayment, effConfirmedPayment]);
 
   const triggerRate = useMemo(() => {
     return calculateTriggerRate(effPrincipal, basePaymentForComp, effPaymentFrequency, compoundingToUse);
   }, [effPrincipal, basePaymentForComp, effPaymentFrequency, compoundingToUse]);
 
-  const isTriggerRateReached = interestRateOffset > 0 && stressedRate >= triggerRate;
+  const isTriggerRateReached = interestRateOffset > 0 && effVariableType === 'vrm' && stressedRate >= triggerRate;
 
   // Amortization results
   const results = useMemo(() => {
@@ -216,6 +245,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       maturityDate: effMaturityDate,
       confirmedPayment: confirmedPaymentToUse,
       compounding: compoundingToUse,
+      rateType,
+      variableType,
       originalPrincipal: effOriginalPrincipal,
       originalAmortizationYears: effOriginalAmortizationYears,
       originalAmortizationMonths: effOriginalAmortizationMonths,
@@ -229,7 +260,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       } : undefined
     };
     return calculateAmortization(inputs);
-  }, [effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effMaturityDate, confirmedPaymentToUse, compoundingToUse, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, effOriginalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
+  }, [effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effMaturityDate, confirmedPaymentToUse, compoundingToUse, rateType, variableType, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, effOriginalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
 
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
@@ -284,12 +315,14 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       (originalTermYears || 0) !== (initialProfile.originalTermYears || 0) ||
       (householdIncome || 0) !== (initialProfile.householdIncome || 0) ||
       (incomeType || 'gross') !== (initialProfile.incomeType || 'gross') ||
+      (rateType || 'fixed') !== (initialProfile.rateType || 'fixed') ||
+      (variableType || 'vrm') !== (initialProfile.variableType || 'vrm') ||
       !prepaymentsEqual
     );
   }, [
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
-    householdIncome, incomeType,
+    householdIncome, incomeType, rateType, variableType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed, initialProfile
   ]);
 
@@ -325,6 +358,8 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
         originalTermYears,
         householdIncome,
         incomeType,
+        rateType,
+        variableType,
         prepayments: showPrepayments ? {
           lumpSumAmount,
           doubleUp,
@@ -345,7 +380,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     isDirty,
     principal, interestRate, amortizationYears, amortizationMonths, paymentFrequency, maturityDate, confirmedPayment,
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
-    householdIncome, incomeType,
+    householdIncome, incomeType, rateType, variableType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
     onSaveProfile
   ]);
@@ -655,6 +690,42 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
               </div>
             </div>
 
+            {/* Interest Rate Type */}
+            <div className="form-group">
+              <label className="form-label">{t.paydown.rateType || 'Interest Rate Type'}</label>
+              <select
+                className="form-select"
+                value={selectedOffer ? (selectedOffer.type === 'variable' ? 'variable' : 'fixed') : rateType}
+                onChange={(e) => {
+                  const val = e.target.value as 'fixed' | 'variable';
+                  setRateType(val);
+                }}
+                disabled={!!selectedOffer}
+              >
+                <option value="fixed">{t.paydown.fixedRate || 'Fixed Rate'}</option>
+                <option value="variable">{t.paydown.variableRate || 'Variable/Floating Rate'}</option>
+              </select>
+            </div>
+
+            {/* Variable Type */}
+            {(selectedOffer ? selectedOffer.type === 'variable' : rateType === 'variable') && (
+              <div className="form-group" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <label className="form-label">{t.paydown.variableType || 'Variable Type'}</label>
+                <select
+                  className="form-select"
+                  value={selectedOffer ? (selectedOffer.variableType || 'vrm') : variableType}
+                  onChange={(e) => {
+                    const val = e.target.value as 'vrm' | 'arm';
+                    setVariableType(val);
+                  }}
+                  disabled={!!selectedOffer}
+                >
+                  <option value="vrm">{t.paydown.vrmLabel || 'Fixed Payments (VRM - TD style)'}</option>
+                  <option value="arm">{t.paydown.armLabel || 'Adjustable Payments (ARM - Scotiabank style)'}</option>
+                </select>
+              </div>
+            )}
+
             {/* Interest Rate */}
             <div className="form-group">
               <label className="form-label">
@@ -931,15 +1002,25 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                   <span style={{ color: 'var(--text-secondary)' }}>Stressed Interest Rate:</span>
                   <strong style={{ color: 'var(--text-primary)' }}>{stressedRate.toFixed(2)}%</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Trigger Rate:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{triggerRate.toFixed(2)}%</strong>
-                </div>
+                {effVariableType === 'vrm' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Trigger Rate:</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{triggerRate.toFixed(2)}%</strong>
+                  </div>
+                )}
+                {effVariableType === 'arm' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Stressed Payment:</span>
+                    <strong style={{ color: 'var(--color-primary)' }}>
+                      ${stressedPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Trigger Rate Warning Banner */}
-            {isTriggerRateReached && (
+            {/* Trigger Rate Warning Banner (VRM) */}
+            {isTriggerRateReached && effVariableType === 'vrm' && (
               <div className="alert alert-warning" style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid var(--color-warning)', borderRadius: '0.375rem', backgroundColor: 'rgba(217, 119, 6, 0.1)' }}>
                 <ShieldAlert size={18} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: '1px' }} />
                 <div>
@@ -951,6 +1032,23 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                       .replace('{offset}', interestRateOffset.toFixed(2))
                       .replace('{rate}', stressedRate.toFixed(2))
                       .replace('{triggerRate}', triggerRate.toFixed(2))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Adjustment Banner (ARM) */}
+            {interestRateOffset > 0 && effVariableType === 'arm' && (
+              <div className="alert alert-info" style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', border: '1px solid var(--color-info || #0284c7)', borderRadius: '0.375rem', backgroundColor: 'rgba(2, 132, 199, 0.1)' }}>
+                <ShieldAlert size={18} style={{ color: 'var(--color-info || #0284c7)', flexShrink: 0, marginTop: '1px' }} />
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-info || #0284c7)', marginBottom: '0.1rem' }}>
+                    Payment Recalculated
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-primary)', lineHeight: '1.3' }}>
+                    {t.paydown.armPaymentIncrease
+                      .replace('{payment}', `$${stressedPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                      .replace('{diff}', `$${(stressedPayment - basePaymentForComp).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
                   </span>
                 </div>
               </div>

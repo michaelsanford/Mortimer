@@ -70,6 +70,7 @@ interface Offer {
   rate: number;
   term: number;
   type: 'fixed' | 'variable';
+  variableType?: 'vrm' | 'arm';
 }
 
 interface RateComparerProps {
@@ -932,12 +933,25 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                       <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>{t.rate.compounding}</label>
                       <select 
                         className="form-select" 
-                        value={offer.type} 
-                        onChange={(e) => handleUpdateOffer(offer.id, 'type', e.target.value as 'fixed' | 'variable')}
+                        value={offer.type === 'variable' ? (offer.variableType === 'arm' ? 'variable_arm' : 'variable_vrm') : 'fixed'} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setOffers(prev => prev.map(o => {
+                            if (o.id !== offer.id) return o;
+                            if (val === 'fixed') {
+                              return { ...o, type: 'fixed', variableType: undefined };
+                            } else if (val === 'variable_vrm') {
+                              return { ...o, type: 'variable', variableType: 'vrm' };
+                            } else {
+                              return { ...o, type: 'variable', variableType: 'arm' };
+                            }
+                          }));
+                        }}
                         style={{ padding: '0.4rem 1.75rem 0.4rem 0.5rem', fontSize: '0.85rem' }}
                       >
                         <option value="fixed">{t.rate.fixed}</option>
-                        <option value="variable">{t.rate.variable}</option>
+                        <option value="variable_vrm">{t.rate.variableVrm || 'Variable (VRM)'}</option>
+                        <option value="variable_arm">{t.rate.variableArm || 'Variable (ARM)'}</option>
                       </select>
                     </div>
                   </div>
@@ -993,7 +1007,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.rate)}
                               <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                <strong>{o.rate.toFixed(2)}%</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? t.rate.var : t.rate.fix})
+                                <strong>{o.rate.toFixed(2)}%</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? (o.variableType === 'arm' ? 'ARM' : 'VRM') : t.rate.fix})
                               </span>
                             </div>
                           </td>

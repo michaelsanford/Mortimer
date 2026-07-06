@@ -212,12 +212,23 @@ export const zhHK = {
     exportPaymentScheduler: '匯出付款日程計劃表 (.ics)',
     fixedValueLabel: '(固定金額)',
     approximateValueLabel: '(估算值 - 浮動利率)',
+    rateType: '利率類型',
+    fixedRate: '固定利率',
+    variableRate: '浮動利率',
+    variableType: '浮動利率類型',
+    vrmLabel: '固定付款 (VRM - TD 銀行風格)',
+    armLabel: '可調付款 (ARM - 豐業銀行風格)',
+    armPaymentIncrease: '已調整付款：您的付款增加到 ${payment}（+${diff}/月），以保持您的還款期。',
+    variableVrm: '浮動 (VRM)',
+    variableArm: '浮動 (ARM)',
   },
 
   // RateComparer
   rate: {
     title: '利率對比與再融資',
     subtitle: '並排對比多個按揭報價，或評估提前解約罰金與轉貸的淨節省。',
+    variableVrm: '浮動 (VRM)',
+    variableArm: '浮動 (ARM)',
     saved: '已儲存',
     pending: '待處理',
     saving: '儲存中...',

@@ -212,12 +212,23 @@ export const fr = {
     exportPaymentScheduler: 'Exporter l\'échéancier des paiements (.ics)',
     fixedValueLabel: '(Montant fixe)',
     approximateValueLabel: '(Approximatif - Taux variable)',
+    rateType: 'Type de taux d\'intérêt',
+    fixedRate: 'Taux fixe',
+    variableRate: 'Taux variable/flottant',
+    variableType: 'Type de taux variable',
+    vrmLabel: 'Paiements fixes (VRM - style TD)',
+    armLabel: 'Paiements ajustables (ARM - style Scotiabank)',
+    armPaymentIncrease: 'Paiement ajusté : votre paiement augmente à ${payment} (+${diff}/mois) pour maintenir votre période d\'amortissement.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
   },
 
   // RateComparer
   rate: {
     title: 'Comparaisons de taux et refinancement',
     subtitle: 'Comparez plusieurs offres hypothécaires côte à côte ou évaluez la pénalité de résiliation et les économies nettes du refinancement.',
+    variableVrm: 'Variable (VRM)',
+    variableArm: 'Variable (ARM)',
     saved: 'Enregistré',
     pending: 'En attente',
     saving: 'Enregistrement...',

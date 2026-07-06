@@ -6,6 +6,8 @@ export interface MortgageInputs {
   paymentFrequency: PaymentFrequency;
   prepayments?: PrepaymentInputs;
   compounding?: 'semi_annual' | 'monthly';
+  rateType?: 'fixed' | 'variable';
+  variableType?: 'vrm' | 'arm';
   termYears?: number; // Current term length in years (e.g. 5)
   maturityDate?: string; // YYYY-MM-DD date string
   confirmedPayment?: number; // Confirmed payment override
