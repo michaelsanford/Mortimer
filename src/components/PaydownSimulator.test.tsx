@@ -201,4 +201,40 @@ describe('PaydownSimulator Component Integration Tests', () => {
     expect(testEnv.container.innerHTML).toContain('Payment Recalculated');
     expect(testEnv.container.innerHTML).not.toContain('Trigger Rate Alert!');
   });
+
+  it('allows selecting Fixed, Variable (VRM), and Adjustable (ARM) from the consolidated dropdown', async () => {
+    const onSaveProfileSpy = vi.fn();
+    const mockProfile = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      rateType: 'fixed' as const
+    };
+
+    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+
+    const selects = testEnv.container.querySelectorAll('select');
+    expect(selects.length).toBeGreaterThanOrEqual(2);
+    const rateTypeSelect = selects[1] as HTMLSelectElement;
+
+    expect(rateTypeSelect.value).toBe('fixed');
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')!.set!;
+      setter.call(rateTypeSelect, 'variable_vrm');
+      rateTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(rateTypeSelect.value).toBe('variable_vrm');
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')!.set!;
+      setter.call(rateTypeSelect, 'variable_arm');
+      rateTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(rateTypeSelect.value).toBe('variable_arm');
+  });
 });
