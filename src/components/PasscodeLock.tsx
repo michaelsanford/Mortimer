@@ -37,7 +37,7 @@ export const PasscodeLock: React.FC<PasscodeLockProps> = ({ onUnlock, onWipeData
         setBiometricsError(t.settings?.biometricFailed || 'Biometric unlock failed. Please enter your PIN.');
       }
     }
-  }, [onUnlock]);
+  }, [onUnlock, t.settings]);
 
   useEffect(() => {
     if (biometricsAvailable) {
