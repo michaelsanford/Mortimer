@@ -77,19 +77,64 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
     setCustomRenoCost(0);
   };
 
+  // Move item up in the list
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    setRenoItems(prev => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index - 1];
+      next[index - 1] = temp;
+      return next;
+    });
+  };
+
+  // Move item down in the list
+  const handleMoveDown = (index: number) => {
+    if (index === renoItems.length - 1) return;
+    setRenoItems(prev => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index + 1];
+      next[index + 1] = temp;
+      return next;
+    });
+  };
+
   // Calculations
-  const renoTotal = useMemo(() => {
-    return renoItems.reduce((sum, item) => item.selected ? sum + item.cost : sum, 0);
-  }, [renoItems]);
-
-  const helocRate = helocPrimeRate + helocPremium;
-
   const helocDetails = useMemo(() => {
     return calculateHELOC({
       homeValue,
       currentMortgageBalance: mortgageBalance
     });
   }, [homeValue, mortgageBalance]);
+
+  // Compute prioritized items and funded status
+  const prioritizedRenoItems = useMemo(() => {
+    let remainingCapacity = helocDetails.maxAvailableHeloc;
+    return renoItems.map(item => {
+      if (!item.selected) {
+        return { ...item, fundingStatus: 'unselected' as const, fundedAmount: 0 };
+      }
+      if (remainingCapacity <= 0) {
+        return { ...item, fundingStatus: 'unfunded' as const, fundedAmount: 0 };
+      }
+      if (remainingCapacity >= item.cost) {
+        remainingCapacity -= item.cost;
+        return { ...item, fundingStatus: 'fully_funded' as const, fundedAmount: item.cost };
+      } else {
+        const funded = remainingCapacity;
+        remainingCapacity = 0;
+        return { ...item, fundingStatus: 'partially_funded' as const, fundedAmount: funded };
+      }
+    });
+  }, [renoItems, helocDetails.maxAvailableHeloc]);
+
+  const renoTotal = useMemo(() => {
+    return renoItems.reduce((sum, item) => item.selected ? sum + item.cost : sum, 0);
+  }, [renoItems]);
+
+  const helocRate = helocPrimeRate + helocPremium;
 
   // Total LTV after adding Reno to mortgage / HELOC
   const ltvAfterReno = useMemo(() => {
@@ -199,7 +244,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {renoItems.map(item => (
+              {prioritizedRenoItems.map((item, index) => (
                 <div 
                   key={item.id} 
                   style={{ 
@@ -207,7 +252,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     padding: '0.5rem 0.75rem', 
-                    background: item.selected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)', 
+                    background: item.selected ? 'rgba(99, 102, 241, 0.08)' : 'var(--bg-badge)', 
                     border: '1px solid', 
                     borderColor: item.selected ? 'var(--color-primary)' : 'var(--border-color)',
                     borderRadius: '0.5rem',
@@ -216,8 +261,33 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                   }}
                 >
                   <div className="flex align-center gap-2" style={{ flexGrow: 1, minWidth: 0 }}>
+                    {/* Reorder Buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '0.25rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                        style={{ padding: '1px 4px', fontSize: '0.65rem', minHeight: 'auto', opacity: index === 0 ? 0.3 : 1, cursor: index === 0 ? 'not-allowed' : 'pointer' }}
+                        title={t.heloc.moveUp}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === prioritizedRenoItems.length - 1}
+                        style={{ padding: '1px 4px', fontSize: '0.65rem', minHeight: 'auto', opacity: index === prioritizedRenoItems.length - 1 ? 0.3 : 1, cursor: index === prioritizedRenoItems.length - 1 ? 'not-allowed' : 'pointer' }}
+                        title={t.heloc.moveDown}
+                      >
+                        ▼
+                      </button>
+                    </div>
+
                     {/* Checkbox wrapper */}
                     <div 
+                      className="heloc-checkbox"
                       onClick={() => handleToggleItem(item.id)} 
                       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                     >
@@ -228,24 +298,52 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                       )}
                     </div>
                     {/* Editable Name */}
-                    <input 
-                      type="text" 
-                      value={item.name} 
-                      onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
-                      style={{ 
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        color: item.selected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        fontWeight: 500,
-                        fontSize: '0.9rem',
-                        padding: '0.25rem 0',
-                        width: '100%',
-                        borderBottom: '1px dashed transparent'
-                      }}
-                      onFocus={(e) => e.target.style.borderBottomColor = 'var(--border-color)'}
-                      onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
+                      <input 
+                        type="text" 
+                        value={item.name} 
+                        onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
+                        style={{ 
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          color: item.selected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontWeight: 500,
+                          fontSize: '0.9rem',
+                          padding: '0.15rem 0',
+                          width: '100%',
+                          borderBottom: '1px dashed transparent'
+                        }}
+                        onFocus={(e) => e.target.style.borderBottomColor = 'var(--border-color)'}
+                        onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
+                      />
+                      
+                      {item.selected && (
+                        <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.15rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span 
+                            style={{ 
+                              fontSize: '0.7rem', 
+                              padding: '0.1rem 0.35rem', 
+                              borderRadius: '0.25rem', 
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              background: 
+                                item.fundingStatus === 'fully_funded' ? 'rgba(16, 185, 129, 0.15)' : 
+                                item.fundingStatus === 'partially_funded' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: 
+                                item.fundingStatus === 'fully_funded' ? 'var(--color-success)' : 
+                                item.fundingStatus === 'partially_funded' ? 'var(--color-warning)' : 'var(--color-danger)'
+                            }}
+                          >
+                            {item.fundingStatus === 'fully_funded' ? t.heloc.fullyFunded : 
+                             item.fundingStatus === 'partially_funded' ? `${t.heloc.partiallyFunded} ($${Math.round(item.fundedAmount).toLocaleString()})` : t.heloc.unfunded}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {t.heloc.priority} #{index + 1}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex align-center gap-3">
@@ -274,6 +372,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                     {/* Delete button */}
                     <button 
                       type="button" 
+                      className="heloc-delete-btn"
                       onClick={() => handleDeleteItem(item.id)}
                       style={{ 
                         background: 'transparent', 
