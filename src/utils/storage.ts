@@ -490,8 +490,7 @@ export async function unlockWithBiometrics(): Promise<string> {
 
   const bioKey = "mortimer-bio-secret-key-123";
   const parsed = JSON.parse(encryptedPinStr);
-  const pin = await decryptData(parsed.ciphertext, bioKey, parsed.salt, parsed.iv);
-  return pin;
+  return await decryptData(parsed.ciphertext, bioKey, parsed.salt, parsed.iv);
 }
 
 export function setAutoLockDuration(seconds: number): void {
