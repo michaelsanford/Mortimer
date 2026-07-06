@@ -115,7 +115,8 @@ export const pa = {
     pipedaLoi25: 'PIPEDA ਅਤੇ ਕਿਊਬਿਕ Loi 25 ਅਨੁਕੂਲ',
     privacyDesc: 'Mortimer ਤੁਹਾਡੇ ਵਿੱਤੀ ਡੇਟਾ ਨੂੰ ਇਕੱਠਾ, ਟਰੈਕ ਜਾਂ ਸਾਂਝਾ ਨਹੀਂ ਕਰਦਾ ਹੈ। ਸਭ ਕੁਝ ਤੁਹਾਡੇ ਬ੍ਰਾਊਜ਼ਰ ਦੇ ਅੰਦਰ ਇਨਕ੍ਰਿਪਟਡ ਰਹਿੰਦਾ ਹੈ।',
     disclaimerTitle: 'ਬੇਦਾਅਵਾ',
-    disclaimerText: 'Mortimer ਇੱਕ ਆਮ ਵਿਦਿਅਕ ਸਿਮੂਲੇਟਰ ਹੈ। ਗਣਨਾਵਾਂ ਤੁਹਾਡੇ ਰਿਣਦਾਤਾ ਦੇ ਸਿਸਟਮ ਤੋਂ ਥੋੜ੍ਹੀਆਂ ਵੱਖਰੀਆਂ ਹੋ ਸਕਦੀਆਂ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਕੋਈ ਵੀ ਫੈਸਲਾ ਲੈਣ ਤੋਂ ਪਹਿਲਾਂ ਕਿਸੇ ਯੋਗਤਾ ਪ੍ਰਾਪਤ ਮਾਰਗੇਜ ਏਜੰਟ ਨਾਲ ਸਲਾਹ ਕਰੋ।',
+    disclaimerText: 'Mortimer ਇੱਕ ਆਮ ਵਿਦਿਅਕ ਸਿਮੂਲੇਟਰ ਹੈ। ਗਣਨਾਵਾਂ ਤੁਹਾਡੇ ਰਿਣਦਾਤਾ ਦੇ ਸਿਸਟਮ ਤੋਂ ਥੋੜ੍ਹੀਆਂ ਵੱਖਰੀਆਂ ਹੋ ਸਕਦੀਆਂ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਕੋਈ ਵੀ ਫੈਸਲਾ ਲੈਣ ਤੋਂ ਪਹਿਲਾਂ ਕਿਸе ਯੋਗਤਾ ਪ੍ਰਾਪਤ ਮਾਰਗੇਜ ਏਜੰਟ ਨਾਲ ਸਲਾਹ ਕਰੋ।',
+    printReport: 'ਛਾਪੋ / PDF ਐਕਸਪੋਰਟ ਕਰੋ',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const pa = {
     currentMortgageOption: 'ਮੌਜੂਦਾ ਮੌਰਗੇਜ',
     linkedOfferNotice: 'ਪੈਰਾਮੀਟਰ ਦਰ ਤੁਲਨਾਕਾਰ ਤੋਂ {name} ਨਾਲ ਲਿੰਕ ਕੀਤੇ ਗਏ ਹਨ। ਅਗਾਊਂ ਭੁਗਤਾਨ ਅਜੇ ਵੀ ਸਿਮੂਲੇਟ ਕੀਤੇ ਜਾ ਸਕਦੇ ਹਨ।',
     editOfferBtn: 'ਪੇਸ਼ਕਸ਼ ਸੰਪਾਦਿਤ ਕਰੋ',
+    stressTest: 'ਤਣਾਅ ਟੈਸਟ (ਦਰ ਵਾਧਾ)',
+    stressTestDesc: 'ਆਪਣੀ ਅਮੋਰਟਾਈਜ਼ੇਸ਼ਨ \'ਤੇ ਵਿਆਜ ਦਰ ਦੇ ਵਾਧੇ ਦੇ ਪ੍ਰਭਾਵ ਨੂੰ ਸਿਮੂਲੇਟ ਕਰੋ ਅਤੇ ਦੇਖੋ ਕਿ ਕੀ ਤੁਹਾਡੇ ਭੁਗਤਾਨ ਵਿਆਜ ਨੂੰ ਕਵਰ ਕਰਦੇ ਹਨ।',
+    stressTestSlider: 'ਵਿਆਜ ਦਰ ਵਿੱਚ ਵਾਧਾ (+%)',
+    triggerRateWarning: 'ਟਰਿੱਗਰ ਦਰ ਚੇਤਾਵਨੀ!',
+    triggerRateWarningDesc: '+{offset}% \'ਤੇ, ਤੁਹਾਡੀ ਵਿਆਜ ਦਰ {rate}% ਤੱਕ ਪਹੁੰਚਦੀ ਹੈ। ਇਹ ਤੁਹਾਡੀ {triggerRate}% ਦੀ ਟਰਿੱਗਰ ਦਰ ਤੋਂ ਵੱਧ ਹੈ, ਭਾਵ ਤੁਹਾਡਾ ਭੁਗਤਾਨ ਵਿਆਜ ਨੂੰ ਕਵਰ ਨਹੀਂ ਕਰਦਾ (ਅਨੰਤ ਅਮੋਰਟਾਈਜ਼ੇਸ਼ਨ)।',
+    exportMaturityCalendar: 'ਪੂਰਵ-ਭੁਗਤਾਨ ਕੈਲੰਡਰ ਐਕਸਪੋਰਟ ਕਰੋ (.ics)',
+    exportPaymentScheduler: 'ਭੁਗਤਾਨ ਅਨੁਸੂਚੀ ਐਕਸਪੋਰਟ ਕਰੋ (.ics)',
+    fixedValueLabel: '(ਨਿਸ਼ਚਿਤ ਮੁੱਲ)',
+    approximateValueLabel: '(ਲਗਭਗ - ਪਰਿਵਰਤਨਸ਼ੀਲ ਦਰ)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const pa = {
     optionB: 'ਵਿਕਲਪ B',
     optionC: 'ਵਿਕਲਪ C',
     offerN: 'ਪੇਸ਼ਕਸ਼ {n}',
+    breakEvenPoint: 'ਬਰਾਬਰੀ ਦਾ ਮਹੀਨਾ',
+    breakEvenDesc: 'ਬਰਾਬਰੀ ਦਾ ਬਿੰਦੂ ਮਹੀਨਾ {month} ({years} ਸਾਲ) ਹੈ, ਜਿਸ ਤੋਂ ਬਾਅਦ ਸੰਚਤ ਬਚਤ ਜੁਰਮਾਨੇ ਤੋਂ ਵੱਧ ਜਾਂਦੀ ਹੈ।',
+    breakEvenChartTitle: 'ਸੰਚਤ ਬਚਤ ਬਨਾਮ ਰੀਫਾਈਨੈਂਸ ਜੁਰਮਾਨਾ',
   },
 
   // HELOCPlanner

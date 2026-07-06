@@ -116,6 +116,7 @@ export const zh = {
     privacyDesc: 'Mortimer 不收集、跟踪或分享您的财务数据。所有数据均在您的浏览器中加密存储。',
     disclaimerTitle: '免责声明',
     disclaimerText: 'Mortimer 是一个通用的教育模拟器。计算结果可能与您的贷方系统略有不同。在做出决定前，请咨询合格的房贷专家。',
+    printReport: '打印 / 导出 PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const zh = {
     currentMortgageOption: '当前贷款',
     linkedOfferNotice: '参数已链接至利率比较器中的 {name}。仍可模拟提前还款。',
     editOfferBtn: '编辑方案',
+    stressTest: '压力测试（利率上浮）',
+    stressTestDesc: '模拟利率上调对您摊销期的影响，并查看您的常规付款是否仍可覆盖利息。',
+    stressTestSlider: '利率上浮 (+%)',
+    triggerRateWarning: '触及触发利率警告！',
+    triggerRateWarningDesc: '在上浮 +{offset}% 后，您的利率达到 {rate}%。这已超过您 {triggerRate}% 的触发利率，意味着您的常规付款已无法覆盖利息（导致无限期摊销）。',
+    exportMaturityCalendar: '导出到期日/提前还款日历 (.ics)',
+    exportPaymentScheduler: '导出付款日程计划表 (.ics)',
+    fixedValueLabel: '(固定金额)',
+    approximateValueLabel: '(估算值 - 浮动利率)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const zh = {
     optionB: '方案 B',
     optionC: '方案 C',
     offerN: '报价 {n}',
+    breakEvenPoint: '盈亏平衡月',
+    breakEvenDesc: '盈亏平衡点为第 {month} 个月（{years} 年），此后您的累计利息节省将超过转贷罚金与评估费用。',
+    breakEvenChartTitle: '累计节省金额 vs. 转贷罚金',
   },
 
   // HELOCPlanner

@@ -116,6 +116,7 @@ export const es = {
     privacyDesc: 'Mortimer no recopila, rastrea ni comparte sus datos financieros. Todo permanece cifrado dentro de su navegador.',
     disclaimerTitle: 'Descargo de responsabilidad',
     disclaimerText: 'Mortimer es un simulador educativo general. Los cálculos pueden variar ligeramente del sistema de su prestamista. Consulte a un agente hipotecario calificado antes de tomar decisiones.',
+    printReport: 'Imprimir / Exportar PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const es = {
     currentMortgageOption: 'Hipoteca actual',
     linkedOfferNotice: 'Los parámetros están vinculados a {name} del Comparador de tarifas. Todavía se pueden simular pagos anticipados.',
     editOfferBtn: 'Editar oferta',
+    stressTest: 'Prueba de esfuerzo (incremento de tasa)',
+    stressTestDesc: 'Simule aumentos en las tasas de interés para probar el esfuerzo de su amortización y ver si sus pagos cubren los intereses.',
+    stressTestSlider: 'Aumento de la tasa de interés (+%)',
+    triggerRateWarning: '¡Alerta de tasa de activación alcanzada!',
+    triggerRateWarningDesc: 'Con +{offset}%, su tasa alcanza el {rate}%. Esto supera su tasa de activación del {triggerRate}%, lo que significa que sus pagos ya no cubren los intereses (amortización infinita).',
+    exportMaturityCalendar: 'Exportar calendario de vencimiento / pagos anticipados (.ics)',
+    exportPaymentScheduler: 'Exportar programador de pagos (.ics)',
+    fixedValueLabel: '(Monto fijo)',
+    approximateValueLabel: '(Aproximado - Tasa variable)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const es = {
     optionB: 'Opción B',
     optionC: 'Opción C',
     offerN: 'Oferta {n}',
+    breakEvenPoint: 'Mes de equilibrio',
+    breakEvenDesc: 'El punto de equilibrio es el mes {month} ({years} años), después del cual los ahorros acumulados superan la penalización.',
+    breakEvenChartTitle: 'Ahorro acumulado vs. penalización por refinanciamiento',
   },
 
   // HELOCPlanner

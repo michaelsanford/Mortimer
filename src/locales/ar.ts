@@ -116,6 +116,7 @@ export const ar = {
     privacyDesc: 'لا يقوم مورتيمر بجمع أو تتبع أو مشاركة بياناتك المالية. كل شيء يبقى مشفرًا داخل متصفحك.',
     disclaimerTitle: 'إخلاء المسؤولية',
     disclaimerText: 'مورتيمر هو محاكٍ تعليمي عام. قد تختلف الحسابات قليلاً عن نظام المقرض الخاص بك. يرجى استشارة وكيل رهن عقاري مؤهل قبل اتخاذ القرارات.',
+    printReport: 'طباعة / تصدير PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const ar = {
     currentMortgageOption: 'الرهن العقاري الحالي',
     linkedOfferNotice: 'المعلمات مرتبطة بـ {name} من مقارن الأسعار. لا يزال بإمكانك محاكاة المدفوعات الإضافية.',
     editOfferBtn: 'تعديل العرض',
+    stressTest: 'اختبار الجهد (زيادة الفائدة)',
+    stressTestDesc: 'حاكي زيادات أسعار الفائدة لاختبار جهد فترة الاستهلاك ومعرفة ما إذا كانت دفعاتك تغطي الفائدة.',
+    stressTestSlider: 'زيادة سعر الفائدة (+%)',
+    triggerRateWarning: 'تنبيه: تم الوصول إلى سعر التنشيط!',
+    triggerRateWarningDesc: 'عند زيادة +{offset}%، يصل سعر الفائدة إلى {rate}%. هذا يتجاوز سعر التنشيط البالغ {triggerRate}%، مما يعني أن دفعاتك لم تعد تغطي الفائدة (استهلاك لانهائي).',
+    exportMaturityCalendar: 'تصدير تقويم الاستحقاق / الدفع الإضافي (.ics)',
+    exportPaymentScheduler: 'تصدير جدول المدفوعات (.ics)',
+    fixedValueLabel: '(قيمة ثابتة)',
+    approximateValueLabel: '(تقريبي - سعر متغير)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const ar = {
     optionB: 'الخيار B',
     optionC: 'الخيار C',
     offerN: 'العرض {n}',
+    breakEvenPoint: 'شهر التعادل',
+    breakEvenDesc: 'نقطة التعادل هي الشهر {month} ({years} سنوات)، وبعد ذلك تتجاوز المدخرات المتراكمة قيمة الغرامة.',
+    breakEvenChartTitle: 'المدخرات المتراكمة مقابل غرامة إعادة التمويل',
   },
 
   // HELOCPlanner

@@ -116,6 +116,7 @@ export const en = {
     privacyDesc: 'Mortimer does not collect, track, or share your financial data. Everything remains encrypted inside your browser.',
     disclaimerTitle: 'Disclaimer',
     disclaimerText: 'Mortimer is a general educational simulator. Calculations may vary slightly from your lender\'s system. Please consult a qualified mortgage agent before making decisions.',
+    printReport: 'Print / Export PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const en = {
     currentMortgageOption: 'Current Mortgage',
     linkedOfferNotice: 'Parameters are linked to {name} from the Rates Comparer. Prepayments can still be simulated.',
     editOfferBtn: 'Edit Offer',
+    stressTest: 'Stress Test (Hike Offset)',
+    stressTestDesc: 'Simulate interest rate increases to stress test your amortization and see if your payments cover the interest.',
+    stressTestSlider: 'Interest Rate Increase (+%)',
+    triggerRateWarning: 'Trigger Rate Alert!',
+    triggerRateWarningDesc: 'At +{offset}%, your interest rate reaches {rate}%. This exceeds your trigger rate of {triggerRate}%, meaning your payments no longer cover the interest, causing infinite amortization.',
+    exportMaturityCalendar: 'Export Maturity / Prepayment Calendar (.ics)',
+    exportPaymentScheduler: 'Export Payment Scheduler (.ics)',
+    fixedValueLabel: '(Fixed Value)',
+    approximateValueLabel: '(Approximate - Variable Rate)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const en = {
     optionB: 'Option B',
     optionC: 'Option C',
     offerN: 'Offer {n}',
+    breakEvenPoint: 'Break-Even Month',
+    breakEvenDesc: 'Break-even point is month {month} ({years} years), after which cumulative savings exceed the penalty.',
+    breakEvenChartTitle: 'Cumulative Savings vs. Refinance Penalty',
   },
 
   // HELOCPlanner

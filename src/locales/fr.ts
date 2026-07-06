@@ -116,6 +116,7 @@ export const fr = {
     privacyDesc: 'Mortimer ne collecte, ne suit ni ne partage vos données financières. Tout reste chiffré dans votre navigateur.',
     disclaimerTitle: 'Avis',
     disclaimerText: 'Mortimer est un simulateur éducatif général. Les calculs peuvent varier légèrement par rapport au système de votre prêteur. Veuillez consulter un courtier hypothécaire qualifié avant de prendre des décisions.',
+    printReport: 'Imprimer / Exporter PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const fr = {
     currentMortgageOption: 'Hypothèque actuelle',
     linkedOfferNotice: 'Les paramètres sont liés à {name} du Comparateur de taux. Les paiements anticipés peuvent toujours être simulés.',
     editOfferBtn: 'Modifier l\'offre',
+    stressTest: 'Test de résistance (hausse du taux)',
+    stressTestDesc: 'Simulez des hausses de taux d\'intérêt pour tester la résistance de votre amortissement et voir si vos versements couvrent les intérêts.',
+    stressTestSlider: 'Hausse du taux d\'intérêt (+%)',
+    triggerRateWarning: 'Alerte : taux de déclenchement atteint !',
+    triggerRateWarningDesc: 'À +{offset}%, votre taux atteint {rate}%. Cela dépasse votre taux de déclenchement de {triggerRate}%, ce qui signifie que vos paiements ne couvrent plus les intérêts (amortissement infini).',
+    exportMaturityCalendar: 'Exporter le calendrier des échéances / remboursements (.ics)',
+    exportPaymentScheduler: 'Exporter l\'échéancier des paiements (.ics)',
+    fixedValueLabel: '(Montant fixe)',
+    approximateValueLabel: '(Approximatif - Taux variable)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const fr = {
     optionB: 'Option B',
     optionC: 'Option C',
     offerN: 'Offre {n}',
+    breakEvenPoint: 'Mois de rentabilité',
+    breakEvenDesc: 'Le point de rentabilité est au mois {month} ({years} ans), après quoi les économies cumulées dépassent la pénalité.',
+    breakEvenChartTitle: 'Économies cumulées vs. pénalité de refinancement',
   },
 
   // HELOCPlanner

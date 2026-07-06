@@ -78,4 +78,65 @@ describe('PaydownSimulator Component Integration Tests', () => {
     // The inputs should now be disabled because they are linked to the offer
     expect(principalInput.disabled).toBe(true);
   });
+
+  it('handles stress testing rate offset and triggers rate warnings', async () => {
+    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+
+    // Get the range input (stress test slider)
+    const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(slider).toBeTruthy();
+    expect(slider.value).toBe('0');
+
+    // Simulate rate offset increase (e.g. +2.0%)
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(slider, '2');
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Stressed details should be shown
+    expect(testEnv.container.innerHTML).toContain('Stressed Interest Rate');
+    expect(testEnv.container.innerHTML).toContain('Trigger Rate');
+
+    // Simulate very high rate offset to trigger the warning (e.g. +3.0%)
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(slider, '3');
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    // Stressed rate warning alert should be visible
+    expect(testEnv.container.innerHTML).toContain('Trigger Rate Alert!');
+  });
+
+  it('triggers downloads when calendar export buttons are clicked', async () => {
+    window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+    window.URL.revokeObjectURL = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function(this: HTMLAnchorElement) {
+      // Trigger a mock file download verification
+    });
+
+    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+
+    const exportButtons = Array.from(testEnv.container.querySelectorAll('button'))
+      .filter(b => b.textContent?.includes('Calendar') || b.textContent?.includes('Scheduler'));
+
+    expect(exportButtons.length).toBe(2);
+
+    // Click Anniversary Calendar
+    await act(async () => {
+      exportButtons[0].click();
+    });
+    expect(window.URL.createObjectURL).toHaveBeenCalled();
+    expect(clickSpy).toHaveBeenCalled();
+
+    // Click Payment Scheduler
+    await act(async () => {
+      exportButtons[1].click();
+    });
+    expect(window.URL.createObjectURL).toHaveBeenCalledTimes(2);
+    expect(clickSpy).toHaveBeenCalledTimes(2);
+
+    clickSpy.mockRestore();
+  });
 });

@@ -8,20 +8,40 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend
 );
+
+function useSystemTheme() {
+  const [isDark, setIsDark] = useState(() => 
+    !window.matchMedia || window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
+
+  return isDark ? 'dark' : 'light';
+}
 
 const getOverallBestLabel = (locale: string) => {
   switch (locale) {
@@ -141,6 +161,7 @@ const estimateRemainingAmortization = (
 
 export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfile }) => {
   const { t, locale } = useI18n();
+  const systemTheme = useSystemTheme();
   const [activeSubTab, setActiveSubTab] = useState<'renewal' | 'refinance'>('renewal');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
 
@@ -635,13 +656,79 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8' }
+        ticks: { color: systemTheme === 'dark' ? '#94a3b8' : '#64748b' }
       },
       y: {
-        grid: { color: 'rgba(255,255,255,0.05)' },
+        grid: { color: systemTheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
         ticks: { 
-          color: '#94a3b8',
+          color: systemTheme === 'dark' ? '#94a3b8' : '#64748b',
           callback: function(value: any) { return '$' + (value / 1000) + 'k'; }
+        }
+      }
+    }
+  };
+
+  const breakEvenChartData = {
+    labels: Array.from({ length: (refinanceRemainingTerm || 60) + 1 }, (_, i) => `Month ${i}`),
+    datasets: [
+      {
+        label: t.rate?.totalBreakingCosts || 'Total Closing Costs',
+        data: Array.from({ length: (refinanceRemainingTerm || 60) + 1 }, () => refinanceResults.totalClosingCosts),
+        borderColor: 'rgba(239, 68, 68, 1)',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 0,
+        fill: false
+      },
+      {
+        label: t.rate?.monthlySavings || 'Cumulative Savings',
+        data: Array.from({ length: (refinanceRemainingTerm || 60) + 1 }, (_, i) => Math.round(refinanceResults.monthlySavings * i * 100) / 100),
+        borderColor: 'rgba(16, 185, 129, 1)',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.1,
+        pointRadius: 2
+      }
+    ]
+  };
+
+  const breakEvenChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: systemTheme === 'dark' ? '#e2e8f0' : '#1e293b',
+          font: { family: 'Inter', size: 10 }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) {
+              label += new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(context.parsed.y);
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: systemTheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+        ticks: { color: systemTheme === 'dark' ? '#94a3b8' : '#64748b', maxTicksLimit: 12 }
+      },
+      y: {
+        grid: { color: systemTheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+        ticks: { 
+          color: systemTheme === 'dark' ? '#94a3b8' : '#64748b',
+          callback: function(value: any) {
+            return '$' + value.toLocaleString();
+          }
         }
       }
     }
@@ -1289,6 +1376,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               <h3 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{t.rate.interestSavingsComparison}</h3>
               <div style={{ flexGrow: 1, position: 'relative', height: '140px' }}>
                 <Bar data={refinanceChartData} options={refinanceChartOptions} />
+              </div>
+            </div>
+
+            {/* Break-Even Timeline Chart */}
+            <div className="card" style={{ height: '260px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{t.rate.breakEvenChartTitle}</h3>
+              <div style={{ flexGrow: 1, position: 'relative', height: '200px' }}>
+                <Line data={breakEvenChartData} options={breakEvenChartOptions} />
               </div>
             </div>
 

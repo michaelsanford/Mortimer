@@ -116,6 +116,7 @@ export const zhHK = {
     privacyDesc: 'Mortimer 不收集、跟蹤或分享您的財務數據。所有數據均在您的瀏覽器中加密存儲。',
     disclaimerTitle: '免責聲明',
     disclaimerText: 'Mortimer 是一個通用的教育模擬器。計算結果可能與您的貸方系統略有不同。在做出決定前，請諮詢合格的按揭專家。',
+    printReport: '列印 / 匯出 PDF',
   },
 
   // PaydownSimulator
@@ -202,6 +203,15 @@ export const zhHK = {
     currentMortgageOption: '當前按揭',
     linkedOfferNotice: '參數已連結至利率比較器中的 {name}。仍可模擬提前付款。',
     editOfferBtn: '編輯方案',
+    stressTest: '压力測試（利率上浮）',
+    stressTestDesc: '模擬利率上調對您攤銷期的影響，並查看您的常規付款是否仍可覆蓋利息。',
+    stressTestSlider: '利率上浮 (+%)',
+    triggerRateWarning: '觸及觸發利率警告！',
+    triggerRateWarningDesc: '在上浮 +{offset}% 後，您的利率達到 {rate}%。这已超過您 {triggerRate}% 的觸發利率，意味着您的常規付款已無法覆蓋利息（導致無限期攤銷）。',
+    exportMaturityCalendar: '匯出到期日/提前付款日曆 (.ics)',
+    exportPaymentScheduler: '匯出付款日程計劃表 (.ics)',
+    fixedValueLabel: '(固定金額)',
+    approximateValueLabel: '(估算值 - 浮動利率)',
   },
 
   // RateComparer
@@ -293,6 +303,9 @@ export const zhHK = {
     optionB: '方案 B',
     optionC: '方案 C',
     offerN: '報價 {n}',
+    breakEvenPoint: '盈虧平衡月',
+    breakEvenDesc: '盈虧平衡點為第 {month} 個月（{years} 年），此後您的累計利息節省將超過轉貸罰金與評估費用。',
+    breakEvenChartTitle: '累計節省金額 vs. 轉贷罰金',
   },
 
   // HELOCPlanner

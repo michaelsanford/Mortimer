@@ -1089,3 +1089,44 @@ input:checked + .toggle-slider:before {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Print CSS Stylesheet */
+@media print {
+  header,
+  footer,
+  nav,
+  button,
+  .btn,
+  .print-hide,
+  .sidebar,
+  .settings-section,
+  .alert,
+  form,
+  .custom-addition-form,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    margin-bottom: 1.5rem !important;
+    page-break-inside: avoid !important;
+    color: #111827 !important;
+  }
+
+  h1, h2, h3, h4, h5, h6, span, p, strong, td, th {
+    color: #111827 !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
