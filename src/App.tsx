@@ -30,7 +30,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 // The remaining views are code-split via React.lazy so their code (and, for the
 // calculator views, Chart.js) is only fetched when the tab is opened.
 import { Dashboard } from './components/Dashboard';
-const PaydownSimulator = lazy(() => import('./components/PaydownSimulator').then(m => ({ default: m.PaydownSimulator })));
+const CurrentMortgage = lazy(() => import('./components/CurrentMortgage').then(m => ({ default: m.CurrentMortgage })));
 const RateComparer = lazy(() => import('./components/RateComparer').then(m => ({ default: m.RateComparer })));
 const HELOCPlanner = lazy(() => import('./components/HELOCPlanner').then(m => ({ default: m.HELOCPlanner })));
 const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
@@ -95,12 +95,7 @@ function App() {
 
   const languages: { code: Locale; label: string; short: string }[] = [
     { code: 'en', label: 'English', short: 'EN' },
-    { code: 'fr', label: 'Français', short: 'FR' },
-    { code: 'zh', label: '简体中文', short: 'ZH' },
-    { code: 'pa', label: 'ਪੰਜਾਬੀ', short: 'PA' },
-    { code: 'zh-HK', label: '繁體中文', short: 'HK' },
-    { code: 'es', label: 'Español', short: 'ES' },
-    { code: 'ar', label: 'العربية', short: 'AR' }
+    { code: 'fr', label: 'Français', short: 'FR' }
   ];
 
   // Initial load
@@ -157,7 +152,7 @@ function App() {
         return <Dashboard profile={profile} onNavigate={setActiveTab} onSaveProfile={handleSaveProfile} />;
       case 'paydown':
         return (
-          <PaydownSimulator 
+          <CurrentMortgage 
             initialProfile={profile} 
             onSaveProfile={handleSaveProfile} 
             onNavigate={setActiveTab}

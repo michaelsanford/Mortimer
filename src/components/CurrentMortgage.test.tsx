@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
-import { PaydownSimulator } from './PaydownSimulator';
+import { CurrentMortgage } from './CurrentMortgage';
 import { createTestContainer } from '../utils/testUtils';
 
 // Mock react-chartjs-2 to prevent canvas context errors in happy-dom
@@ -8,7 +8,7 @@ vi.mock('react-chartjs-2', () => ({
   Line: () => <div data-testid="mock-line-chart" />
 }));
 
-describe('PaydownSimulator Component Integration Tests', () => {
+describe('CurrentMortgage Component Integration Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
 
   beforeEach(() => {
@@ -20,14 +20,14 @@ describe('PaydownSimulator Component Integration Tests', () => {
   });
 
   it('renders without crashing with null profile', async () => {
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={null} onSaveProfile={() => {}} />);
 
     expect(testEnv.container.innerHTML).toContain('Mortgage Parameters');
     expect(testEnv.container.innerHTML).toContain('Simulate Extra Payments');
   });
 
   it('renders inputs and extra payment rules', async () => {
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={null} onSaveProfile={() => {}} />);
 
     expect(testEnv.container.innerHTML).toContain('Balance');
     expect(testEnv.container.innerHTML).toContain('Amortization');
@@ -51,7 +51,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
     };
 
     await testEnv.render(
-      <PaydownSimulator 
+      <CurrentMortgage 
         initialProfile={mockProfile} 
         onSaveProfile={() => {}} 
       />
@@ -90,7 +90,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       variableType: 'vrm' as const
     };
 
-    await testEnv.render(<PaydownSimulator initialProfile={mockVarProfile} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockVarProfile} onSaveProfile={() => {}} />);
 
     // Get the range input (stress test slider)
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
@@ -119,37 +119,6 @@ describe('PaydownSimulator Component Integration Tests', () => {
     expect(testEnv.container.innerHTML).toContain('Trigger Rate Alert!');
   });
 
-  it('triggers downloads when calendar export buttons are clicked', async () => {
-    window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-    window.URL.revokeObjectURL = vi.fn();
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function(this: HTMLAnchorElement) {
-      // Trigger a mock file download verification
-    });
-
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
-
-    const exportButtons = Array.from(testEnv.container.querySelectorAll('button'))
-      .filter(b => b.textContent?.includes('Calendar') || b.textContent?.includes('Scheduler'));
-
-    expect(exportButtons.length).toBe(2);
-
-    // Click Anniversary Calendar
-    await act(async () => {
-      exportButtons[0].click();
-    });
-    expect(window.URL.createObjectURL).toHaveBeenCalled();
-    expect(clickSpy).toHaveBeenCalled();
-
-    // Click Payment Scheduler
-    await act(async () => {
-      exportButtons[1].click();
-    });
-    expect(window.URL.createObjectURL).toHaveBeenCalledTimes(2);
-    expect(clickSpy).toHaveBeenCalledTimes(2);
-
-    clickSpy.mockRestore();
-  });
-
   async function renderAndMoveStressSlider(variableType: 'vrm' | 'arm', amortizationYears: number) {
     const mockProfile = {
       principal: 300000,
@@ -160,7 +129,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       rateType: 'variable' as const,
       variableType,
     };
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={() => {}} />);
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
     expect(slider).toBeTruthy();
     await act(async () => {
@@ -194,7 +163,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       rateType: 'fixed' as const
     };
 
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
 
     const selects = testEnv.container.querySelectorAll('select');
     expect(selects.length).toBeGreaterThanOrEqual(2);
@@ -217,5 +186,45 @@ describe('PaydownSimulator Component Integration Tests', () => {
     });
 
     expect(rateTypeSelect.value).toBe('variable_arm');
+  });
+
+  it('preserves initial profile offers and other comparative settings on save', async () => {
+    const onSaveProfileSpy = vi.fn();
+    const mockProfile = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      offers: [
+        { id: 'offer_1', name: 'Offer 1', rate: 3.5, term: 5, type: 'fixed' as const }
+      ],
+      renewalBalance: 290000,
+      refinanceFees: 2000
+    };
+
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+
+    vi.useFakeTimers();
+
+    // Change principal to trigger dirty state and autosave
+    const principalInput = testEnv.container.querySelector('input[type="number"]') as HTMLInputElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(principalInput, '310000');
+      principalInput.dispatchEvent(new Event('input', { bubbles: true }));
+      principalInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500); // Trigger debounced autosave
+    });
+    vi.useRealTimers();
+
+    expect(onSaveProfileSpy).toHaveBeenCalled();
+    const savedProfile = onSaveProfileSpy.mock.calls[0][0];
+    expect(savedProfile.offers).toEqual(mockProfile.offers);
+    expect(savedProfile.renewalBalance).toBe(mockProfile.renewalBalance);
+    expect(savedProfile.refinanceFees).toBe(mockProfile.refinanceFees);
   });
 });

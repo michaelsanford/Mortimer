@@ -35,5 +35,6 @@ coverage
 # Qodana reports
 *_qodana.sarif.json
 
-# Claude Code project instructions (local only)
+# Save files
+mortimer-backup-*.json
 CLAUDE.md

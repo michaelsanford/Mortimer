@@ -8,7 +8,7 @@ export const fr = {
   // Navigation
   nav: {
     dashboard: 'Tableau de bord',
-    paydown: 'Remboursement',
+    paydown: 'Hypothèque actuelle',
     rate: 'Taux',
     heloc: 'Réno & MCBI',
     settings: 'Paramètres',
@@ -140,7 +140,7 @@ export const fr = {
 
   // PaydownSimulator
   paydown: {
-    title: 'Simulateur de remboursement',
+    title: 'Hypothèque actuelle',
     subtitle: 'Ajustez les paramètres hypothécaires et simulez des stratégies de remboursement anticipé pour voir les économies en intérêts et en temps.',
     saved: 'Enregistré',
     pending: 'En attente',
@@ -227,8 +227,6 @@ export const fr = {
     stressTestSlider: 'Hausse du taux d\'intérêt (+%)',
     triggerRateWarning: 'Alerte : taux de déclenchement atteint !',
     triggerRateWarningDesc: 'À +{offset}%, votre taux atteint {rate}%. Cela dépasse votre taux de déclenchement de {triggerRate}%, ce qui signifie que vos paiements ne couvrent plus les intérêts (amortissement infini).',
-    exportMaturityCalendar: 'Exporter le calendrier des échéances / remboursements (.ics)',
-    exportPaymentScheduler: 'Exporter l\'échéancier des paiements (.ics)',
     fixedValueLabel: '(Montant fixe)',
     approximateValueLabel: '(Approximatif - Taux variable)',
     rateType: 'Type de taux d\'intérêt',
@@ -246,6 +244,7 @@ export const fr = {
   rate: {
     title: 'Comparaisons de taux et refinancement',
     subtitle: 'Comparez plusieurs offres hypothécaires côte à côte ou évaluez la pénalité de résiliation et les économies nettes du refinancement.',
+    paymentDelta: 'Écart / paiement actuel',
     variableVrm: 'Taux variable',
     variableArm: 'Taux ajustable',
     saved: 'Enregistré',
@@ -288,6 +287,7 @@ export const fr = {
     interestPaidInTerm: 'Intérêts payés pendant le terme',
     principalPaidInTerm: 'Capital remboursé pendant le terme',
     percentOfIncome: '% du revenu',
+    percentOfIncomeEstNet: '% du revenu (Net estimé)',
     incomeGross: 'Brut',
     incomeNet: 'Net',
     endingBalance: 'Solde final',

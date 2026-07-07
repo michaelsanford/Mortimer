@@ -8,7 +8,7 @@ export const en = {
   // Navigation
   nav: {
     dashboard: 'Dashboard',
-    paydown: 'Paydown Simulator',
+    paydown: 'Current Mortgage',
     rate: 'Rates Comparer',
     heloc: 'Reno & HELOC',
     settings: 'Settings',
@@ -140,7 +140,7 @@ export const en = {
 
   // PaydownSimulator
   paydown: {
-    title: 'Paydown Simulator',
+    title: 'Current Mortgage',
     subtitle: 'Adjust mortgage parameters and simulate prepayment strategies to see interest and time savings.',
     saved: 'Saved',
     pending: 'Pending',
@@ -227,8 +227,6 @@ export const en = {
     stressTestSlider: 'Interest Rate Increase (+%)',
     triggerRateWarning: 'Trigger Rate Alert!',
     triggerRateWarningDesc: 'At +{offset}%, your interest rate reaches {rate}%. This exceeds your trigger rate of {triggerRate}%, meaning your payments no longer cover the interest, causing infinite amortization.',
-    exportMaturityCalendar: 'Export Maturity / Prepayment Calendar (.ics)',
-    exportPaymentScheduler: 'Export Payment Scheduler (.ics)',
     fixedValueLabel: '(Fixed Value)',
     approximateValueLabel: '(Approximate - Variable Rate)',
     rateType: 'Interest Rate Type',
@@ -246,6 +244,7 @@ export const en = {
   rate: {
     title: 'Rate Comparisons & Refinancing',
     subtitle: 'Compare multiple mortgage offers side-by-side or evaluate the breaking penalty and net savings of refinancing.',
+    paymentDelta: 'Delta from Current',
     variableVrm: 'Variable Rate',
     variableArm: 'Adjustable Rate',
     saved: 'Saved',
@@ -288,6 +287,7 @@ export const en = {
     interestPaidInTerm: 'Interest Paid in Term',
     principalPaidInTerm: 'Principal Paid in Term',
     percentOfIncome: '% of Income',
+    percentOfIncomeEstNet: '% of Income (Estimated Net)',
     incomeGross: 'Gross',
     incomeNet: 'Net',
     endingBalance: 'Ending Balance',
