@@ -137,4 +137,40 @@ describe('RateComparer Component Integration Tests', () => {
     expect(testEnv.container.querySelector('[data-testid="mock-bar-chart"]')).toBeTruthy();
     expect(testEnv.container.querySelector('[data-testid="mock-line-chart"]')).toBeTruthy();
   });
+
+  it('displays % of Income (Estimated Net) row when income type is gross, and hides it when net', async () => {
+    const profileGross = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      householdIncome: 120000,
+      incomeType: 'gross' as const
+    };
+
+    const profileNet = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      householdIncome: 80000,
+      incomeType: 'net' as const
+    };
+
+    // Render gross profile
+    const testEnvGross = createTestContainer();
+    await testEnvGross.render(<RateComparer profile={profileGross} onSaveProfile={() => {}} />);
+    expect(testEnvGross.container.innerHTML).toContain('% of Income (Gross)');
+    expect(testEnvGross.container.innerHTML).toContain('% of Income (Estimated Net)');
+    await testEnvGross.cleanup();
+
+    // Render net profile
+    const testEnvNet = createTestContainer();
+    await testEnvNet.render(<RateComparer profile={profileNet} onSaveProfile={() => {}} />);
+    expect(testEnvNet.container.innerHTML).toContain('% of Income (Net)');
+    expect(testEnvNet.container.innerHTML).not.toContain('% of Income (Estimated Net)');
+    await testEnvNet.cleanup();
+  });
 });

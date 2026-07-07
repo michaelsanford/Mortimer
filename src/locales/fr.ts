@@ -287,6 +287,7 @@ export const fr = {
     interestPaidInTerm: 'Intérêts payés pendant le terme',
     principalPaidInTerm: 'Capital remboursé pendant le terme',
     percentOfIncome: '% du revenu',
+    percentOfIncomeEstNet: '% du revenu (Net estimé)',
     incomeGross: 'Brut',
     incomeNet: 'Net',
     endingBalance: 'Solde final',

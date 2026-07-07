@@ -304,10 +304,33 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     onSaveProfile
   ]);
 
-  // Household affordability: annualized payment as a % of household income (gross/net per profile)
   const householdIncome = profile?.householdIncome || 0;
   const incomeTypeLabel = profile?.incomeType === 'net' ? t.rate.incomeNet : t.rate.incomeGross;
   const renewalPaymentsPerYear = getPaymentsPerYear(renewalFrequency);
+
+  const estimatedNetIncome = useMemo(() => {
+    if (!profile || profile.incomeType !== 'gross') return null;
+    const gross = profile.householdIncome || 0;
+    if (gross <= 0) return 0;
+    
+    const taxFree = 15000;
+    if (gross <= taxFree) return gross;
+    
+    const taxable = gross - taxFree;
+    let tax = 0;
+    if (taxable <= 40000) {
+      tax = taxable * 0.20;
+    } else if (taxable <= 85000) {
+      tax = (40000 * 0.20) + (taxable - 40000) * 0.305;
+    } else if (taxable <= 150000) {
+      tax = (40000 * 0.20) + (45000 * 0.305) + (taxable - 85000) * 0.38;
+    } else if (taxable <= 220000) {
+      tax = (40000 * 0.20) + (45000 * 0.305) + (65000 * 0.38) + (taxable - 150000) * 0.435;
+    } else {
+      tax = (40000 * 0.20) + (45000 * 0.305) + (65000 * 0.38) + (70000 * 0.435) + (taxable - 220000) * 0.48;
+    }
+    return gross - tax;
+  }, [profile]);
 
   // New Design 1: Delta from current payments
   const currentPayment = useMemo(() => {
@@ -1079,6 +1102,25 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         );
                       })}
                     </tr>
+                    {estimatedNetIncome !== null && estimatedNetIncome > 0 && (
+                      <tr>
+                        <td>{t.rate.percentOfIncomeEstNet}</td>
+                        {renewalResults.map(o => {
+                          const pct = (o.results.monthlyPayment * renewalPaymentsPerYear) / estimatedNetIncome * 100;
+                          const isBest = bestMetricOffers.pctIncome?.includes(o.id);
+                          return (
+                            <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {renderBestIcon(isBest, bestMetricOffers.pctIncome)}
+                                <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                  {pct.toFixed(1)}%
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                     <tr>
                       <td>{t.rate.interestPaidInTerm}</td>
                       {renewalResults.map(o => {

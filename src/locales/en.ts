@@ -287,6 +287,7 @@ export const en = {
     interestPaidInTerm: 'Interest Paid in Term',
     principalPaidInTerm: 'Principal Paid in Term',
     percentOfIncome: '% of Income',
+    percentOfIncomeEstNet: '% of Income (Estimated Net)',
     incomeGross: 'Gross',
     incomeNet: 'Net',
     endingBalance: 'Ending Balance',
