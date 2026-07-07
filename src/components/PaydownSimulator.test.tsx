@@ -119,37 +119,6 @@ describe('PaydownSimulator Component Integration Tests', () => {
     expect(testEnv.container.innerHTML).toContain('Trigger Rate Alert!');
   });
 
-  it('triggers downloads when calendar export buttons are clicked', async () => {
-    window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-    window.URL.revokeObjectURL = vi.fn();
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function(this: HTMLAnchorElement) {
-      // Trigger a mock file download verification
-    });
-
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
-
-    const exportButtons = Array.from(testEnv.container.querySelectorAll('button'))
-      .filter(b => b.textContent?.includes('Calendar') || b.textContent?.includes('Scheduler'));
-
-    expect(exportButtons.length).toBe(2);
-
-    // Click Anniversary Calendar
-    await act(async () => {
-      exportButtons[0].click();
-    });
-    expect(window.URL.createObjectURL).toHaveBeenCalled();
-    expect(clickSpy).toHaveBeenCalled();
-
-    // Click Payment Scheduler
-    await act(async () => {
-      exportButtons[1].click();
-    });
-    expect(window.URL.createObjectURL).toHaveBeenCalledTimes(2);
-    expect(clickSpy).toHaveBeenCalledTimes(2);
-
-    clickSpy.mockRestore();
-  });
-
   async function renderAndMoveStressSlider(variableType: 'vrm' | 'arm', amortizationYears: number) {
     const mockProfile = {
       principal: 300000,

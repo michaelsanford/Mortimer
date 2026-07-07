@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DollarSign, Eraser, Percent, Sparkles, ShieldAlert, Calendar } from 'lucide-react';
+import { DollarSign, Eraser, Percent, Sparkles, ShieldAlert } from 'lucide-react';
 import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment, calculateTriggerRate } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
@@ -535,100 +535,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     setPaymentIncreaseFixed(0);
   };
 
-  const downloadICSFile = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportAnniversaryCalendar = () => {
-    const events: string[] = [];
-    const today = new Date();
-    
-    // Create 5 annual events for the term
-    for (let year = 1; year <= 5; year++) {
-      const eventDate = new Date(today.getFullYear() + year, today.getMonth(), today.getDate());
-      const dateStr = eventDate.toISOString().split('T')[0].replace(/-/g, '');
-      
-      events.push([
-        'BEGIN:VEVENT',
-        `UID:prepayment-anniversary-${year}-${Date.now()}@mortimer`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
-        `DTSTART;VALUE=DATE:${dateStr}`,
-        `SUMMARY:Mortimer Mortgage Prepayment Anniversary`,
-        `DESCRIPTION:Annual prepayment window. Maximize lump-sum contributions to reduce amortization.`,
-        'END:VEVENT'
-      ].join('\r\n'));
-    }
-
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Mortimer//Mortgage Simulator//EN',
-      events.join('\r\n'),
-      'END:VCALENDAR'
-    ].join('\r\n');
-
-    downloadICSFile(icsContent, 'mortgage_prepayment_anniversaries.ics');
-  };
-
-  const handleExportPaymentCalendar = () => {
-    const events: string[] = [];
-    const today = new Date();
-    
-    const isVar = selectedOffer ? selectedOffer.type === 'variable' : (rateType === 'variable');
-    const isArm = selectedOffer ? (selectedOffer.type === 'variable' && selectedOffer.variableType === 'arm') : (rateType === 'variable' && variableType === 'arm');
-    const baseApproxLabel = t.paydown.approximateValueLabel || '(Approximate - Variable Rate)';
-    const rateTypeLabel = isArm ? (t.paydown.variableArm || 'Adjustable Rate') : (t.paydown.variableVrm || 'Variable Rate');
-    const paymentTypeLabel = isVar 
-      ? baseApproxLabel.replace(/Variable Rate|Taux variable|Tasa variable|سعر فائدة متغير|ਪਰਿਵਰਤਨਸ਼ੀਲ ਦਰ|浮動利率|浮动利率/i, rateTypeLabel)
-      : t.paydown.fixedValueLabel;
-    const paymentAmt = results.schedule[0]?.payment || calculatedRegularPayment;
-    const paymentAmtStr = paymentAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
-    let currentDate = new Date(today);
-    
-    // Generate events for the next 1 year
-    for (let step = 1; step <= ppy; step++) {
-      if (effPaymentFrequency === 'monthly') {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-      } else if (effPaymentFrequency === 'semi_monthly') {
-        currentDate.setDate(currentDate.getDate() + 15);
-      } else if (effPaymentFrequency.includes('bi_weekly')) {
-        currentDate.setDate(currentDate.getDate() + 14);
-      } else if (effPaymentFrequency.includes('weekly')) {
-        currentDate.setDate(currentDate.getDate() + 7);
-      }
-      
-      const dateStr = currentDate.toISOString().split('T')[0].replace(/-/g, '');
-      
-      events.push([
-        'BEGIN:VEVENT',
-        `UID:payment-reminder-${step}-${Date.now()}@mortimer`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
-        `DTSTART;VALUE=DATE:${dateStr}`,
-        `SUMMARY:Mortgage Payment Due: $${paymentAmtStr}`,
-        `DESCRIPTION:Mortgage Payment reminder: $${paymentAmtStr} ${paymentTypeLabel}.`,
-        'END:VEVENT'
-      ].join('\r\n'));
-    }
-
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Mortimer//Mortgage Simulator//EN',
-      events.join('\r\n'),
-      'END:VCALENDAR'
-    ].join('\r\n');
-
-    downloadICSFile(icsContent, 'mortgage_payment_schedule.ics');
-  };
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -1162,37 +1068,6 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
             )}
           </div>
           )}
-
-          {/* Reminders & Calendar Sync Card */}
-          <div className="card">
-            <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Calendar size={16} />
-              <span>Reminders & Calendar Sync</span>
-            </h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
-              Sync your mortgage payment schedules and anniversary prepayment reminders to your device calendar.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={handleExportAnniversaryCalendar}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.8rem' }}
-              >
-                <Calendar size={14} />
-                <span>{t.paydown.exportMaturityCalendar}</span>
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={handleExportPaymentCalendar}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.8rem' }}
-              >
-                <Calendar size={14} />
-                <span>{t.paydown.exportPaymentScheduler}</span>
-              </button>
-            </div>
-          </div>
 
           {/* Simulate Extra Payments (extracted section, directly below the graph) */}
           <div className={`card card-${saveStatus}`}>

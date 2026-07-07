@@ -227,8 +227,6 @@ export const fr = {
     stressTestSlider: 'Hausse du taux d\'intérêt (+%)',
     triggerRateWarning: 'Alerte : taux de déclenchement atteint !',
     triggerRateWarningDesc: 'À +{offset}%, votre taux atteint {rate}%. Cela dépasse votre taux de déclenchement de {triggerRate}%, ce qui signifie que vos paiements ne couvrent plus les intérêts (amortissement infini).',
-    exportMaturityCalendar: 'Exporter le calendrier des échéances / remboursements (.ics)',
-    exportPaymentScheduler: 'Exporter l\'échéancier des paiements (.ics)',
     fixedValueLabel: '(Montant fixe)',
     approximateValueLabel: '(Approximatif - Taux variable)',
     rateType: 'Type de taux d\'intérêt',

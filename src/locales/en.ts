@@ -227,8 +227,6 @@ export const en = {
     stressTestSlider: 'Interest Rate Increase (+%)',
     triggerRateWarning: 'Trigger Rate Alert!',
     triggerRateWarningDesc: 'At +{offset}%, your interest rate reaches {rate}%. This exceeds your trigger rate of {triggerRate}%, meaning your payments no longer cover the interest, causing infinite amortization.',
-    exportMaturityCalendar: 'Export Maturity / Prepayment Calendar (.ics)',
-    exportPaymentScheduler: 'Export Payment Scheduler (.ics)',
     fixedValueLabel: '(Fixed Value)',
     approximateValueLabel: '(Approximate - Variable Rate)',
     rateType: 'Interest Rate Type',
