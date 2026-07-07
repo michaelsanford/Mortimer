@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
-import { PaydownSimulator } from './PaydownSimulator';
+import { CurrentMortgage } from './CurrentMortgage';
 import { createTestContainer } from '../utils/testUtils';
 
 // Mock react-chartjs-2 to prevent canvas context errors in happy-dom
@@ -8,7 +8,7 @@ vi.mock('react-chartjs-2', () => ({
   Line: () => <div data-testid="mock-line-chart" />
 }));
 
-describe('PaydownSimulator Component Integration Tests', () => {
+describe('CurrentMortgage Component Integration Tests', () => {
   let testEnv: ReturnType<typeof createTestContainer>;
 
   beforeEach(() => {
@@ -20,14 +20,14 @@ describe('PaydownSimulator Component Integration Tests', () => {
   });
 
   it('renders without crashing with null profile', async () => {
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={null} onSaveProfile={() => {}} />);
 
     expect(testEnv.container.innerHTML).toContain('Mortgage Parameters');
     expect(testEnv.container.innerHTML).toContain('Simulate Extra Payments');
   });
 
   it('renders inputs and extra payment rules', async () => {
-    await testEnv.render(<PaydownSimulator initialProfile={null} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={null} onSaveProfile={() => {}} />);
 
     expect(testEnv.container.innerHTML).toContain('Balance');
     expect(testEnv.container.innerHTML).toContain('Amortization');
@@ -51,7 +51,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
     };
 
     await testEnv.render(
-      <PaydownSimulator 
+      <CurrentMortgage 
         initialProfile={mockProfile} 
         onSaveProfile={() => {}} 
       />
@@ -90,7 +90,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       variableType: 'vrm' as const
     };
 
-    await testEnv.render(<PaydownSimulator initialProfile={mockVarProfile} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockVarProfile} onSaveProfile={() => {}} />);
 
     // Get the range input (stress test slider)
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
@@ -129,7 +129,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       rateType: 'variable' as const,
       variableType,
     };
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={() => {}} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={() => {}} />);
     const slider = testEnv.container.querySelector('input[type="range"]') as HTMLInputElement;
     expect(slider).toBeTruthy();
     await act(async () => {
@@ -163,7 +163,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       rateType: 'fixed' as const
     };
 
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
 
     const selects = testEnv.container.querySelectorAll('select');
     expect(selects.length).toBeGreaterThanOrEqual(2);
@@ -203,7 +203,7 @@ describe('PaydownSimulator Component Integration Tests', () => {
       refinanceFees: 2000
     };
 
-    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+    await testEnv.render(<CurrentMortgage initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
 
     vi.useFakeTimers();
 

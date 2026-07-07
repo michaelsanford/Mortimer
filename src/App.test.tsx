@@ -140,7 +140,7 @@ describe('App Integration Smoke Tests', () => {
       paydownTab.click();
     });
     
-    // Wait for Current Mortgage (PaydownSimulator) to load
+    // Wait for Current Mortgage to load
     await waitFor(() => testEnv.container.innerHTML.includes('Mortgage Parameters'));
     
     // Check if the dropdown option labels display Adjustable Rate for FN Adj

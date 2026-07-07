@@ -30,7 +30,7 @@ ChartJS.register(
 );
 
 
-interface PaydownSimulatorProps {
+interface CurrentMortgageProps {
   initialProfile: MortgageInputs | null;
   onSaveProfile: (profile: MortgageInputs) => void;
   onNavigate?: (tab: string) => void;
@@ -88,7 +88,7 @@ const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels
   );
 };
 
-export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfile, onSaveProfile, onNavigate }) => {
+export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile, onSaveProfile, onNavigate }) => {
   const { t } = useI18n();
   const systemTheme = useSystemTheme();
 
