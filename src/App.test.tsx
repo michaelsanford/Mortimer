@@ -28,7 +28,7 @@ describe('App Integration Smoke Tests', () => {
     await testEnv.render(<App />);
 
     expect(testEnv.container.innerHTML).toContain('Mortimer');
-    expect(testEnv.container.innerHTML).toContain('Paydown Simulator');
+    expect(testEnv.container.innerHTML).toContain('Current Mortgage');
     expect(testEnv.container.innerHTML).toContain('Rates Comparer');
     // Default tab is the dashboard; with no stored profile it shows the welcome view.
     expect(testEnv.container.innerHTML).toContain('Welcome to Mortimer');
@@ -105,5 +105,66 @@ describe('App Integration Smoke Tests', () => {
     });
 
     expect(window.print).toHaveBeenCalled();
+  });
+
+  it('updates profile and integrates variables and offers across tabs', async () => {
+    const mockProfile = {
+      principal: 400000,
+      interestRate: 4.85,
+      amortizationYears: 20,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      originalPrincipal: 400000,
+      originalAmortizationYears: 20,
+      originalAmortizationMonths: 0,
+      originalTermYears: 5,
+      offers: [
+        { id: 'baseline', name: 'FN Adj', rate: 3.6, term: 5, type: 'variable' as const, variableType: 'arm' as const }
+      ],
+      renewalBalance: 400000,
+      renewalAmortizationYears: 20,
+      renewalAmortizationMonths: 0,
+      rateComparerPaymentFrequency: 'accelerated_bi_weekly'
+    };
+    
+    localStorage.setItem('mortimer_profile', JSON.stringify(mockProfile));
+    
+    await testEnv.render(<App />);
+    
+    // Navigate to Current Mortgage tab (originally Paydown Simulator)
+    const paydownTab = Array.from(testEnv.container.querySelectorAll('.tab-btn'))
+      .find(b => b.textContent?.includes('Current Mortgage')) as HTMLButtonElement;
+    expect(paydownTab).toBeTruthy();
+    
+    await act(async () => {
+      paydownTab.click();
+    });
+    
+    // Wait for Current Mortgage (PaydownSimulator) to load
+    await waitFor(() => testEnv.container.innerHTML.includes('Mortgage Parameters'));
+    
+    // Check if the dropdown option labels display Adjustable Rate for FN Adj
+    const selectEl = testEnv.container.querySelector('.form-select') as HTMLSelectElement;
+    expect(selectEl).toBeTruthy();
+    
+    // The option for FN Adj should include "Adjustable Rate" (or "Taux ajustable" in French)
+    const fnAdjOption = Array.from(selectEl.options).find(opt => opt.text.includes('FN Adj'));
+    expect(fnAdjOption).toBeTruthy();
+    expect(fnAdjOption?.text).toContain('Adjustable Rate');
+
+    // Navigate to Rates Comparer tab
+    const rateTab = Array.from(testEnv.container.querySelectorAll('.tab-btn'))
+      .find(b => b.textContent?.includes('Rates Comparer')) as HTMLButtonElement;
+    expect(rateTab).toBeTruthy();
+    
+    await act(async () => {
+      rateTab.click();
+    });
+    
+    // Wait for RateComparer to load
+    await waitFor(() => testEnv.container.innerHTML.includes('Renewal Comparison Results'));
+    
+    // Check if the "Delta from Current" row is rendered
+    expect(testEnv.container.innerHTML).toContain('Delta from Current');
   });
 });

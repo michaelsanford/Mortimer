@@ -309,6 +309,41 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const incomeTypeLabel = profile?.incomeType === 'net' ? t.rate.incomeNet : t.rate.incomeGross;
   const renewalPaymentsPerYear = getPaymentsPerYear(renewalFrequency);
 
+  // New Design 1: Delta from current payments
+  const currentPayment = useMemo(() => {
+    if (!profile) return null;
+    
+    if (profile.confirmedPayment && profile.confirmedPayment > 0) {
+      return profile.confirmedPayment;
+    }
+    
+    const principalForPayment = profile.originalPrincipal && profile.originalPrincipal > 0 
+      ? profile.originalPrincipal 
+      : profile.principal;
+    
+    const amortizationForPayment = profile.originalAmortizationYears && profile.originalAmortizationYears > 0
+      ? profile.originalAmortizationYears + (profile.originalAmortizationMonths || 0) / 12
+      : profile.amortizationYears + (profile.amortizationMonths || 0) / 12;
+      
+    const compoundingToUse = profile.rateType === 'variable' && profile.variableType
+      ? 'monthly'
+      : (profile.compounding || 'semi_annual');
+      
+    return calculateRegularPayment(
+      principalForPayment,
+      profile.interestRate,
+      amortizationForPayment,
+      profile.paymentFrequency,
+      compoundingToUse
+    );
+  }, [profile]);
+
+  const comparableCurrentPayment = useMemo(() => {
+    if (!profile || currentPayment === null) return null;
+    const currentPaymentsPerYear = getPaymentsPerYear(profile.paymentFrequency);
+    return (currentPayment * currentPaymentsPerYear) / renewalPaymentsPerYear;
+  }, [profile, currentPayment, renewalPaymentsPerYear]);
+
   const isStackedLayout = activeSubTab === 'renewal' && offers.length > 3;
 
   // 1. Renewal calculations
@@ -910,7 +945,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                     </div>
                     {/* Type */}
                     <div className="form-group w-full" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>{t.rate.compounding}</label>
+                      <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>{t.paydown.rateType || 'Interest Rate Type'}</label>
                       <select 
                         className="form-select" 
                         value={offer.type === 'variable' ? (offer.variableType === 'arm' ? 'variable_arm' : 'variable_vrm') : 'fixed'} 
@@ -1010,6 +1045,21 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         );
                       })}
                     </tr>
+                    {comparableCurrentPayment !== null && (
+                      <tr>
+                        <td>{t.rate.paymentDelta || 'Delta from Current'}</td>
+                        {renewalResults.map(o => {
+                          const delta = o.results.monthlyPayment - comparableCurrentPayment;
+                          const isNegative = delta < 0;
+                          const formattedDelta = (isNegative ? '-' : '+') + '$' + Math.abs(delta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          return (
+                            <td key={o.id} style={{ textAlign: 'right', color: isNegative ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 500 }}>
+                              {formattedDelta}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )}
                     <tr>
                       <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
                       {renewalResults.map(o => {
@@ -1124,11 +1174,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Trophy size={13} style={{ color: 'var(--color-warning)' }} />
-                  <span>{locale === 'fr' ? 'Meilleure option' : locale === 'es' ? 'Mejor opción' : locale === 'zh' ? '最佳选项' : locale === 'zh-HK' ? '最佳選項' : locale === 'ar' ? 'الخيار الأفضل' : locale === 'pa' ? 'ਸਭ ਤੋਂ ਵਧੀਆ ਵਿਕਲਪ' : 'Best Option'}</span>
+                  <span>{locale === 'fr' ? 'Meilleure option' : 'Best Option'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Award size={13} style={{ color: '#cbd5e1' }} />
-                  <span>{locale === 'fr' ? 'Égalité (meilleures options)' : locale === 'es' ? 'Empate (mejores opciones)' : locale === 'zh' ? '并列最佳' : locale === 'zh-HK' ? '並列最佳' : locale === 'ar' ? 'تعادل (الأفضل)' : locale === 'pa' ? 'ਬਰਾਬਰ (ਸਭ ਤੋਂ ਵਧੀਆ)' : 'Tie (Best Options)'}</span>
+                  <span>{locale === 'fr' ? 'Égalité (meilleures options)' : 'Tie (Best Options)'}</span>
                 </div>
               </div>
             </div>

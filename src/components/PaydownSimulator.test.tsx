@@ -218,4 +218,44 @@ describe('PaydownSimulator Component Integration Tests', () => {
 
     expect(rateTypeSelect.value).toBe('variable_arm');
   });
+
+  it('preserves initial profile offers and other comparative settings on save', async () => {
+    const onSaveProfileSpy = vi.fn();
+    const mockProfile = {
+      principal: 300000,
+      interestRate: 4.5,
+      amortizationYears: 25,
+      amortizationMonths: 0,
+      paymentFrequency: 'monthly' as const,
+      offers: [
+        { id: 'offer_1', name: 'Offer 1', rate: 3.5, term: 5, type: 'fixed' as const }
+      ],
+      renewalBalance: 290000,
+      refinanceFees: 2000
+    };
+
+    await testEnv.render(<PaydownSimulator initialProfile={mockProfile} onSaveProfile={onSaveProfileSpy} />);
+
+    vi.useFakeTimers();
+
+    // Change principal to trigger dirty state and autosave
+    const principalInput = testEnv.container.querySelector('input[type="number"]') as HTMLInputElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(principalInput, '310000');
+      principalInput.dispatchEvent(new Event('input', { bubbles: true }));
+      principalInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500); // Trigger debounced autosave
+    });
+    vi.useRealTimers();
+
+    expect(onSaveProfileSpy).toHaveBeenCalled();
+    const savedProfile = onSaveProfileSpy.mock.calls[0][0];
+    expect(savedProfile.offers).toEqual(mockProfile.offers);
+    expect(savedProfile.renewalBalance).toBe(mockProfile.renewalBalance);
+    expect(savedProfile.refinanceFees).toBe(mockProfile.refinanceFees);
+  });
 });

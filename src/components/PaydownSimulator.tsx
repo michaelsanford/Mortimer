@@ -249,6 +249,45 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     return calculateAmortization(inputs);
   }, [effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effMaturityDate, confirmedPaymentToUse, compoundingToUse, rateType, variableType, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, effOriginalTermYears, showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed]);
 
+  const baselineUnstressedPayment = useMemo(() => {
+    const principalForPayment = effOriginalPrincipal && effOriginalPrincipal > 0 ? effOriginalPrincipal : effPrincipal;
+    const amortizationForPayment = effOriginalAmortizationYears && effOriginalAmortizationYears > 0 
+      ? effOriginalAmortizationYears + (effOriginalAmortizationMonths || 0) / 12 
+      : effAmortizationYears + (effAmortizationMonths || 0) / 12;
+    const baseFreq = effPaymentFrequency.includes('accelerated')
+      ? (effPaymentFrequency === 'accelerated_bi_weekly' ? 'regular_bi_weekly' : 'regular_weekly')
+      : effPaymentFrequency;
+    return calculateRegularPayment(principalForPayment, effInterestRate, amortizationForPayment, baseFreq, compoundingToUse);
+  }, [effPrincipal, effInterestRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, effOriginalPrincipal, effOriginalAmortizationYears, effOriginalAmortizationMonths, compoundingToUse]);
+
+  const baselineConfirmedPaymentToUse = useMemo(() => {
+    if (interestRateOffset === 0) {
+      if (effConfirmedPayment > 0) {
+        if (effPaymentFrequency === 'accelerated_bi_weekly') {
+          return effConfirmedPayment * (24 / 26);
+        }
+        if (effPaymentFrequency === 'accelerated_weekly') {
+          return effConfirmedPayment * (48 / 52);
+        }
+        return effConfirmedPayment;
+      }
+      return 0;
+    }
+    if (effVariableType === 'arm') {
+      return 0;
+    }
+    if (effConfirmedPayment > 0) {
+      if (effPaymentFrequency === 'accelerated_bi_weekly') {
+        return effConfirmedPayment * (24 / 26);
+      }
+      if (effPaymentFrequency === 'accelerated_weekly') {
+        return effConfirmedPayment * (48 / 52);
+      }
+      return effConfirmedPayment;
+    }
+    return baselineUnstressedPayment;
+  }, [interestRateOffset, effVariableType, effConfirmedPayment, effPaymentFrequency, baselineUnstressedPayment]);
+
   const baselineResults = useMemo(() => {
     // Standard baseline (always without prepayments, regular frequency)
     const baseFreq = effPaymentFrequency.includes('accelerated')
@@ -261,11 +300,11 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       amortizationYears: effAmortizationYears,
       amortizationMonths: effAmortizationMonths,
       paymentFrequency: baseFreq,
-      confirmedPayment: confirmedPaymentToUse,
+      confirmedPayment: baselineConfirmedPaymentToUse,
       compounding: compoundingToUse,
       prepayments: undefined
     });
-  }, [effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, confirmedPaymentToUse, compoundingToUse]);
+  }, [effPrincipal, stressedRate, effAmortizationYears, effAmortizationMonths, effPaymentFrequency, baselineConfirmedPaymentToUse, compoundingToUse]);
 
   const isDirty = useMemo(() => {
     if (!initialProfile) return true;
@@ -332,6 +371,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
       setSaveStatus('saving');
       
       onSaveProfile({
+        ...(initialProfile || {}),
         principal,
         interestRate,
         amortizationYears,
@@ -542,8 +582,13 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
     const events: string[] = [];
     const today = new Date();
     
-    const isVar = selectedOffer ? selectedOffer.type === 'variable' : (interestRateOffset > 0);
-    const paymentTypeLabel = isVar ? t.paydown.approximateValueLabel : t.paydown.fixedValueLabel;
+    const isVar = selectedOffer ? selectedOffer.type === 'variable' : (rateType === 'variable');
+    const isArm = selectedOffer ? (selectedOffer.type === 'variable' && selectedOffer.variableType === 'arm') : (rateType === 'variable' && variableType === 'arm');
+    const baseApproxLabel = t.paydown.approximateValueLabel || '(Approximate - Variable Rate)';
+    const rateTypeLabel = isArm ? (t.paydown.variableArm || 'Adjustable Rate') : (t.paydown.variableVrm || 'Variable Rate');
+    const paymentTypeLabel = isVar 
+      ? baseApproxLabel.replace(/Variable Rate|Taux variable|Tasa variable|سعر فائدة متغير|ਪਰਿਵਰਤਨਸ਼ੀਲ ਦਰ|浮動利率|浮动利率/i, rateTypeLabel)
+      : t.paydown.fixedValueLabel;
     const paymentAmt = results.schedule[0]?.payment || calculatedRegularPayment;
     const paymentAmtStr = paymentAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     
@@ -608,7 +653,7 @@ export const PaydownSimulator: React.FC<PaydownSimulatorProps> = ({ initialProfi
                 <option value="current">{t.paydown.currentMortgageOption}</option>
                 {offers.map(offer => (
                   <option key={offer.id} value={offer.id}>
-                    {offer.name} ({offer.rate.toFixed(2)}% - {offer.term} Yr {offer.type === 'fixed' ? t.rate.fixed : t.rate.variable})
+                    {offer.name} ({offer.rate.toFixed(2)}% - {offer.term} Yr {offer.type === 'fixed' ? t.rate.fixed : (offer.variableType === 'arm' ? t.rate.variableArm : t.rate.variableVrm)})
                   </option>
                 ))}
               </select>

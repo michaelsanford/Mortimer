@@ -8,7 +8,7 @@ export const en = {
   // Navigation
   nav: {
     dashboard: 'Dashboard',
-    paydown: 'Paydown Simulator',
+    paydown: 'Current Mortgage',
     rate: 'Rates Comparer',
     heloc: 'Reno & HELOC',
     settings: 'Settings',
@@ -140,7 +140,7 @@ export const en = {
 
   // PaydownSimulator
   paydown: {
-    title: 'Paydown Simulator',
+    title: 'Current Mortgage',
     subtitle: 'Adjust mortgage parameters and simulate prepayment strategies to see interest and time savings.',
     saved: 'Saved',
     pending: 'Pending',
@@ -246,6 +246,7 @@ export const en = {
   rate: {
     title: 'Rate Comparisons & Refinancing',
     subtitle: 'Compare multiple mortgage offers side-by-side or evaluate the breaking penalty and net savings of refinancing.',
+    paymentDelta: 'Delta from Current',
     variableVrm: 'Variable Rate',
     variableArm: 'Adjustable Rate',
     saved: 'Saved',

@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { en } from '../locales/en';
 import { fr } from '../locales/fr';
-import { zh } from '../locales/zh';
-import { pa } from '../locales/pa';
-import { zhHK } from '../locales/zh-HK';
-import { es } from '../locales/es';
-import { ar } from '../locales/ar';
 
 /**
  * Recursively collect all keys from a nested object as dot-separated paths.
@@ -33,12 +28,7 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
 describe('i18n locale completeness', () => {
   const locales = {
     en: { name: 'English', data: en },
-    fr: { name: 'French', data: fr },
-    zh: { name: 'Mandarin', data: zh },
-    pa: { name: 'Punjabi', data: pa },
-    'zh-HK': { name: 'Cantonese', data: zhHK },
-    es: { name: 'Spanish', data: es },
-    ar: { name: 'Arabic', data: ar }
+    fr: { name: 'French', data: fr }
   };
 
   const enKeys = collectKeys(en);

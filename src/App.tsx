@@ -95,12 +95,7 @@ function App() {
 
   const languages: { code: Locale; label: string; short: string }[] = [
     { code: 'en', label: 'English', short: 'EN' },
-    { code: 'fr', label: 'Français', short: 'FR' },
-    { code: 'zh', label: '简体中文', short: 'ZH' },
-    { code: 'pa', label: 'ਪੰਜਾਬੀ', short: 'PA' },
-    { code: 'zh-HK', label: '繁體中文', short: 'HK' },
-    { code: 'es', label: 'Español', short: 'ES' },
-    { code: 'ar', label: 'العربية', short: 'AR' }
+    { code: 'fr', label: 'Français', short: 'FR' }
   ];
 
   // Initial load

@@ -8,7 +8,7 @@ export const fr = {
   // Navigation
   nav: {
     dashboard: 'Tableau de bord',
-    paydown: 'Remboursement',
+    paydown: 'Hypothèque actuelle',
     rate: 'Taux',
     heloc: 'Réno & MCBI',
     settings: 'Paramètres',
@@ -140,7 +140,7 @@ export const fr = {
 
   // PaydownSimulator
   paydown: {
-    title: 'Simulateur de remboursement',
+    title: 'Hypothèque actuelle',
     subtitle: 'Ajustez les paramètres hypothécaires et simulez des stratégies de remboursement anticipé pour voir les économies en intérêts et en temps.',
     saved: 'Enregistré',
     pending: 'En attente',
@@ -246,6 +246,7 @@ export const fr = {
   rate: {
     title: 'Comparaisons de taux et refinancement',
     subtitle: 'Comparez plusieurs offres hypothécaires côte à côte ou évaluez la pénalité de résiliation et les économies nettes du refinancement.',
+    paymentDelta: 'Écart / paiement actuel',
     variableVrm: 'Taux variable',
     variableArm: 'Taux ajustable',
     saved: 'Enregistré',
