@@ -74,8 +74,8 @@ describe('Dashboard Component Integration Tests', () => {
 
     // Step 1: Principal
     expect(testEnv.container.innerHTML).toContain('Remaining Balance');
-    const input = testEnv.container.querySelector('input[type="number"]') as HTMLInputElement;
-    expect(input.value).toBe('450000');
+    const input = testEnv.container.querySelector('input') as HTMLInputElement;
+    expect(input.value.replace(/[\s,]/g, '')).toBe('450000');
 
     // Click Next Step
     const nextBtn = () => Array.from(testEnv.container.querySelectorAll('button'))

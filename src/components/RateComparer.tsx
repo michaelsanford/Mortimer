@@ -4,7 +4,13 @@ import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, get
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
 import { useSystemTheme } from '../hooks/useSystemTheme';
-import { cadCurrencyTooltipLabel } from '../utils/formatters';
+import {
+  cadCurrencyTooltipLabel,
+  formatLocaleCurrency,
+  formatLocaleNumber,
+  formatLocalePercent
+} from '../utils/formatters';
+import { FormattedNumericInput } from './FormattedNumericInput';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -158,13 +164,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const defaultAmortization = profile?.amortizationYears || 25;
 
   // Renewal states
-  const [renewalBalance, setRenewalBalance] = useState<number>(() => {
+  const [renewalBalance, setRenewalBalance] = useState<number | ''>(() => {
     return profile?.renewalBalance || defaultBalance;
   });
-  const [renewalAmortizationYears, setRenewalAmortizationYears] = useState<number>(() => {
+  const [renewalAmortizationYears, setRenewalAmortizationYears] = useState<number | ''>(() => {
     return profile?.renewalAmortizationYears || defaultAmortization;
   });
-  const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number>(() => {
+  const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number | ''>(() => {
     return profile?.renewalAmortizationMonths !== undefined ? profile.renewalAmortizationMonths : (profile?.amortizationMonths || 0);
   });
   const [renewalFrequency, setRenewalFrequency] = useState<PaymentFrequency>(() => {
@@ -204,32 +210,32 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   };
 
   // Refinance states
-  const [refinanceBalance, setRefinanceBalance] = useState<number>(() => {
+  const [refinanceBalance, setRefinanceBalance] = useState<number | ''>(() => {
     return profile?.refinanceBalance || defaultBalance;
   });
-  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(() => {
+  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number | ''>(() => {
     return profile?.refinanceCurrentRate || defaultRate;
   });
-  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number>(() => {
+  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number | ''>(() => {
     if (profile?.refinanceRemainingTerm !== undefined) return profile.refinanceRemainingTerm;
     return profile?.maturityDate ? calculateRemainingMonths(profile.maturityDate) : 36;
   });
-  const [refinanceAmortizationYears, setRefinanceAmortizationYears] = useState<number>(() => {
+  const [refinanceAmortizationYears, setRefinanceAmortizationYears] = useState<number | ''>(() => {
     return profile?.refinanceAmortizationYears || defaultAmortization;
   });
-  const [refinanceAmortizationMonths, setRefinanceAmortizationMonths] = useState<number>(() => {
+  const [refinanceAmortizationMonths, setRefinanceAmortizationMonths] = useState<number | ''>(() => {
     return profile?.refinanceAmortizationMonths !== undefined ? profile.refinanceAmortizationMonths : (profile?.amortizationMonths || 0);
   });
-  const [refinanceNewRate, setRefinanceNewRate] = useState<number>(() => {
+  const [refinanceNewRate, setRefinanceNewRate] = useState<number | ''>(() => {
     return profile?.refinanceNewRate || 4.49;
   });
   const [refinancePenaltyType, setRefinancePenaltyType] = useState<'three_months_interest' | 'ird' | 'custom'>(() => {
     return profile?.refinancePenaltyType || 'ird';
   });
-  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number>(() => {
+  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number | ''>(() => {
     return profile?.refinanceCustomPenalty || 0;
   });
-  const [refinanceFees, setRefinanceFees] = useState<number>(() => {
+  const [refinanceFees, setRefinanceFees] = useState<number | ''>(() => {
     return profile?.refinanceFees !== undefined ? profile.refinanceFees : 1500;
   });
 
@@ -277,7 +283,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         refinancePenaltyType,
         refinanceCustomPenalty,
         refinanceFees
-      });
+      } as any);
       const successTimer = setTimeout(() => {
         setSaveStatus('saved');
       }, 400);
@@ -332,6 +338,21 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     return gross - tax;
   }, [profile]);
 
+  // Effective parameters for calculations when inputs are empty strings
+  const effRenewalBalance = renewalBalance === '' ? 0 : renewalBalance;
+  const effRenewalAmortizationYears = renewalAmortizationYears === '' ? 25 : renewalAmortizationYears;
+  const effRenewalAmortizationMonths = renewalAmortizationMonths === '' ? 0 : renewalAmortizationMonths;
+
+  const effRefinanceBalance = refinanceBalance === '' ? 0 : refinanceBalance;
+  const effRefinanceCurrentRate = refinanceCurrentRate === '' ? 0 : refinanceCurrentRate;
+  const effRefinanceRemainingTerm = refinanceRemainingTerm === '' ? 0 : refinanceRemainingTerm;
+  const effRefinanceAmortizationYears = refinanceAmortizationYears === '' ? 25 : refinanceAmortizationYears;
+  const effRefinanceAmortizationMonths = refinanceAmortizationMonths === '' ? 0 : refinanceAmortizationMonths;
+  const effRefinanceNewRate = refinanceNewRate === '' ? 0 : refinanceNewRate;
+  const effRefinanceCustomPenalty = refinanceCustomPenalty === '' ? 0 : refinanceCustomPenalty;
+  const effRefinanceFees = refinanceFees === '' ? 0 : refinanceFees;
+  const effHouseholdIncome = householdIncome || 0;
+
   // New Design 1: Delta from current payments
   const currentPayment = useMemo(() => {
     if (!profile) return null;
@@ -371,16 +392,16 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   // 1. Renewal calculations
   const renewalResults = useMemo(() => {
-    const renewalAmortization = renewalAmortizationYears + renewalAmortizationMonths / 12;
+    const renewalAmortization = effRenewalAmortizationYears + effRenewalAmortizationMonths / 12;
 
     // Helper to calculate term details
     const getTermDetails = (rate: number, termYears: number, type: 'fixed' | 'variable') => {
       const compounding = type === 'variable' ? 'monthly' : 'semi_annual';
-      const monthlyPayment = calculateRegularPayment(renewalBalance, rate, renewalAmortization, renewalFrequency, compounding);
+      const monthlyPayment = calculateRegularPayment(effRenewalBalance, rate, renewalAmortization, renewalFrequency, compounding);
       const periodRate = getPeriodInterestRate(rate, renewalFrequency, compounding);
       const ppy = getPaymentsPerYear(renewalFrequency);
       
-      let balance = renewalBalance;
+      let balance = effRenewalBalance;
       let totalInterest = 0;
       let totalPrincipal = 0;
       const termPayments = termYears * ppy;
@@ -410,7 +431,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       ...o,
       results: getTermDetails(o.rate, o.term, o.type)
     }));
-  }, [renewalBalance, renewalFrequency, renewalAmortizationYears, renewalAmortizationMonths, offers]);
+  }, [effRenewalBalance, renewalFrequency, effRenewalAmortizationYears, effRenewalAmortizationMonths, offers]);
 
   // 1.5. Calculate the best option for each metric in renewal results
   const bestMetricOffers = useMemo(() => {
@@ -455,15 +476,15 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     return {
       rate: findBest(o => o.rate, (a, b) => a < b),
       payment: findBest(o => o.results.monthlyPayment, (a, b) => a < b),
-      pctIncome: householdIncome > 0
-        ? findBest(o => (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome, (a, b) => a < b)
+      pctIncome: effHouseholdIncome > 0
+        ? findBest(o => (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome, (a, b) => a < b)
         : [],
       interest: findBest(o => o.results.totalInterest, (a, b) => a < b),
       principal: findBest(o => o.results.totalPrincipal, (a, b) => a > b),
       endingBalance: findBest(o => o.results.endingBalance, (a, b) => a < b),
       amortAtEnd: findBest(getRemainingAmortMonths, (a, b) => a < b),
     };
-  }, [renewalResults, householdIncome, renewalPaymentsPerYear]);
+  }, [renewalResults, effHouseholdIncome, renewalPaymentsPerYear]);
 
   // 1.7. Compute overall best offer(s)
   const overallBestOffers = useMemo(() => {
@@ -501,16 +522,16 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
     return calculateRefinance({
-      currentBalance: refinanceBalance,
-      currentRate: refinanceCurrentRate,
-      remainingTermMonths: refinanceRemainingTerm,
-      remainingAmortizationYears: refinanceAmortizationYears + refinanceAmortizationMonths / 12,
+      currentBalance: effRefinanceBalance,
+      currentRate: effRefinanceCurrentRate,
+      remainingTermMonths: effRefinanceRemainingTerm,
+      remainingAmortizationYears: effRefinanceAmortizationYears + effRefinanceAmortizationMonths / 12,
       prepaymentPenaltyType: refinancePenaltyType,
-      customPenaltyAmount: refinanceCustomPenalty,
-      newRate: refinanceNewRate,
-      refinanceFees
+      customPenaltyAmount: effRefinanceCustomPenalty,
+      newRate: effRefinanceNewRate,
+      refinanceFees: effRefinanceFees
     });
-  }, [refinanceBalance, refinanceCurrentRate, refinanceRemainingTerm, refinanceAmortizationYears, refinanceAmortizationMonths, refinancePenaltyType, refinanceCustomPenalty, refinanceNewRate, refinanceFees]);
+  }, [effRefinanceBalance, effRefinanceCurrentRate, effRefinanceRemainingTerm, effRefinanceAmortizationYears, effRefinanceAmortizationMonths, refinancePenaltyType, effRefinanceCustomPenalty, effRefinanceNewRate, effRefinanceFees]);
 
   // Renewal Charts Helper Functions
   const getBarColors = (
@@ -609,7 +630,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     true,
     bestMetricOffers.rate
   );
-  const chartRateOptions = createChartOptions(val => val.toFixed(2) + '%');
+  const chartRateOptions = createChartOptions(val => formatLocalePercent(val, locale));
 
   const chartPaymentData = createChartData(
     'Payment',
@@ -617,15 +638,15 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     true,
     bestMetricOffers.payment
   );
-  const chartPaymentOptions = createChartOptions(val => '$' + val.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+  const chartPaymentOptions = createChartOptions(val => formatLocaleCurrency(val, locale));
 
   const chartPctIncomeData = createChartData(
     t.rate.percentOfIncome,
-    renewalResults.map(o => householdIncome > 0 ? (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome * 100 : 0),
+    renewalResults.map(o => effHouseholdIncome > 0 ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100 : 0),
     true,
     bestMetricOffers.pctIncome
   );
-  const chartPctIncomeOptions = createChartOptions(val => val.toFixed(1) + '%');
+  const chartPctIncomeOptions = createChartOptions(val => formatLocalePercent(val, locale));
 
   const chartInterestData = createChartData(
     t.rate.interestPaidInTerm,
@@ -633,7 +654,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     true,
     bestMetricOffers.interest
   );
-  const chartInterestOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+  const chartInterestOptions = createChartOptions(val => locale === 'fr' ? `${(val / 1000).toFixed(0)}k $` : `$${(val / 1000).toFixed(0)}k`);
 
   const chartPrincipalData = createChartData(
     t.rate.principalPaidInTerm,
@@ -641,7 +662,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     false,
     bestMetricOffers.principal
   );
-  const chartPrincipalOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+  const chartPrincipalOptions = createChartOptions(val => locale === 'fr' ? `${(val / 1000).toFixed(0)}k $` : `$${(val / 1000).toFixed(0)}k`);
 
   const chartEndingBalanceData = createChartData(
     t.rate.endingBalance,
@@ -649,7 +670,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     true,
     bestMetricOffers.endingBalance
   );
-  const chartEndingBalanceOptions = createChartOptions(val => '$' + (val / 1000).toFixed(0) + 'k');
+  const chartEndingBalanceOptions = createChartOptions(val => locale === 'fr' ? `${(val / 1000).toFixed(0)}k $` : `$${(val / 1000).toFixed(0)}k`);
 
   const chartAmortAtEndData = createChartData(
     t.rate.amortAtTermEnd,
@@ -660,7 +681,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     true,
     bestMetricOffers.amortAtEnd
   );
-  const chartAmortAtEndOptions = createChartOptions(val => val === 50 ? 'Never' : val.toFixed(1) + ' yrs');
+  const chartAmortAtEndOptions = createChartOptions(val => val === 50 ? (t.rate.neverPayoff || 'Never') : formatLocaleNumber(val, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' ' + t.rate.yrs);
 
   // Refinance Chart Data
   const refinanceChartData = {
@@ -752,7 +773,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       },
       tooltip: {
         callbacks: {
-          label: cadCurrencyTooltipLabel
+          label: (context: any) => cadCurrencyTooltipLabel(context, locale)
         }
       }
     },
@@ -766,7 +787,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         ticks: { 
           color: systemTheme === 'dark' ? '#94a3b8' : '#64748b',
           callback: function(value: any) {
-            return '$' + value.toLocaleString();
+            return formatLocaleCurrency(value, locale);
           }
         }
       }
@@ -823,15 +844,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               <div className="form-group" style={{ marginBottom: isStackedLayout ? 0 : undefined }}>
                 <label className="form-label">
                   <span>{t.rate.balanceToRenew}</span>
-                  <span className="form-label-val">${renewalBalance.toLocaleString()}</span>
+                  <span className="form-label-val">{formatLocaleCurrency(renewalBalance || 0, locale)}</span>
                 </label>
                 <div className="form-input-wrapper">
                   <DollarSign size={16} className="form-input-prefix" />
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input form-input-with-prefix" 
                     value={renewalBalance} 
-                    onChange={(e) => setRenewalBalance(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(val) => setRenewalBalance(val)}
                   />
                 </div>
               </div>
@@ -844,22 +864,20 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                 </label>
                 <div className="flex gap-2">
                   <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                    <input 
-                      type="number" 
+                    <FormattedNumericInput 
                       className="form-input" 
                       value={renewalAmortizationYears} 
-                      onChange={(e) => setRenewalAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
+                      onChange={(val) => setRenewalAmortizationYears(val)}
                       placeholder={t.rate.years}
                       style={{ paddingRight: '2rem' }}
                     />
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.yrs}</span>
                   </div>
                   <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                    <input 
-                      type="number" 
+                    <FormattedNumericInput 
                       className="form-input" 
                       value={renewalAmortizationMonths} 
-                      onChange={(e) => setRenewalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                      onChange={(val) => setRenewalAmortizationMonths(val)}
                       placeholder={t.rate.months}
                       style={{ paddingRight: '2.2rem' }}
                     />
@@ -939,13 +957,12 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                     {/* Rate */}
                     <div className="form-group w-full" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ fontSize: '0.7rem', marginBottom: '0.2rem' }}>{t.rate.interestRate}</label>
-                      <input 
-                        type="number" 
-                        step="0.01" 
+                      <FormattedNumericInput 
                         className="form-input" 
                         value={offer.rate} 
-                        onChange={(e) => handleUpdateOffer(offer.id, 'rate', parseFloat(e.target.value) || 0)}
+                        onChange={(val) => handleUpdateOffer(offer.id, 'rate', val)}
                         style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+                        isDecimal={true}
                       />
                     </div>
                     {/* Term */}
@@ -1045,7 +1062,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.rate)}
                               <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                <strong>{o.rate.toFixed(2)}%</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? (o.variableType === 'arm' ? 'ARM' : 'VRM') : t.rate.fix})
+                                <strong>{formatLocalePercent(o.rate, locale)}</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? (o.variableType === 'arm' ? 'ARM' : 'VRM') : t.rate.fix})
                               </span>
                             </div>
                           </td>
@@ -1061,7 +1078,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.payment)}
                               <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                ${o.results.monthlyPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatLocaleCurrency(o.results.monthlyPayment, locale)}
                               </span>
                             </div>
                           </td>
@@ -1074,7 +1091,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         {renewalResults.map(o => {
                           const delta = o.results.monthlyPayment - comparableCurrentPayment;
                           const isNegative = delta < 0;
-                          const formattedDelta = (isNegative ? '-' : '+') + '$' + Math.abs(delta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                          const formattedDelta = (isNegative ? '-' : '+') + formatLocaleCurrency(Math.abs(delta), locale);
                           return (
                             <td key={o.id} style={{ textAlign: 'right', color: isNegative ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 500 }}>
                               {formattedDelta}
@@ -1086,8 +1103,8 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                     <tr>
                       <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
                       {renewalResults.map(o => {
-                        const pct = householdIncome > 0
-                          ? (o.results.monthlyPayment * renewalPaymentsPerYear) / householdIncome * 100
+                        const pct = effHouseholdIncome > 0
+                          ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100
                           : null;
                         const isBest = bestMetricOffers.pctIncome?.includes(o.id);
                         return (
@@ -1095,7 +1112,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest && pct !== null, bestMetricOffers.pctIncome)}
                               <span style={{ color: isBest && pct !== null ? 'var(--color-success)' : undefined }}>
-                                {pct !== null ? `${pct.toFixed(1)}%` : '—'}
+                                {pct !== null ? formatLocalePercent(pct, locale) : '—'}
                               </span>
                             </div>
                           </td>
@@ -1113,7 +1130,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                                 {renderBestIcon(isBest, bestMetricOffers.pctIncome)}
                                 <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                  {pct.toFixed(1)}%
+                                  {formatLocalePercent(pct, locale)}
                                 </span>
                               </div>
                             </td>
@@ -1130,7 +1147,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.interest)}
                               <span style={{ color: isBest ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                                ${o.results.totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                {formatLocaleCurrency(o.results.totalInterest, locale)}
                               </span>
                             </div>
                           </td>
@@ -1146,7 +1163,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.principal)}
                               <span style={{ color: 'var(--color-success)' }}>
-                                ${o.results.totalPrincipal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                {formatLocaleCurrency(o.results.totalPrincipal, locale)}
                               </span>
                             </div>
                           </td>
@@ -1162,7 +1179,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                               {renderBestIcon(isBest, bestMetricOffers.endingBalance)}
                               <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                <strong>${o.results.endingBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                                <strong>{formatLocaleCurrency(o.results.endingBalance, locale)}</strong>
                               </span>
                             </div>
                           </td>
@@ -1313,35 +1330,33 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.outstandingBalance}</label>
                 <div className="form-input-wrapper">
                   <DollarSign size={14} className="form-input-prefix" />
-                  <input type="number" className="form-input form-input-with-prefix" value={refinanceBalance} onChange={(e) => setRefinanceBalance(Math.max(0, parseInt(e.target.value) || 0))} />
+                  <FormattedNumericInput className="form-input form-input-with-prefix" value={refinanceBalance} onChange={(val) => setRefinanceBalance(val)} />
                 </div>
               </div>
 
               <div className="flex gap-4">
                 <div className="form-group w-full" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.currentRate}</label>
-                  <input type="number" step="0.01" className="form-input" value={refinanceCurrentRate} onChange={(e) => setRefinanceCurrentRate(parseFloat(e.target.value) || 0)} />
+                  <FormattedNumericInput className="form-input" value={refinanceCurrentRate} onChange={(val) => setRefinanceCurrentRate(val)} isDecimal={true} />
                 </div>
                 <div className="form-group w-full" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.amortLeft}</label>
                   <div className="flex gap-2">
                     <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                      <input 
-                        type="number" 
+                      <FormattedNumericInput 
                         className="form-input" 
                         value={refinanceAmortizationYears} 
-                        onChange={(e) => setRefinanceAmortizationYears(Math.max(1, parseInt(e.target.value) || 20))}
+                        onChange={(val) => setRefinanceAmortizationYears(val)}
                         placeholder={t.rate.yrs}
                         style={{ paddingRight: '1.8rem', fontSize: '0.85rem' }}
                       />
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.rate.yrs}</span>
                     </div>
                     <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                      <input 
-                        type="number" 
+                      <FormattedNumericInput 
                         className="form-input" 
                         value={refinanceAmortizationMonths} 
-                        onChange={(e) => setRefinanceAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                        onChange={(val) => setRefinanceAmortizationMonths(val)}
                         placeholder={t.rate.mos}
                         style={{ paddingRight: '2rem', fontSize: '0.85rem' }}
                       />
@@ -1353,7 +1368,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.remainingTermMonths}</label>
-                <input type="number" className="form-input" value={refinanceRemainingTerm} onChange={(e) => setRefinanceRemainingTerm(Math.max(1, parseInt(e.target.value) || 12))} />
+                <FormattedNumericInput className="form-input" value={refinanceRemainingTerm} onChange={(val) => setRefinanceRemainingTerm(val)} />
               </div>
             </div>
 
@@ -1364,11 +1379,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
               <div className="flex gap-4">
                 <div className="form-group w-full" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.newRate}</label>
-                  <input type="number" step="0.01" className="form-input" value={refinanceNewRate} onChange={(e) => setRefinanceNewRate(parseFloat(e.target.value) || 0)} />
+                  <FormattedNumericInput className="form-input" value={refinanceNewRate} onChange={(val) => setRefinanceNewRate(val)} isDecimal={true} />
                 </div>
                 <div className="form-group w-full" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.appraisalFees}</label>
-                  <input type="number" className="form-input" value={refinanceFees} onChange={(e) => setRefinanceFees(Math.max(0, parseInt(e.target.value) || 0))} />
+                  <FormattedNumericInput className="form-input" value={refinanceFees} onChange={(val) => setRefinanceFees(val)} />
                 </div>
               </div>
 
@@ -1386,7 +1401,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.rate.customPenaltyAmount}</label>
                   <div className="form-input-wrapper">
                     <DollarSign size={14} className="form-input-prefix" />
-                    <input type="number" className="form-input form-input-with-prefix" value={refinanceCustomPenalty} onChange={(e) => setRefinanceCustomPenalty(Math.max(0, parseInt(e.target.value) || 0))} />
+                    <FormattedNumericInput className="form-input form-input-with-prefix" value={refinanceCustomPenalty} onChange={(val) => setRefinanceCustomPenalty(val)} />
                   </div>
                 </div>
               )}
@@ -1403,10 +1418,10 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   {t.rate.totalBreakingCosts}
                 </h4>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-danger)' }}>
-                  ${refinanceResults.totalClosingCosts.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {formatLocaleCurrency(refinanceResults.totalClosingCosts, locale)}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  {t.rate.penalty} ${refinanceResults.estimatedPenalty.toLocaleString(undefined, { maximumFractionDigits: 0 })} + {t.rate.fees} ${refinanceFees.toLocaleString()}
+                  {t.rate.penalty} {formatLocaleCurrency(refinanceResults.estimatedPenalty, locale)} + {t.rate.fees} {formatLocaleCurrency(effRefinanceFees, locale)}
                 </div>
               </div>
 
@@ -1415,7 +1430,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   {t.rate.monthlySavings}
                 </h4>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-success)' }}>
-                  ${refinanceResults.monthlySavings.toLocaleString(undefined, { maximumFractionDigits: 0 })} {t.rate.perMonth}
+                  {formatLocaleCurrency(refinanceResults.monthlySavings, locale)} {t.rate.perMonth}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                   {t.rate.loweredPayment}
@@ -1433,10 +1448,10 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   </div>
                   <div>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block' }}>
-                      {t.rate.refinanceWillSave} <strong className="color-success">${refinanceResults.netSavingsOverTerm.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong> {t.rate.netOverRemaining.replace('{months}', String(refinanceRemainingTerm))}
+                      {t.rate.refinanceWillSave} <strong className="color-success">{formatLocaleCurrency(refinanceResults.netSavingsOverTerm, locale)}</strong> {t.rate.netOverRemaining.replace('{months}', String(refinanceRemainingTerm))}
                     </span>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {t.rate.recoverCosts} <strong>{refinanceResults.breakEvenMonths.toFixed(1)} {t.rate.monthsOfPayments}</strong>
+                      {t.rate.recoverCosts} <strong>{formatLocaleNumber(refinanceResults.breakEvenMonths, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} {t.rate.monthsOfPayments}</strong>
                     </span>
                   </div>
                 </div>
@@ -1450,7 +1465,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                       {t.rate.refinanceNotRecommended}
                     </span>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      {t.rate.penaltyExceedsSavings} <strong>${Math.abs(refinanceResults.netSavingsOverTerm).toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong> {t.rate.overTheTerm}
+                      {t.rate.penaltyExceedsSavings} <strong>{formatLocaleCurrency(Math.abs(refinanceResults.netSavingsOverTerm), locale)}</strong> {t.rate.overTheTerm}
                     </span>
                   </div>
                 </div>

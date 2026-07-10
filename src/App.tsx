@@ -127,8 +127,41 @@ function App() {
 
   // Profile update callback
   const handleSaveProfile = async (newProfile: MortgageInputs) => {
-    setProfile(newProfile);
-    await saveProfile(newProfile, currentPin || undefined);
+    const cleanedProfile = { ...newProfile };
+    const numericKeys: (keyof MortgageInputs)[] = [
+      'principal', 'interestRate', 'amortizationYears', 'amortizationMonths',
+      'confirmedPayment', 'originalPrincipal', 'originalAmortizationYears',
+      'originalAmortizationMonths', 'originalTermYears', 'householdIncome',
+      'renewalBalance', 'renewalAmortizationYears', 'renewalAmortizationMonths',
+      'refinanceBalance', 'refinanceCurrentRate', 'refinanceRemainingTerm',
+      'refinanceNewRate', 'refinanceFees', 'refinanceCustomPenalty'
+    ];
+    for (const key of numericKeys) {
+      if ((cleanedProfile as any)[key] === '') {
+        (cleanedProfile as any)[key] = (key === 'amortizationYears' ? 25 : 0);
+      }
+    }
+    if (cleanedProfile.offers) {
+      cleanedProfile.offers = cleanedProfile.offers.map(o => ({
+        ...o,
+        rate: o.rate === '' ? 4.5 : o.rate,
+        term: o.term === '' ? 5 : o.term
+      }));
+    }
+    if (cleanedProfile.prepayments) {
+      const prepay = { ...cleanedProfile.prepayments };
+      const prepayKeys: (keyof typeof prepay)[] = [
+        'lumpSumAmount', 'paymentIncreasePercent', 'paymentIncreaseFixed', 'doubleUpEvery'
+      ];
+      for (const key of prepayKeys) {
+        if ((prepay as any)[key] === '') {
+          (prepay as any)[key] = 0;
+        }
+      }
+      cleanedProfile.prepayments = prepay;
+    }
+    setProfile(cleanedProfile);
+    await saveProfile(cleanedProfile, currentPin || undefined);
   };
 
   // Reload profile after settings import

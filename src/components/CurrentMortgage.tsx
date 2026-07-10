@@ -4,7 +4,13 @@ import { calculateAmortization, getPaymentsPerYear, calculateRegularPayment, cal
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
 import { useSystemTheme } from '../hooks/useSystemTheme';
-import { cadCurrencyTooltipLabel } from '../utils/formatters';
+import {
+  cadCurrencyTooltipLabel,
+  formatLocaleCurrency,
+  formatLocaleNumber,
+  formatLocalePercent
+} from '../utils/formatters';
+import { FormattedNumericInput } from './FormattedNumericInput';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -89,7 +95,7 @@ const SaveStatusBadge: React.FC<{ status: 'saved' | 'pending' | 'saving'; labels
 };
 
 export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile, onSaveProfile, onNavigate }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const systemTheme = useSystemTheme();
 
   // Load offers configured in the RateComparer tab (from initialProfile) or fall back to default offers
@@ -104,28 +110,28 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
   const [selectedScenario, setSelectedScenario] = useState<string>('current');
 
   // Local state for inputs
-  const [principal, setPrincipal] = useState<number>(initialProfile?.principal || 450000);
-  const [interestRate, setInterestRate] = useState<number>(initialProfile?.interestRate || 4.85);
-  const [amortizationYears, setAmortizationYears] = useState<number>(initialProfile?.amortizationYears || 25);
-  const [amortizationMonths, setAmortizationMonths] = useState<number>(initialProfile?.amortizationMonths || 0);
+  const [principal, setPrincipal] = useState<number | ''>(initialProfile?.principal || 450000);
+  const [interestRate, setInterestRate] = useState<number | ''>(initialProfile?.interestRate || 4.85);
+  const [amortizationYears, setAmortizationYears] = useState<number | ''>(initialProfile?.amortizationYears || 25);
+  const [amortizationMonths, setAmortizationMonths] = useState<number | ''>(initialProfile?.amortizationMonths || 0);
   const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>(initialProfile?.paymentFrequency || 'monthly');
   const [maturityDate, setMaturityDate] = useState<string>(initialProfile?.maturityDate || '');
   
   // Custom Payment Override
-  const [confirmedPayment, setConfirmedPayment] = useState<number>(initialProfile?.confirmedPayment || 0);
+  const [confirmedPayment, setConfirmedPayment] = useState<number | ''>(initialProfile?.confirmedPayment || 0);
 
   // Rate Type and Variable Type
   const [rateType, setRateType] = useState<'fixed' | 'variable'>(initialProfile?.rateType || 'fixed');
   const [variableType, setVariableType] = useState<'vrm' | 'arm'>(initialProfile?.variableType || 'vrm');
 
   // Original Parameters
-  const [originalPrincipal, setOriginalPrincipal] = useState<number>(initialProfile?.originalPrincipal || 0);
-  const [originalAmortizationYears, setOriginalAmortizationYears] = useState<number>(initialProfile?.originalAmortizationYears || 0);
-  const [originalAmortizationMonths, setOriginalAmortizationMonths] = useState<number>(initialProfile?.originalAmortizationMonths || 0);
-  const [originalTermYears, setOriginalTermYears] = useState<number>(initialProfile?.originalTermYears || 0);
+  const [originalPrincipal, setOriginalPrincipal] = useState<number | ''>(initialProfile?.originalPrincipal || 0);
+  const [originalAmortizationYears, setOriginalAmortizationYears] = useState<number | ''>(initialProfile?.originalAmortizationYears || 0);
+  const [originalAmortizationMonths, setOriginalAmortizationMonths] = useState<number | ''>(initialProfile?.originalAmortizationMonths || 0);
+  const [originalTermYears, setOriginalTermYears] = useState<number | ''>(initialProfile?.originalTermYears || 0);
 
   // Household affordability (persisted globally; not used by the amortization math)
-  const [householdIncome, setHouseholdIncome] = useState<number>(initialProfile?.householdIncome || 0);
+  const [householdIncome, setHouseholdIncome] = useState<number | ''>(initialProfile?.householdIncome || 0);
   const [incomeType, setIncomeType] = useState<'gross' | 'net'>(initialProfile?.incomeType || 'gross');
 
   // Prepayments
@@ -137,14 +143,14 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
      initialProfile.prepayments.paymentIncreaseFixed > 0))
   );
   
-  const [lumpSumAmount, setLumpSumAmount] = useState<number>(initialProfile?.prepayments?.lumpSumAmount || 0);
+  const [lumpSumAmount, setLumpSumAmount] = useState<number | ''>(initialProfile?.prepayments?.lumpSumAmount || 0);
   const [doubleUp, setDoubleUp] = useState<boolean>(initialProfile?.prepayments?.doubleUp || false);
   // Interval between double-ups, in payments. Defaults to once per year (ppy) for a fresh profile.
-  const [doubleUpEvery, setDoubleUpEvery] = useState<number>(
+  const [doubleUpEvery, setDoubleUpEvery] = useState<number | ''>(
     initialProfile?.prepayments?.doubleUpEvery || getPaymentsPerYear(initialProfile?.paymentFrequency || 'monthly')
   );
-  const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
-  const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
+  const [paymentIncreasePercent, setPaymentIncreasePercent] = useState<number | ''>(initialProfile?.prepayments?.paymentIncreasePercent || 0);
+  const [paymentIncreaseFixed, setPaymentIncreaseFixed] = useState<number | ''>(initialProfile?.prepayments?.paymentIncreaseFixed || 0);
 
   const [saveStatus, setSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
   const [interestRateOffset, setInterestRateOffset] = useState<number>(0);
@@ -162,20 +168,27 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
   }, [selectedScenario, offers]);
 
   // Effective parameters used for calculations and read-only inputs
-  const effPrincipal = selectedOffer ? (initialProfile?.renewalBalance || principal) : principal;
-  const effInterestRate = selectedOffer ? selectedOffer.rate : interestRate;
-  const effAmortizationYears = selectedOffer ? (initialProfile?.renewalAmortizationYears || amortizationYears) : amortizationYears;
-  const effAmortizationMonths = selectedOffer ? (initialProfile?.renewalAmortizationMonths !== undefined ? initialProfile.renewalAmortizationMonths : amortizationMonths) : amortizationMonths;
-  const effPaymentFrequency = selectedOffer ? ((initialProfile?.rateComparerPaymentFrequency as PaymentFrequency) || paymentFrequency) : paymentFrequency;
-  
-  // Under offer renewal scenario, we don't have a direct maturity date (term starts at renewal time)
-  const effMaturityDate = selectedOffer ? '' : maturityDate;
-  const effConfirmedPayment = selectedOffer ? 0 : confirmedPayment;
+  const rawPrincipal = selectedOffer ? (initialProfile?.renewalBalance || principal) : principal;
+  const rawInterestRate = selectedOffer ? selectedOffer.rate : interestRate;
+  const rawAmortizationYears = selectedOffer ? (initialProfile?.renewalAmortizationYears || amortizationYears) : amortizationYears;
+  const rawAmortizationMonths = selectedOffer ? (initialProfile?.renewalAmortizationMonths !== undefined ? initialProfile.renewalAmortizationMonths : amortizationMonths) : amortizationMonths;
+  const rawConfirmedPayment = selectedOffer ? 0 : confirmedPayment;
+  const rawOriginalPrincipal = selectedOffer ? 0 : originalPrincipal;
+  const rawOriginalAmortizationYears = selectedOffer ? 0 : originalAmortizationYears;
+  const rawOriginalAmortizationMonths = selectedOffer ? 0 : originalAmortizationMonths;
+  const rawOriginalTermYears = selectedOffer ? selectedOffer.term : originalTermYears;
 
-  const effOriginalPrincipal = selectedOffer ? 0 : originalPrincipal;
-  const effOriginalAmortizationYears = selectedOffer ? 0 : originalAmortizationYears;
-  const effOriginalAmortizationMonths = selectedOffer ? 0 : originalAmortizationMonths;
-  const effOriginalTermYears = selectedOffer ? selectedOffer.term : originalTermYears;
+  const effPrincipal = rawPrincipal === '' ? 0 : rawPrincipal;
+  const effInterestRate = rawInterestRate === '' ? 0 : rawInterestRate;
+  const effAmortizationYears = rawAmortizationYears === '' ? 25 : rawAmortizationYears;
+  const effAmortizationMonths = rawAmortizationMonths === '' ? 0 : rawAmortizationMonths;
+  const effPaymentFrequency = selectedOffer ? ((initialProfile?.rateComparerPaymentFrequency as PaymentFrequency) || paymentFrequency) : paymentFrequency;
+  const effMaturityDate = selectedOffer ? '' : maturityDate;
+  const effConfirmedPayment = rawConfirmedPayment === '' ? 0 : rawConfirmedPayment;
+  const effOriginalPrincipal = rawOriginalPrincipal === '' ? 0 : rawOriginalPrincipal;
+  const effOriginalAmortizationYears = rawOriginalAmortizationYears === '' ? 0 : rawOriginalAmortizationYears;
+  const effOriginalAmortizationMonths = rawOriginalAmortizationMonths === '' ? 0 : rawOriginalAmortizationMonths;
+  const effOriginalTermYears = rawOriginalTermYears === '' ? 0 : rawOriginalTermYears;
 
   const effVariableType = useMemo(() => {
     if (selectedOffer) {
@@ -239,11 +252,11 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
       originalAmortizationMonths: effOriginalAmortizationMonths,
       originalTermYears: effOriginalTermYears,
       prepayments: showPrepayments ? {
-        lumpSumAmount,
+        lumpSumAmount: lumpSumAmount === '' ? 0 : lumpSumAmount,
         doubleUp,
-        doubleUpEvery,
-        paymentIncreasePercent,
-        paymentIncreaseFixed
+        doubleUpEvery: doubleUpEvery === '' ? 1 : doubleUpEvery,
+        paymentIncreasePercent: paymentIncreasePercent === '' ? 0 : paymentIncreasePercent,
+        paymentIncreaseFixed: paymentIncreaseFixed === '' ? 0 : paymentIncreaseFixed
       } : undefined
     };
     return calculateAmortization(inputs);
@@ -394,7 +407,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
           paymentIncreasePercent,
           paymentIncreaseFixed
         } : undefined
-      });
+      } as any);
 
       const successTimer = setTimeout(() => {
         setSaveStatus('saved');
@@ -409,7 +422,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
     householdIncome, incomeType, rateType, variableType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
-    onSaveProfile
+    onSaveProfile, initialProfile
   ]);
 
   // Line Chart Data
@@ -477,7 +490,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
       },
       tooltip: {
         callbacks: {
-          label: cadCurrencyTooltipLabel
+          label: (context: any) => cadCurrencyTooltipLabel(context, locale)
         }
       }
     },
@@ -491,14 +504,19 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
         ticks: { 
           color: textColor,
           callback: function(value: any) {
-            return '$' + (value / 1000) + 'k';
+            return locale === 'fr' ? `${value / 1000}k $` : `$${value / 1000}k`;
           }
         }
       }
     }
   };
 
-  const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || effPaymentFrequency.includes('accelerated'));
+  const cleanLump = lumpSumAmount === '' ? 0 : lumpSumAmount;
+  const cleanPct = paymentIncreasePercent === '' ? 0 : paymentIncreasePercent;
+  const cleanFixed = paymentIncreaseFixed === '' ? 0 : paymentIncreaseFixed;
+  const cleanDoubleUpEvery = doubleUpEvery === '' ? 1 : doubleUpEvery;
+
+  const hasPrepaymentsActive = showPrepayments && (cleanLump > 0 || doubleUp || cleanPct > 0 || cleanFixed > 0 || effPaymentFrequency.includes('accelerated'));
 
   // Payments per year for the current frequency — drives the double-up interval slider.
   const ppy = getPaymentsPerYear(effPaymentFrequency);
@@ -511,20 +529,20 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
 
   // Keep the double-up interval within [1, once-per-term] as frequency/term change.
   useEffect(() => {
-    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev)));
+    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev === '' ? 1 : prev)));
   }, [maxDoubleUpInterval]);
 
   // Human-friendly description of how often the double-up applies
   const doubleUpFrequencyLabel = useMemo(() => {
-    if (doubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
-    if (doubleUpEvery <= 1) return t.paydown.everyPayment;
-    return t.paydown.everyNPayments.replace('{n}', String(doubleUpEvery));
-  }, [doubleUpEvery, maxDoubleUpInterval, t]);
+    if (cleanDoubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
+    if (cleanDoubleUpEvery <= 1) return t.paydown.everyPayment;
+    return t.paydown.everyNPayments.replace('{n}', String(cleanDoubleUpEvery));
+  }, [cleanDoubleUpEvery, maxDoubleUpInterval, t]);
 
   const doubleUpTimesPerYear = useMemo(() => {
-    const times = ppy / Math.max(1, doubleUpEvery);
+    const times = ppy / Math.max(1, cleanDoubleUpEvery);
     return times >= 1 ? Math.round(times) : Math.round(times * 10) / 10;
-  }, [ppy, doubleUpEvery]);
+  }, [ppy, cleanDoubleUpEvery]);
 
   // Reset all extra-payment inputs back to their defaults
   const clearExtraPayments = () => {
@@ -535,6 +553,10 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
     setPaymentIncreaseFixed(0);
   };
 
+
+  const cleanOriginalPrincipal = originalPrincipal === '' ? 0 : originalPrincipal;
+  const cleanOriginalAmortYears = originalAmortizationYears === '' ? 0 : originalAmortizationYears;
+  const cleanOriginalAmortMonths = originalAmortizationMonths === '' ? 0 : originalAmortizationMonths;
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -559,7 +581,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 <option value="current">{t.paydown.currentMortgageOption}</option>
                 {offers.map(offer => (
                   <option key={offer.id} value={offer.id}>
-                    {offer.name} ({offer.rate.toFixed(2)}% - {offer.term} Yr {offer.type === 'fixed' ? t.rate.fixed : (offer.variableType === 'arm' ? t.rate.variableArm : t.rate.variableVrm)})
+                    {offer.name} ({formatLocalePercent(offer.rate, locale)} - {offer.term} Yr {offer.type === 'fixed' ? t.rate.fixed : (offer.variableType === 'arm' ? t.rate.variableArm : t.rate.variableVrm)})
                   </option>
                 ))}
               </select>
@@ -607,15 +629,14 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.remainingBalance}</span>
-                <span className="form-label-val">${effPrincipal.toLocaleString()}</span>
+                <span className="form-label-val">{formatLocaleCurrency(effPrincipal, locale)}</span>
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
-                <input 
-                  type="number" 
+                <FormattedNumericInput 
                   className="form-input form-input-with-prefix" 
                   value={selectedOffer ? effPrincipal : principal} 
-                  onChange={(e) => setPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                  onChange={(val) => setPrincipal(val)}
                   disabled={!!selectedOffer}
                 />
               </div>
@@ -663,17 +684,16 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.annualRate}</span>
-                <span className="form-label-val">{effInterestRate.toFixed(2)}%</span>
+                <span className="form-label-val">{formatLocalePercent(effInterestRate, locale)}</span>
               </label>
               <div className="form-input-wrapper">
                 <Percent size={16} className="form-input-suffix" />
-                <input 
-                  type="number" 
-                  step="0.01"
+                <FormattedNumericInput 
                   className="form-input form-input-with-suffix" 
                   value={selectedOffer ? effInterestRate : interestRate} 
-                  onChange={(e) => setInterestRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(val) => setInterestRate(val)}
                   disabled={!!selectedOffer}
+                  isDecimal={true}
                 />
               </div>
             </div>
@@ -686,11 +706,10 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
               </label>
               <div className="flex gap-2">
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input" 
                     value={selectedOffer ? effAmortizationYears : amortizationYears} 
-                    onChange={(e) => setAmortizationYears(Math.max(1, parseInt(e.target.value) || 25))}
+                    onChange={(val) => setAmortizationYears(val)}
                     placeholder={t.paydown.years}
                     style={{ paddingRight: '2rem' }}
                     disabled={!!selectedOffer}
@@ -698,11 +717,10 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input" 
                     value={selectedOffer ? effAmortizationMonths : amortizationMonths} 
-                    onChange={(e) => setAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    onChange={(val) => setAmortizationMonths(val)}
                     placeholder={t.paydown.months}
                     style={{ paddingRight: '2.2rem' }}
                     disabled={!!selectedOffer}
@@ -735,19 +753,18 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
               <label className="form-label flex justify-between align-center">
                 <span>{t.paydown.paymentOverride}</span>
                 <span className="form-label-val" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {t.paydown.calculated} ${calculatedRegularPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {t.paydown.calculated} {formatLocaleCurrency(calculatedRegularPayment, locale)}
                 </span>
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
-                <input 
-                  type="number" 
-                  step="0.01"
+                <FormattedNumericInput 
                   className="form-input form-input-with-prefix" 
-                  placeholder={calculatedRegularPayment.toFixed(2)}
+                  placeholder={formatLocaleNumber(calculatedRegularPayment, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   value={selectedOffer ? '' : (confirmedPayment || '')} 
-                  onChange={(e) => setConfirmedPayment(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(val) => setConfirmedPayment(val)}
                   disabled={!!selectedOffer}
+                  isDecimal={true}
                 />
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
@@ -782,11 +799,10 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
-                <input
-                  type="number"
+                <FormattedNumericInput
                   className="form-input form-input-with-prefix"
                   value={householdIncome || ''}
-                  onChange={(e) => setHouseholdIncome(Math.max(0, parseInt(e.target.value) || 0))}
+                  onChange={(val) => setHouseholdIncome(val)}
                 />
               </div>
             </div>
@@ -822,16 +838,15 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmount}</span>
-                {!selectedOffer && originalPrincipal > 0 && <span className="form-label-val">${originalPrincipal.toLocaleString()}</span>}
+                {!selectedOffer && cleanOriginalPrincipal > 0 && <span className="form-label-val">{formatLocaleCurrency(cleanOriginalPrincipal, locale)}</span>}
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
-                <input 
-                  type="number" 
+                <FormattedNumericInput 
                   className="form-input form-input-with-prefix" 
                   placeholder={t.paydown.originalAmountPlaceholder}
                   value={selectedOffer ? '' : (originalPrincipal || '')} 
-                  onChange={(e) => setOriginalPrincipal(Math.max(0, parseInt(e.target.value) || 0))}
+                  onChange={(val) => setOriginalPrincipal(val)}
                   disabled={!!selectedOffer}
                 />
               </div>
@@ -841,30 +856,28 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmort}</span>
-                {!selectedOffer && (originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
-                  <span className="form-label-val">{originalAmortizationYears} {t.paydown.yrs}, {originalAmortizationMonths} {t.paydown.mos}</span>
+                {!selectedOffer && (cleanOriginalAmortYears > 0 || cleanOriginalAmortMonths > 0) && (
+                  <span className="form-label-val">{cleanOriginalAmortYears} {t.paydown.yrs}, {cleanOriginalAmortMonths} {t.paydown.mos}</span>
                 )}
               </label>
               <div className="flex gap-2">
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input" 
                     placeholder={t.paydown.years}
                     value={selectedOffer ? '' : (originalAmortizationYears || '')} 
-                    onChange={(e) => setOriginalAmortizationYears(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(val) => setOriginalAmortizationYears(val)}
                     style={{ paddingRight: '2rem' }}
                     disabled={!!selectedOffer}
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>{t.paydown.yrs}</span>
                 </div>
                 <div className="form-input-wrapper w-full" style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input" 
                     placeholder={t.paydown.months}
                     value={selectedOffer ? '' : (originalAmortizationMonths || '')} 
-                    onChange={(e) => setOriginalAmortizationMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                    onChange={(val) => setOriginalAmortizationMonths(val)}
                     style={{ paddingRight: '2.2rem' }}
                     disabled={!!selectedOffer}
                   />
@@ -913,17 +926,17 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                   {t.paydown.baselineOutcome}
                 </div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)' }}>
-                  ${baselineResults.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {formatLocaleCurrency(baselineResults.totalInterestPaid, locale)}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   {isTriggerRateReached ? (
                     <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
                   ) : (
-                    t.paydown.overYears.replace('{years}', baselineResults.yearsToPayoff.toFixed(1))
+                    t.paydown.overYears.replace('{years}', formatLocaleNumber(baselineResults.yearsToPayoff, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
                   )}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                  {t.paydown.regPayment} <strong>${baselineResults.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  {t.paydown.regPayment} <strong>{formatLocaleCurrency(baselineResults.schedule[0]?.payment, locale)}</strong>
                 </div>
               </div>
 
@@ -933,17 +946,17 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                   {t.paydown.activePlanOutcome}
                 </div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-                  ${results.totalInterestPaid.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {formatLocaleCurrency(results.totalInterestPaid, locale)}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   {isTriggerRateReached ? (
                     <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>{t.rate?.neverPayoff || 'Never Payoff'}</span>
                   ) : (
-                    t.paydown.overYears.replace('{years}', results.yearsToPayoff.toFixed(1))
+                    t.paydown.overYears.replace('{years}', formatLocaleNumber(results.yearsToPayoff, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
                   )}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                  {t.paydown.planPayment} <strong>${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  {t.paydown.planPayment} <strong>{formatLocaleCurrency(results.schedule[0]?.payment, locale)}</strong>
                 </div>
               </div>
 
@@ -958,8 +971,8 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 <strong style={{ display: 'block', fontSize: '0.95rem' }}>{t.paydown.optimizationSuccess}</strong>
                 <span style={{ fontSize: '0.85rem' }}>
                   {t.paydown.shaveOff
-                    .replace('{years}', results.yearsSaved.toFixed(1))
-                    .replace('{amount}', results.interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 }))}
+                    .replace('{years}', formatLocaleNumber(results.yearsSaved, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
+                    .replace('{amount}', formatLocaleCurrency(results.interestSaved, locale))}
                 </span>
               </div>
             </div>
@@ -988,7 +1001,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                 <span>{t.paydown.stressTestSlider}</span>
                 <span className="form-label-val" style={{ fontWeight: 'bold', color: 'var(--color-warning)', fontSize: '0.9rem' }}>
-                  +{interestRateOffset.toFixed(2)}%
+                  +{formatLocalePercent(interestRateOffset, locale)}
                 </span>
               </label>
               <input
@@ -1002,9 +1015,9 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 style={{ cursor: 'pointer', accentColor: 'var(--color-warning)' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                <span>+0.00%</span>
-                <span>+1.50%</span>
-                <span>+3.00%</span>
+                <span>+{formatLocalePercent(0.00, locale)}</span>
+                <span>+{formatLocalePercent(1.50, locale)}</span>
+                <span>+{formatLocalePercent(3.00, locale)}</span>
               </div>
             </div>
 
@@ -1013,19 +1026,19 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
               <div style={{ background: 'var(--bg-badge)', borderRadius: '0.35rem', padding: '0.6rem 0.75rem', marginTop: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Stressed Interest Rate:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{stressedRate.toFixed(2)}%</strong>
+                  <strong style={{ color: 'var(--text-primary)' }}>{formatLocalePercent(stressedRate, locale)}</strong>
                 </div>
                 {effVariableType === 'vrm' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Trigger Rate:</span>
-                    <strong style={{ color: 'var(--text-primary)' }}>{triggerRate.toFixed(2)}%</strong>
+                    <strong style={{ color: 'var(--text-primary)' }}>{formatLocalePercent(triggerRate, locale)}</strong>
                   </div>
                 )}
                 {effVariableType === 'arm' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Stressed Payment:</span>
                     <strong style={{ color: 'var(--color-primary)' }}>
-                      ${stressedPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatLocaleCurrency(stressedPayment, locale)}
                     </strong>
                   </div>
                 )}
@@ -1042,9 +1055,9 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-primary)', lineHeight: '1.3' }}>
                     {t.paydown.triggerRateWarningDesc
-                      .replace('{offset}', interestRateOffset.toFixed(2))
-                      .replace('{rate}', stressedRate.toFixed(2))
-                      .replace('{triggerRate}', triggerRate.toFixed(2))}
+                      .replace('{offset}', formatLocaleNumber(interestRateOffset, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                      .replace('{rate}', formatLocaleNumber(stressedRate, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                      .replace('{triggerRate}', formatLocaleNumber(triggerRate, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
                   </span>
                 </div>
               </div>
@@ -1060,8 +1073,8 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-primary)', lineHeight: '1.3' }}>
                     {t.paydown.armPaymentIncrease
-                      .replace('{payment}', `$${stressedPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-                      .replace('{diff}', `$${(stressedPayment - basePaymentForComp).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
+                      .replace('{payment}', formatLocaleCurrency(stressedPayment, locale))
+                      .replace('{diff}', formatLocaleCurrency(stressedPayment - basePaymentForComp, locale))}
                   </span>
                 </div>
               </div>
@@ -1111,15 +1124,14 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">
                     <span>{t.paydown.lumpSum}</span>
-                    <span className="form-label-val">${lumpSumAmount.toLocaleString()}</span>
+                    <span className="form-label-val">{formatLocaleCurrency(lumpSumAmount || 0, locale)}</span>
                   </label>
                   <div className="form-input-wrapper">
                     <DollarSign size={14} className="form-input-prefix" />
-                    <input
-                      type="number"
+                    <FormattedNumericInput
                       className="form-input form-input-with-prefix"
                       value={lumpSumAmount}
-                      onChange={(e) => setLumpSumAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                      onChange={(val) => setLumpSumAmount(val)}
                     />
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
@@ -1175,16 +1187,15 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">
                     <span>{t.paydown.annualIncreasePercent}</span>
-                    <span className="form-label-val">{paymentIncreasePercent}%</span>
+                    <span className="form-label-val">{formatLocalePercent(paymentIncreasePercent || 0, locale)}</span>
                   </label>
                   <div className="form-input-wrapper">
                     <Percent size={14} className="form-input-suffix" />
-                    <input
-                      type="number"
-                      step="0.5"
+                    <FormattedNumericInput
                       className="form-input form-input-with-suffix"
                       value={paymentIncreasePercent}
-                      onChange={(e) => setPaymentIncreasePercent(Math.max(0, parseFloat(e.target.value) || 0))}
+                      onChange={(val) => setPaymentIncreasePercent(val)}
+                      isDecimal={true}
                     />
                   </div>
                 </div>
@@ -1193,15 +1204,14 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">
                     <span>{t.paydown.annualIncreaseDollar}</span>
-                    <span className="form-label-val">${paymentIncreaseFixed.toLocaleString()}</span>
+                    <span className="form-label-val">{formatLocaleCurrency(paymentIncreaseFixed || 0, locale)}</span>
                   </label>
                   <div className="form-input-wrapper">
                     <DollarSign size={14} className="form-input-prefix" />
-                    <input
-                      type="number"
+                    <FormattedNumericInput
                       className="form-input form-input-with-prefix"
                       value={paymentIncreaseFixed}
-                      onChange={(e) => setPaymentIncreaseFixed(Math.max(0, parseInt(e.target.value) || 0))}
+                      onChange={(val) => setPaymentIncreaseFixed(val)}
                     />
                   </div>
                 </div>
@@ -1253,18 +1263,18 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
                     yearlyRows.push(
                       <tr key={yearNum}>
                         <td>{t.paydown.yearCol} {yearNum}</td>
-                        <td className="text-right">${yearPayments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="text-right">{formatLocaleCurrency(yearPayments, locale)}</td>
                         <td className="text-right" style={{ color: yearExtra > 0 ? 'var(--color-accent)' : 'inherit' }}>
-                          {yearExtra > 0 ? `+$${yearExtra.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00'}
+                          {yearExtra > 0 ? `+${formatLocaleCurrency(yearExtra, locale)}` : formatLocaleCurrency(0, locale)}
                         </td>
                         <td className="text-right" style={{ color: 'var(--color-danger)' }}>
-                          ${yearInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatLocaleCurrency(yearInterest, locale)}
                         </td>
                         <td className="text-right" style={{ color: 'var(--color-success)' }}>
-                          ${(yearRegularPrincipal + yearExtra).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatLocaleCurrency(yearRegularPrincipal + yearExtra, locale)}
                         </td>
                         <td className="text-right" style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}>
-                          ${p.endingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatLocaleCurrency(p.endingBalance, locale)}
                         </td>
                       </tr>
                     );

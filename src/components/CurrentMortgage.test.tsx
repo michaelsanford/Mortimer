@@ -62,7 +62,7 @@ describe('CurrentMortgage Component Integration Tests', () => {
     expect(select.value).toBe('current');
 
     // Principal input should be enabled and show 300000
-    const principalInput = testEnv.container.querySelector('input[type="number"]') as HTMLInputElement;
+    const principalInput = testEnv.container.querySelector('input') as HTMLInputElement;
     expect(principalInput.disabled).toBe(false);
 
     // Change to Super Deal scenario
@@ -208,7 +208,7 @@ describe('CurrentMortgage Component Integration Tests', () => {
     vi.useFakeTimers();
 
     // Change principal to trigger dirty state and autosave
-    const principalInput = testEnv.container.querySelector('input[type="number"]') as HTMLInputElement;
+    const principalInput = testEnv.container.querySelector('input') as HTMLInputElement;
     await act(async () => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
       setter.call(principalInput, '310000');
