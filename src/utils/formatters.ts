@@ -46,7 +46,7 @@ export function cadCurrencyTooltipLabel(
   return label;
 }
 
-export function formatStringNumber(valStr: string, locale: 'en' | 'fr', isDecimal: boolean): string {
+export function formatStringNumber(valStr: string, locale: 'en' | 'fr', _isDecimal: boolean): string {
   if (valStr === '') return '';
 
   const isNegative = valStr.startsWith('-');

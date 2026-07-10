@@ -3,7 +3,7 @@ import { DollarSign, CheckSquare, Square, ShieldAlert, Sparkles, Plus, Trash2 } 
 import { calculateHELOC, calculateRegularPayment } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
 import { FormattedNumericInput } from './FormattedNumericInput';
-import { formatLocaleCurrency, formatLocaleNumber, formatLocalePercent } from '../utils/formatters';
+import { formatLocaleCurrency, formatLocalePercent } from '../utils/formatters';
 
 interface HELOCPlannerProps {
   currentHomeValue: number;

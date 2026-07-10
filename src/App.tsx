@@ -137,8 +137,8 @@ function App() {
       'refinanceNewRate', 'refinanceFees', 'refinanceCustomPenalty'
     ];
     for (const key of numericKeys) {
-      if (cleanedProfile[key] === '') {
-        cleanedProfile[key] = (key === 'amortizationYears' ? 25 : 0) as any;
+      if ((cleanedProfile as any)[key] === '') {
+        (cleanedProfile as any)[key] = (key === 'amortizationYears' ? 25 : 0);
       }
     }
     if (cleanedProfile.offers) {
@@ -154,8 +154,8 @@ function App() {
         'lumpSumAmount', 'paymentIncreasePercent', 'paymentIncreaseFixed', 'doubleUpEvery'
       ];
       for (const key of prepayKeys) {
-        if (prepay[key] === '') {
-          prepay[key] = 0 as any;
+        if ((prepay as any)[key] === '') {
+          (prepay as any)[key] = 0;
         }
       }
       cleanedProfile.prepayments = prepay;

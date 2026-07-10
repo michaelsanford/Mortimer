@@ -252,11 +252,11 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
       originalAmortizationMonths: effOriginalAmortizationMonths,
       originalTermYears: effOriginalTermYears,
       prepayments: showPrepayments ? {
-        lumpSumAmount,
+        lumpSumAmount: lumpSumAmount === '' ? 0 : lumpSumAmount,
         doubleUp,
-        doubleUpEvery,
-        paymentIncreasePercent,
-        paymentIncreaseFixed
+        doubleUpEvery: doubleUpEvery === '' ? 1 : doubleUpEvery,
+        paymentIncreasePercent: paymentIncreasePercent === '' ? 0 : paymentIncreasePercent,
+        paymentIncreaseFixed: paymentIncreaseFixed === '' ? 0 : paymentIncreaseFixed
       } : undefined
     };
     return calculateAmortization(inputs);
@@ -407,7 +407,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
           paymentIncreasePercent,
           paymentIncreaseFixed
         } : undefined
-      });
+      } as any);
 
       const successTimer = setTimeout(() => {
         setSaveStatus('saved');
@@ -422,7 +422,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
     originalPrincipal, originalAmortizationYears, originalAmortizationMonths, originalTermYears,
     householdIncome, incomeType, rateType, variableType,
     showPrepayments, lumpSumAmount, doubleUp, doubleUpEvery, paymentIncreasePercent, paymentIncreaseFixed,
-    onSaveProfile
+    onSaveProfile, initialProfile
   ]);
 
   // Line Chart Data
@@ -511,7 +511,12 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
     }
   };
 
-  const hasPrepaymentsActive = showPrepayments && (lumpSumAmount > 0 || doubleUp || paymentIncreasePercent > 0 || paymentIncreaseFixed > 0 || effPaymentFrequency.includes('accelerated'));
+  const cleanLump = lumpSumAmount === '' ? 0 : lumpSumAmount;
+  const cleanPct = paymentIncreasePercent === '' ? 0 : paymentIncreasePercent;
+  const cleanFixed = paymentIncreaseFixed === '' ? 0 : paymentIncreaseFixed;
+  const cleanDoubleUpEvery = doubleUpEvery === '' ? 1 : doubleUpEvery;
+
+  const hasPrepaymentsActive = showPrepayments && (cleanLump > 0 || doubleUp || cleanPct > 0 || cleanFixed > 0 || effPaymentFrequency.includes('accelerated'));
 
   // Payments per year for the current frequency — drives the double-up interval slider.
   const ppy = getPaymentsPerYear(effPaymentFrequency);
@@ -524,20 +529,20 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
 
   // Keep the double-up interval within [1, once-per-term] as frequency/term change.
   useEffect(() => {
-    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev)));
+    setDoubleUpEvery((prev) => Math.min(maxDoubleUpInterval, Math.max(1, prev === '' ? 1 : prev)));
   }, [maxDoubleUpInterval]);
 
   // Human-friendly description of how often the double-up applies
   const doubleUpFrequencyLabel = useMemo(() => {
-    if (doubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
-    if (doubleUpEvery <= 1) return t.paydown.everyPayment;
-    return t.paydown.everyNPayments.replace('{n}', String(doubleUpEvery));
-  }, [doubleUpEvery, maxDoubleUpInterval, t]);
+    if (cleanDoubleUpEvery >= maxDoubleUpInterval) return t.paydown.doubleUpOncePerTerm;
+    if (cleanDoubleUpEvery <= 1) return t.paydown.everyPayment;
+    return t.paydown.everyNPayments.replace('{n}', String(cleanDoubleUpEvery));
+  }, [cleanDoubleUpEvery, maxDoubleUpInterval, t]);
 
   const doubleUpTimesPerYear = useMemo(() => {
-    const times = ppy / Math.max(1, doubleUpEvery);
+    const times = ppy / Math.max(1, cleanDoubleUpEvery);
     return times >= 1 ? Math.round(times) : Math.round(times * 10) / 10;
-  }, [ppy, doubleUpEvery]);
+  }, [ppy, cleanDoubleUpEvery]);
 
   // Reset all extra-payment inputs back to their defaults
   const clearExtraPayments = () => {
@@ -548,6 +553,10 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
     setPaymentIncreaseFixed(0);
   };
 
+
+  const cleanOriginalPrincipal = originalPrincipal === '' ? 0 : originalPrincipal;
+  const cleanOriginalAmortYears = originalAmortizationYears === '' ? 0 : originalAmortizationYears;
+  const cleanOriginalAmortMonths = originalAmortizationMonths === '' ? 0 : originalAmortizationMonths;
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -829,7 +838,7 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmount}</span>
-                {!selectedOffer && originalPrincipal > 0 && <span className="form-label-val">{formatLocaleCurrency(originalPrincipal, locale)}</span>}
+                {!selectedOffer && cleanOriginalPrincipal > 0 && <span className="form-label-val">{formatLocaleCurrency(cleanOriginalPrincipal, locale)}</span>}
               </label>
               <div className="form-input-wrapper">
                 <DollarSign size={16} className="form-input-prefix" />
@@ -847,8 +856,8 @@ export const CurrentMortgage: React.FC<CurrentMortgageProps> = ({ initialProfile
             <div className="form-group">
               <label className="form-label">
                 <span>{t.paydown.originalAmort}</span>
-                {!selectedOffer && (originalAmortizationYears > 0 || originalAmortizationMonths > 0) && (
-                  <span className="form-label-val">{originalAmortizationYears} {t.paydown.yrs}, {originalAmortizationMonths} {t.paydown.mos}</span>
+                {!selectedOffer && (cleanOriginalAmortYears > 0 || cleanOriginalAmortMonths > 0) && (
+                  <span className="form-label-val">{cleanOriginalAmortYears} {t.paydown.yrs}, {cleanOriginalAmortMonths} {t.paydown.mos}</span>
                 )}
               </label>
               <div className="flex gap-2">

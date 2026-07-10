@@ -164,13 +164,13 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const defaultAmortization = profile?.amortizationYears || 25;
 
   // Renewal states
-  const [renewalBalance, setRenewalBalance] = useState<number>(() => {
+  const [renewalBalance, setRenewalBalance] = useState<number | ''>(() => {
     return profile?.renewalBalance || defaultBalance;
   });
-  const [renewalAmortizationYears, setRenewalAmortizationYears] = useState<number>(() => {
+  const [renewalAmortizationYears, setRenewalAmortizationYears] = useState<number | ''>(() => {
     return profile?.renewalAmortizationYears || defaultAmortization;
   });
-  const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number>(() => {
+  const [renewalAmortizationMonths, setRenewalAmortizationMonths] = useState<number | ''>(() => {
     return profile?.renewalAmortizationMonths !== undefined ? profile.renewalAmortizationMonths : (profile?.amortizationMonths || 0);
   });
   const [renewalFrequency, setRenewalFrequency] = useState<PaymentFrequency>(() => {
@@ -210,32 +210,32 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   };
 
   // Refinance states
-  const [refinanceBalance, setRefinanceBalance] = useState<number>(() => {
+  const [refinanceBalance, setRefinanceBalance] = useState<number | ''>(() => {
     return profile?.refinanceBalance || defaultBalance;
   });
-  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number>(() => {
+  const [refinanceCurrentRate, setRefinanceCurrentRate] = useState<number | ''>(() => {
     return profile?.refinanceCurrentRate || defaultRate;
   });
-  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number>(() => {
+  const [refinanceRemainingTerm, setRefinanceRemainingTerm] = useState<number | ''>(() => {
     if (profile?.refinanceRemainingTerm !== undefined) return profile.refinanceRemainingTerm;
     return profile?.maturityDate ? calculateRemainingMonths(profile.maturityDate) : 36;
   });
-  const [refinanceAmortizationYears, setRefinanceAmortizationYears] = useState<number>(() => {
+  const [refinanceAmortizationYears, setRefinanceAmortizationYears] = useState<number | ''>(() => {
     return profile?.refinanceAmortizationYears || defaultAmortization;
   });
-  const [refinanceAmortizationMonths, setRefinanceAmortizationMonths] = useState<number>(() => {
+  const [refinanceAmortizationMonths, setRefinanceAmortizationMonths] = useState<number | ''>(() => {
     return profile?.refinanceAmortizationMonths !== undefined ? profile.refinanceAmortizationMonths : (profile?.amortizationMonths || 0);
   });
-  const [refinanceNewRate, setRefinanceNewRate] = useState<number>(() => {
+  const [refinanceNewRate, setRefinanceNewRate] = useState<number | ''>(() => {
     return profile?.refinanceNewRate || 4.49;
   });
   const [refinancePenaltyType, setRefinancePenaltyType] = useState<'three_months_interest' | 'ird' | 'custom'>(() => {
     return profile?.refinancePenaltyType || 'ird';
   });
-  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number>(() => {
+  const [refinanceCustomPenalty, setRefinanceCustomPenalty] = useState<number | ''>(() => {
     return profile?.refinanceCustomPenalty || 0;
   });
-  const [refinanceFees, setRefinanceFees] = useState<number>(() => {
+  const [refinanceFees, setRefinanceFees] = useState<number | ''>(() => {
     return profile?.refinanceFees !== undefined ? profile.refinanceFees : 1500;
   });
 
@@ -283,7 +283,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
         refinancePenaltyType,
         refinanceCustomPenalty,
         refinanceFees
-      });
+      } as any);
       const successTimer = setTimeout(() => {
         setSaveStatus('saved');
       }, 400);
@@ -351,7 +351,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   const effRefinanceNewRate = refinanceNewRate === '' ? 0 : refinanceNewRate;
   const effRefinanceCustomPenalty = refinanceCustomPenalty === '' ? 0 : refinanceCustomPenalty;
   const effRefinanceFees = refinanceFees === '' ? 0 : refinanceFees;
-  const effHouseholdIncome = householdIncome === '' ? 0 : householdIncome;
+  const effHouseholdIncome = householdIncome || 0;
 
   // New Design 1: Delta from current payments
   const currentPayment = useMemo(() => {
