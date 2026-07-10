@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { DollarSign, CheckSquare, Square, ShieldAlert, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { calculateHELOC, calculateRegularPayment } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
+import { FormattedNumericInput } from './FormattedNumericInput';
+import { formatLocaleCurrency, formatLocaleNumber, formatLocalePercent } from '../utils/formatters';
 
 interface HELOCPlannerProps {
   currentHomeValue: number;
@@ -19,17 +21,17 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
   currentHomeValue: defaultHomeValue,
   currentBalance: defaultBalance
 }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   // Financial inputs
-  const [homeValue, setHomeValue] = useState<number>(defaultHomeValue || 650000);
-  const [mortgageBalance, setMortgageBalance] = useState<number>(defaultBalance || 350000);
-  const [helocPrimeRate, setHelocPrimeRate] = useState<number>(5.95); // Canada Prime rate default
-  const [helocPremium, setHelocPremium] = useState<number>(0.5); // Prime + 0.5% is standard
+  const [homeValue, setHomeValue] = useState<number | ''>(defaultHomeValue || 650000);
+  const [mortgageBalance, setMortgageBalance] = useState<number | ''>(defaultBalance || 350000);
+  const [helocPrimeRate, setHelocPrimeRate] = useState<number | ''>(5.95); // Canada Prime rate default
+  const [helocPremium, setHelocPremium] = useState<number | ''>(0.5); // Prime + 0.5% is standard
 
   // Custom addition states
   const [customRenoName, setCustomRenoName] = useState<string>('');
-  const [customRenoCost, setCustomRenoCost] = useState<number>(0);
+  const [customRenoCost, setCustomRenoCost] = useState<number | ''>('');
 
   // Reno Checklist
   const [renoItems, setRenoItems] = useState<RenoItem[]>([
@@ -63,7 +65,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
   // Add custom reno item
   const handleAddCustomItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customRenoName.trim() || customRenoCost <= 0) return;
+    if (!customRenoName.trim() || customRenoCost === '' || customRenoCost <= 0) return;
     
     const newItem: RenoItem = {
       id: 'custom_' + Date.now(),
@@ -74,7 +76,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
     
     setRenoItems(prev => [...prev, newItem]);
     setCustomRenoName('');
-    setCustomRenoCost(0);
+    setCustomRenoCost('');
   };
 
   // Move item up in the list
@@ -101,13 +103,19 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
     });
   };
 
+  // Effective parameters for math calculations
+  const effHomeValue = homeValue === '' ? 0 : homeValue;
+  const effMortgageBalance = mortgageBalance === '' ? 0 : mortgageBalance;
+  const effPrimeRate = helocPrimeRate === '' ? 0 : helocPrimeRate;
+  const effPremium = helocPremium === '' ? 0 : helocPremium;
+
   // Calculations
   const helocDetails = useMemo(() => {
     return calculateHELOC({
-      homeValue,
-      currentMortgageBalance: mortgageBalance
+      homeValue: effHomeValue,
+      currentMortgageBalance: effMortgageBalance
     });
-  }, [homeValue, mortgageBalance]);
+  }, [effHomeValue, effMortgageBalance]);
 
   // Compute prioritized items and funded status
   const prioritizedRenoItems = useMemo(() => {
@@ -134,13 +142,13 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
     return renoItems.reduce((sum, item) => item.selected ? sum + item.cost : sum, 0);
   }, [renoItems]);
 
-  const helocRate = helocPrimeRate + helocPremium;
+  const helocRate = effPrimeRate + effPremium;
 
   // Total LTV after adding Reno to mortgage / HELOC
   const ltvAfterReno = useMemo(() => {
-    const totalBorrowing = mortgageBalance + renoTotal;
-    return (totalBorrowing / homeValue) * 100;
-  }, [mortgageBalance, renoTotal, homeValue]);
+    const totalBorrowing = effMortgageBalance + renoTotal;
+    return effHomeValue > 0 ? (totalBorrowing / effHomeValue) * 100 : 0;
+  }, [effMortgageBalance, renoTotal, effHomeValue]);
 
   // Estimate borrowing costs for Reno total
   const borrowingCosts = useMemo(() => {
@@ -181,15 +189,14 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label">
                   <span>{t.heloc.homeValue}</span>
-                  <span className="form-label-val">${homeValue.toLocaleString()}</span>
+                  <span className="form-label-val">{formatLocaleCurrency(homeValue || 0, locale)}</span>
                 </label>
                 <div className="form-input-wrapper">
                   <DollarSign size={14} className="form-input-prefix" />
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input form-input-with-prefix" 
                     value={homeValue} 
-                    onChange={(e) => setHomeValue(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(val) => setHomeValue(val)}
                   />
                 </div>
               </div>
@@ -198,15 +205,14 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label">
                   <span>{t.heloc.outstandingMortgage}</span>
-                  <span className="form-label-val">${mortgageBalance.toLocaleString()}</span>
+                  <span className="form-label-val">{formatLocaleCurrency(mortgageBalance || 0, locale)}</span>
                 </label>
                 <div className="form-input-wrapper">
                   <DollarSign size={14} className="form-input-prefix" />
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     className="form-input form-input-with-prefix" 
                     value={mortgageBalance} 
-                    onChange={(e) => setMortgageBalance(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(val) => setMortgageBalance(val)}
                   />
                 </div>
               </div>
@@ -216,22 +222,20 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
             <div className="flex gap-4">
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.heloc.primeRate}</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
+                <FormattedNumericInput 
                   className="form-input" 
                   value={helocPrimeRate} 
-                  onChange={(e) => setHelocPrimeRate(parseFloat(e.target.value) || 0)} 
+                  onChange={(val) => setHelocPrimeRate(val)} 
+                  isDecimal={true}
                 />
               </div>
               <div className="form-group w-full" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem' }}>{t.heloc.helocPremium}</label>
-                <input 
-                  type="number" 
-                  step="0.05" 
+                <FormattedNumericInput 
                   className="form-input" 
                   value={helocPremium} 
-                  onChange={(e) => setHelocPremium(parseFloat(e.target.value) || 0)} 
+                  onChange={(val) => setHelocPremium(val)} 
+                  isDecimal={true}
                 />
               </div>
             </div>
@@ -301,6 +305,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                     <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
                       <input 
                         type="text" 
+                        className="project-name-input"
                         value={item.name} 
                         onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
                         style={{ 
@@ -336,7 +341,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                             }}
                           >
                             {item.fundingStatus === 'fully_funded' ? t.heloc.fullyFunded : 
-                             item.fundingStatus === 'partially_funded' ? `${t.heloc.partiallyFunded} ($${Math.round(item.fundedAmount).toLocaleString()})` : t.heloc.unfunded}
+                             item.fundingStatus === 'partially_funded' ? `${t.heloc.partiallyFunded} (${formatLocaleCurrency(Math.round(item.fundedAmount), locale)})` : t.heloc.unfunded}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             {t.heloc.priority} #{index + 1}
@@ -350,10 +355,9 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                     {/* Editable Cost */}
                     <div className="flex align-center" style={{ gap: '0.25rem', width: '100px' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>$</span>
-                      <input 
-                        type="number" 
+                      <FormattedNumericInput 
                         value={item.cost} 
-                        onChange={(e) => handleUpdateItem(item.id, 'cost', Math.max(0, parseInt(e.target.value) || 0))}
+                        onChange={(val) => handleUpdateItem(item.id, 'cost', val === '' ? 0 : val)}
                         style={{ 
                           background: 'transparent',
                           border: 'none',
@@ -405,12 +409,11 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                 />
                 <div className="form-input-wrapper" style={{ flexGrow: 1 }}>
                   <DollarSign size={14} className="form-input-prefix" />
-                  <input 
-                    type="number" 
+                  <FormattedNumericInput 
                     placeholder={t.heloc.cost} 
                     className="form-input form-input-with-prefix" 
-                    value={customRenoCost || ''}
-                    onChange={(e) => setCustomRenoCost(parseInt(e.target.value) || 0)}
+                    value={customRenoCost}
+                    onChange={(val) => setCustomRenoCost(val)}
                   />
                 </div>
                 <button type="submit" className="btn btn-secondary" style={{ padding: '0.75rem' }}>
@@ -431,24 +434,24 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '1.25rem 0' }}>
               <div className="flex justify-between align-center">
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.currentLtv}</span>
-                <span style={{ fontWeight: 600 }}>{helocDetails.currentLtvPercent}%</span>
+                <span style={{ fontWeight: 600 }}>{formatLocalePercent(helocDetails.currentLtvPercent, locale)}</span>
               </div>
               <div className="flex justify-between align-center">
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.projectedLtv}</span>
-                <span style={{ fontWeight: 600 }}>{ltvAfterReno.toFixed(1)}%</span>
+                <span style={{ fontWeight: 600 }}>{formatLocalePercent(ltvAfterReno, locale)}</span>
               </div>
               <div className="flex justify-between align-center">
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.helocLimit65}</span>
-                <span style={{ fontWeight: 600 }}>${helocDetails.maxHelocLtvAmount.toLocaleString()}</span>
+                <span style={{ fontWeight: 600 }}>{formatLocaleCurrency(helocDetails.maxHelocLtvAmount, locale)}</span>
               </div>
               <div className="flex justify-between align-center">
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.heloc.borrowingLimit80}</span>
-                <span style={{ fontWeight: 600 }}>${helocDetails.maxTotalLtvAmount.toLocaleString()}</span>
+                <span style={{ fontWeight: 600 }}>{formatLocaleCurrency(helocDetails.maxTotalLtvAmount, locale)}</span>
               </div>
               <div className="flex justify-between align-center" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>{t.heloc.helocCapacity}</span>
                 <strong style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-                  ${helocDetails.maxAvailableHeloc.toLocaleString()}
+                  {formatLocaleCurrency(helocDetails.maxAvailableHeloc, locale)}
                 </strong>
               </div>
             </div>
@@ -470,7 +473,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                 <div>
                   <strong style={{ display: 'block', fontSize: '0.85rem' }}>{t.heloc.insufficientCapacity}</strong>
                   <span style={{ fontSize: '0.75rem' }}>
-                    {t.heloc.insufficientCapacityDesc.replace('${budget}', renoTotal.toLocaleString()).replace('${capacity}', helocDetails.maxAvailableHeloc.toLocaleString())}
+                    {t.heloc.insufficientCapacityDesc.replace('{budget}', formatLocaleCurrency(renoTotal, locale)).replace('{capacity}', formatLocaleCurrency(helocDetails.maxAvailableHeloc, locale))}
                   </span>
                 </div>
               </div>
@@ -491,7 +494,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
           <div className="card card-accent">
             <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.heloc.financingCost}</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              {t.heloc.financingCostDesc.replace('${amount}', renoTotal.toLocaleString())}
+              {t.heloc.financingCostDesc.replace('{amount}', formatLocaleCurrency(renoTotal, locale))}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -500,10 +503,10 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
               <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>
                 <div className="flex justify-between align-center mb-4">
                   <strong style={{ fontSize: '0.95rem' }}>{t.heloc.interestOnlyHeloc}</strong>
-                  <span className="badge badge-info">{helocRate.toFixed(2)}% {t.heloc.rate}</span>
+                  <span className="badge badge-info">{formatLocalePercent(helocRate, locale)} {t.heloc.rate}</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-                  ${borrowingCosts.interestOnlyMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatLocaleCurrency(borrowingCosts.interestOnlyMonthly, locale)}
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> {t.heloc.perMonth}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
@@ -518,7 +521,7 @@ export const HELOCPlanner: React.FC<HELOCPlannerProps> = ({
                   <span className="badge badge-success">{t.heloc.refiRate}</span>
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-success)' }}>
-                  ${borrowingCosts.amortizedMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatLocaleCurrency(borrowingCosts.amortizedMonthly, locale)}
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}> {t.heloc.perMonth}</span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>

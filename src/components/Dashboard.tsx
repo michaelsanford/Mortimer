@@ -3,6 +3,8 @@ import { Landmark, TrendingDown, Clock, ShieldAlert, Award } from 'lucide-react'
 import { calculateAmortization, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
+import { FormattedNumericInput } from './FormattedNumericInput';
+import { formatLocaleCurrency, formatLocaleNumber, formatLocalePercent } from '../utils/formatters';
 
 interface DashboardProps {
   profile: MortgageInputs | null;
@@ -11,15 +13,15 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSaveProfile }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   // Onboarding Tour states
   const [onboardingMode, setOnboardingMode] = useState<'welcome' | 'tour'>('welcome');
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [tourBalance, setTourBalance] = useState<number>(450000);
-  const [tourRate, setTourRate] = useState<number>(4.85);
-  const [tourAmortYears, setTourAmortYears] = useState<number>(25);
-  const [tourAmortMonths, setTourAmortMonths] = useState<number>(0);
+  const [tourBalance, setTourBalance] = useState<number | ''>(450000);
+  const [tourRate, setTourRate] = useState<number | ''>(4.85);
+  const [tourAmortYears, setTourAmortYears] = useState<number | ''>(25);
+  const [tourAmortMonths, setTourAmortMonths] = useState<number | ''>(0);
   const [tourFreq, setTourFreq] = useState<'monthly' | 'semi_monthly' | 'regular_bi_weekly' | 'accelerated_bi_weekly' | 'regular_weekly' | 'accelerated_weekly'>('monthly');
 
   // Amortization is recomputed only when the profile changes, not on every render.
@@ -75,10 +77,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
         setCurrentStep(currentStep + 1);
       } else {
         onSaveProfile({
-          principal: tourBalance,
-          interestRate: tourRate,
-          amortizationYears: tourAmortYears,
-          amortizationMonths: tourAmortMonths,
+          principal: tourBalance === '' ? 450000 : tourBalance,
+          interestRate: tourRate === '' ? 4.85 : tourRate,
+          amortizationYears: tourAmortYears === '' ? 25 : tourAmortYears,
+          amortizationMonths: tourAmortMonths === '' ? 0 : tourAmortMonths,
           paymentFrequency: tourFreq,
         });
       }
@@ -89,6 +91,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
         setCurrentStep(currentStep - 1);
       }
     };
+
+    const isNextDisabled = (() => {
+      if (currentStep === 1) return tourBalance === '';
+      if (currentStep === 2) return tourRate === '';
+      if (currentStep === 3) return tourAmortYears === '' || tourAmortMonths === '';
+      return false;
+    })();
 
     return (
       <div style={{ maxWidth: '550px', margin: '2rem auto', animation: 'fadeIn 0.3s ease-out' }}>
@@ -112,12 +121,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                 <div className="form-group">
                   <div className="form-input-wrapper" style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>$</span>
-                    <input 
-                      type="number" 
+                    <FormattedNumericInput 
                       className="form-input" 
                       style={{ paddingLeft: '2rem' }}
                       value={tourBalance} 
-                      onChange={(e) => setTourBalance(Math.max(0, parseInt(e.target.value) || 0))}
+                      onChange={(val) => setTourBalance(val)}
                     />
                   </div>
                 </div>
@@ -130,13 +138,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>{t.dashboard.step2Desc}</p>
                 <div className="form-group">
                   <div className="form-input-wrapper" style={{ position: 'relative' }}>
-                    <input 
-                      type="number" 
-                      step="0.01"
+                    <FormattedNumericInput 
                       className="form-input" 
                       style={{ paddingRight: '2rem' }}
                       value={tourRate} 
-                      onChange={(e) => setTourRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                      onChange={(val) => setTourRate(val)}
+                      isDecimal={true}
                     />
                     <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>%</span>
                   </div>
@@ -151,20 +158,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                 <div className="flex gap-4">
                   <div className="form-group w-full">
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.paydown.years}</label>
-                    <input 
-                      type="number" 
+                    <FormattedNumericInput 
                       className="form-input" 
                       value={tourAmortYears} 
-                      onChange={(e) => setTourAmortYears(Math.max(1, parseInt(e.target.value) || 25))}
+                      onChange={(val) => setTourAmortYears(val)}
                     />
                   </div>
                   <div className="form-group w-full">
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>{t.paydown.months}</label>
-                    <input 
-                      type="number" 
+                    <FormattedNumericInput 
                       className="form-input" 
                       value={tourAmortMonths} 
-                      onChange={(e) => setTourAmortMonths(Math.max(0, Math.min(11, parseInt(e.target.value) || 0)))}
+                      onChange={(val) => setTourAmortMonths(val)}
                     />
                   </div>
                 </div>
@@ -215,6 +220,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                 type="button" 
                 className="btn btn-primary" 
                 onClick={handleNext}
+                disabled={isNextDisabled}
+                style={{ opacity: isNextDisabled ? 0.5 : 1, cursor: isNextDisabled ? 'not-allowed' : 'pointer' }}
               >
                 {currentStep === totalSteps ? t.dashboard.completeTour : t.dashboard.nextStep}
               </button>
@@ -308,7 +315,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
               fontSize: '1.5rem',
               fontWeight: 800
             }}>
-              {overallPaidPercent.toFixed(1)}%
+              {formatLocalePercent(overallPaidPercent, locale)}
             </div>
           </div>
           <p style={{ fontSize: '0.85rem', margin: 0 }}>
@@ -323,12 +330,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
             <div className="flex justify-between align-center">
               <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.principal}</span>
               <span style={{ fontWeight: 600, fontFamily: 'var(--font-heading)' }}>
-                ${profile.principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatLocaleCurrency(profile.principal, locale)}
               </span>
             </div>
             <div className="flex justify-between align-center">
               <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.interestRate}</span>
-              <span style={{ fontWeight: 600 }}>{profile.interestRate.toFixed(2)}%</span>
+              <span style={{ fontWeight: 600 }}>{formatLocalePercent(profile.interestRate, locale)}</span>
             </div>
             <div className="flex justify-between align-center">
               <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.paymentFrequency}</span>
@@ -337,14 +344,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
             <div className="flex justify-between align-center">
               <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.regularPayment}</span>
               <span style={{ fontWeight: 600, color: 'var(--color-primary)', fontFamily: 'var(--font-heading)' }}>
-                ${results.schedule[0]?.payment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatLocaleCurrency(results.schedule[0]?.payment, locale)}
               </span>
             </div>
             {profile.householdIncome ? (
               <div className="flex justify-between align-center">
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t.dashboard.householdIncome}</span>
                 <span style={{ fontWeight: 600, fontFamily: 'var(--font-heading)' }}>
-                  ${profile.householdIncome.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>({profile.incomeType === 'net' ? t.dashboard.incomeNet : t.dashboard.incomeGross})</span>
+                  {formatLocaleCurrency(profile.householdIncome, locale)} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>({profile.incomeType === 'net' ? t.dashboard.incomeNet : t.dashboard.incomeGross})</span>
                 </span>
               </div>
             ) : null}
@@ -368,7 +375,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                     </div>
                     <div>
                       <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-accent)' }}>
-                        {timeSaved.toFixed(1)} {t.dashboard.years}
+                        {formatLocaleNumber(timeSaved, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} {t.dashboard.years}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.dashboard.yearsSlipped}</div>
                     </div>
@@ -381,7 +388,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                     </div>
                     <div>
                       <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'var(--color-success)' }}>
-                        ${interestSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {formatLocaleCurrency(interestSaved, locale)}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.dashboard.savedInInterest}</div>
                     </div>
@@ -421,16 +428,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <span>{t.dashboard.mortgageBalance}</span>
-                  <span>{((profile.originalPrincipal - profile.principal) / profile.originalPrincipal * 100).toFixed(1)}{t.dashboard.percentPaid}</span>
+                  <span>{formatLocaleNumber((profile.originalPrincipal - profile.principal) / profile.originalPrincipal * 100, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}{t.dashboard.percentPaid}</span>
                 </div>
                 <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
-                  ${profile.principal.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t.dashboard.of} ${profile.originalPrincipal.toLocaleString()}</span>
+                  {formatLocaleCurrency(profile.principal, locale)} <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t.dashboard.of} {formatLocaleCurrency(profile.originalPrincipal, locale)}</span>
                 </div>
                 <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ width: `${Math.min(100, Math.max(0, ((profile.originalPrincipal - profile.principal) / profile.originalPrincipal * 100)))}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))' }} />
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
-                  {t.dashboard.paidOff} ${(profile.originalPrincipal - profile.principal).toLocaleString()}
+                  {t.dashboard.paidOff} {formatLocaleCurrency(profile.originalPrincipal - profile.principal, locale)}
                 </div>
               </div>
             ) : (
@@ -485,7 +492,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div className="flex justify-between" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     <span>{t.dashboard.currentTermProgress}</span>
-                    <span>{percentElapsed.toFixed(0)}{t.dashboard.percentElapsed}</span>
+                    <span>{formatLocaleNumber(percentElapsed, locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}{t.dashboard.percentElapsed}</span>
                   </div>
                   <div style={{ fontSize: '1.15rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)' }}>
                     {remainingMonths} {t.dashboard.months} <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>{t.dashboard.of} {originalMonths} {t.dashboard.mos}</span>
@@ -517,7 +524,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
           <ul style={{ paddingLeft: '1.25rem', margin: '1rem 0 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {interestSaved > 0 ? (
               <li style={{ fontSize: '0.95rem' }}>
-                <strong className="color-success">{t.dashboard.greatJob}</strong> {t.dashboard.savingInterest.replace('${amount}', interestSaved.toLocaleString(undefined, { maximumFractionDigits: 2 }))}
+                <strong className="color-success">{t.dashboard.greatJob}</strong> {t.dashboard.savingInterest.replace('{amount}', formatLocaleCurrency(interestSaved, locale))}
               </li>
             ) : (
               <li style={{ fontSize: '0.95rem' }}>
@@ -530,7 +537,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate, onSav
               </li>
             )}
             <li style={{ fontSize: '0.95rem' }}>
-              {t.dashboard.interestRatio} <strong>{((results.totalInterestPaid / totalPrincipal) * 100).toFixed(0)}%</strong>. {t.dashboard.meansForEveryDollar.replace('${amount}', (results.totalInterestPaid / totalPrincipal).toFixed(2))}
+              {t.dashboard.interestRatio} <strong>{formatLocalePercent((results.totalInterestPaid / totalPrincipal) * 100, locale)}</strong>. {t.dashboard.meansForEveryDollar.replace('{amount}', formatLocaleCurrency(results.totalInterestPaid / totalPrincipal, locale))}
             </li>
           </ul>
         </div>

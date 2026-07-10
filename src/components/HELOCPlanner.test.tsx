@@ -58,7 +58,7 @@ describe('HELOCPlanner Component Integration Tests', () => {
 
     const form = testEnv.container.querySelector('form') as HTMLFormElement;
     const nameInput = form.querySelector('input[type="text"]') as HTMLInputElement;
-    const costInput = form.querySelector('input[type="number"]') as HTMLInputElement;
+    const costInput = form.querySelectorAll('input')[1] as HTMLInputElement;
 
     await act(async () => {
       typeInto(nameInput, 'Full Gut Renovation');
@@ -91,7 +91,7 @@ describe('HELOCPlanner Component Integration Tests', () => {
     await testEnv.render(<HELOCPlanner currentHomeValue={650000} currentBalance={350000} />);
 
     // Get the first two project inputs to verify names
-    const names = () => Array.from(testEnv.container.querySelectorAll('input[type="text"]'))
+    const names = () => Array.from(testEnv.container.querySelectorAll('.project-name-input'))
       .map(i => (i as HTMLInputElement).value);
     
     // Initial order: Kitchen, Bathroom, Basement...

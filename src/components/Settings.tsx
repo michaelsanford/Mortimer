@@ -393,9 +393,15 @@ export const Settings: React.FC<SettingsProps> = ({ onClearProfile, onImportSucc
             </h3>
             <div style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
               <p style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
-                {t.settings.disclaimerText}
+                {t.settings.disclaimerText1}
               </p>
-              <p style={{ margin: 0 }}>
+              <p style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
+                {t.settings.disclaimerText2}
+              </p>
+              <p style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.5rem' }}>
+                {t.settings.disclaimerText3}
+              </p>
+              <p style={{ margin: '1rem 0 0 0' }}>
                 {t.settings.disclaimerLong}
               </p>
             </div>

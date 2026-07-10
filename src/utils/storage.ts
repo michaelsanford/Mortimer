@@ -351,6 +351,29 @@ export function clearAllAppData(): void {
   localStorage.removeItem(KEYS.IS_LOCKED);
   localStorage.removeItem(KEYS.RENO_LIST);
   localStorage.removeItem(KEYS.COMPARE_PROFILES);
+  localStorage.removeItem('mortimer_locale');
+
+  // Deregister service workers if in browser
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      })
+      .catch((err) => console.error('[SW] Unregister failed:', err));
+  }
+
+  // Clear cache storage if in browser
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    caches.keys()
+      .then((names) => {
+        for (const name of names) {
+          caches.delete(name);
+        }
+      })
+      .catch((err) => console.error('[Cache] Clear failed:', err));
+  }
 }
 
 // Export data to a JSON string
