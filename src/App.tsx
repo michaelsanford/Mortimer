@@ -273,43 +273,56 @@ function App() {
             ))}
           </nav>
 
-          {/* Language Picker */}
-          <div 
-            className="language-dropdown-container"
-            onClick={(e) => e.stopPropagation()}
-          >
+          {/* Header Actions */}
+          <div className="header-actions">
+            {/* Print Report Action */}
             <button
-              type="button"
-              className={`language-dropdown-trigger ${isLangOpen ? 'open' : ''}`}
-              onClick={() => setIsLangOpen(!isLangOpen)}
-              aria-expanded={isLangOpen}
-              aria-haspopup="listbox"
-              aria-label={t.language.label}
+              onClick={() => window.print()}
+              className="no-print header-action-btn"
+              title={t.dashboard?.printReport || 'Print / Export PDF'}
+              aria-label={t.dashboard?.printReport || 'Print / Export PDF'}
             >
-              <Globe size={14} />
-              <span>{languages.find(l => l.code === locale)?.short || locale.toUpperCase()}</span>
-              <ChevronDown size={12} className="language-dropdown-arrow" />
+              <Printer size={16} />
             </button>
 
-            {isLangOpen && (
-              <div className="language-dropdown-menu" role="listbox" aria-label={t.language.label}>
-                {languages.map(({ code, label }) => (
-                  <button
-                    key={code}
-                    type="button"
-                    role="option"
-                    aria-selected={locale === code}
-                    className={`language-dropdown-item ${locale === code ? 'active' : ''}`}
-                    onClick={() => {
-                      setLocale(code);
-                      setIsLangOpen(false);
-                    }}
-                  >
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Language Picker */}
+            <div 
+              className="language-dropdown-container"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={`language-dropdown-trigger ${isLangOpen ? 'open' : ''}`}
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                aria-expanded={isLangOpen}
+                aria-haspopup="listbox"
+                aria-label={t.language.label}
+              >
+                <Globe size={14} />
+                <span>{languages.find(l => l.code === locale)?.short || locale.toUpperCase()}</span>
+                <ChevronDown size={12} className="language-dropdown-arrow" />
+              </button>
+
+              {isLangOpen && (
+                <div className="language-dropdown-menu" role="listbox" aria-label={t.language.label}>
+                  {languages.map(({ code, label }) => (
+                    <button
+                      key={code}
+                      type="button"
+                      role="option"
+                      aria-selected={locale === code}
+                      className={`language-dropdown-item ${locale === code ? 'active' : ''}`}
+                      onClick={() => {
+                        setLocale(code);
+                        setIsLangOpen(false);
+                      }}
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -409,40 +422,7 @@ function App() {
         </div>
       </footer>
 
-      {/* Floating Print Report Action */}
-      <button
-        onClick={() => window.print()}
-        className="no-print"
-        style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          width: '3.5rem',
-          height: '3.5rem',
-          borderRadius: '50%',
-          backgroundColor: 'var(--color-primary)',
-          color: '#ffffff',
-          border: 'none',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          transition: 'transform 0.2s ease, background-color 0.2s ease',
-        }}
-        title={t.dashboard?.printReport || 'Print / Export PDF'}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.1)';
-          e.currentTarget.style.backgroundColor = 'var(--color-primary-hover, var(--color-primary))';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.backgroundColor = 'var(--color-primary)';
-        }}
-      >
-        <Printer size={22} />
-      </button>
+
     </>
   );
 }
