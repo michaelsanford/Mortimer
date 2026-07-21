@@ -58,26 +58,107 @@ describe('RateComparer Component Integration Tests', () => {
     expect(testEnv.container.innerHTML).toContain('Offer 4');
   });
 
-  it('allows removing an offer', async () => {
+  it('allows removing an offer after confirmation', async () => {
+    // Stub window.confirm to return true
+    const confirmStub = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirmStub);
+
     await testEnv.render(<RateComparer profile={null} onSaveProfile={() => {}} />);
 
     // Check initially Option C exists
     expect(testEnv.container.innerHTML).toContain('Option C');
 
-    // Find trash buttons (buttons containing svg icon but no text)
-    const buttons = Array.from(testEnv.container.querySelectorAll('button'));
-    const trashButtons = buttons.filter(b => b.querySelector('svg') && !b.textContent?.trim());
+    // Find trash buttons
+    const trashButtons = testEnv.container.querySelectorAll('[data-testid="delete-offer-btn"]');
     expect(trashButtons.length).toBe(3); // All 3 offers have delete buttons
 
-    const trashBtn = trashButtons[2]; // delete Option C
+    const trashBtn = trashButtons[2] as HTMLButtonElement; // delete Option C
     
     await act(async () => {
       trashBtn.click();
     });
 
+    expect(confirmStub).toHaveBeenCalled();
     // Verify Option C was removed
     const remainingOptionC = testEnv.container.querySelectorAll('input[value="Option C"]');
     expect(remainingOptionC.length).toBe(0);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('does not remove an offer if delete confirmation is cancelled', async () => {
+    // Stub window.confirm to return false
+    const confirmStub = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmStub);
+
+    await testEnv.render(<RateComparer profile={null} onSaveProfile={() => {}} />);
+
+    // Check initially Option C exists
+    expect(testEnv.container.innerHTML).toContain('Option C');
+
+    // Find trash buttons
+    const trashButtons = testEnv.container.querySelectorAll('[data-testid="delete-offer-btn"]');
+    const trashBtn = trashButtons[2] as HTMLButtonElement; // delete Option C
+    
+    await act(async () => {
+      trashBtn.click();
+    });
+
+    expect(confirmStub).toHaveBeenCalled();
+    // Verify Option C was NOT removed
+    expect(testEnv.container.innerHTML).toContain('Option C');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('allows toggling offer visibility and updates results table and winners', async () => {
+    await testEnv.render(<RateComparer profile={null} onSaveProfile={() => {}} />);
+
+    // Check initially Option B columns exist in the comparison results
+    expect(testEnv.container.innerHTML).toContain('Option B');
+
+    // Find toggle buttons
+    const toggleButtons = testEnv.container.querySelectorAll('[data-testid="toggle-visibility-btn"]');
+    expect(toggleButtons.length).toBe(3);
+
+    const toggleBtn = toggleButtons[1] as HTMLButtonElement; // Toggle Option B visibility
+
+    await act(async () => {
+      toggleBtn.click();
+    });
+
+    // Option B should no longer be visible in the results table header
+    const headers = Array.from(testEnv.container.querySelectorAll('th'));
+    const optionBHeader = headers.find(h => h.textContent?.trim() === 'Option B');
+    expect(optionBHeader).toBeUndefined();
+
+    // Verify option B remains in the input section config
+    const optionBInput = testEnv.container.querySelector('input[value="Option B"]');
+    expect(optionBInput).toBeDefined();
+  });
+
+  it('shows no offers selected empty state when all offers are toggled invisible', async () => {
+    await testEnv.render(<RateComparer profile={null} onSaveProfile={() => {}} />);
+
+    const toggleButtons = testEnv.container.querySelectorAll('[data-testid="toggle-visibility-btn"]');
+    
+    // Toggle all 3 offers invisible
+    await act(async () => {
+      (toggleButtons[0] as HTMLButtonElement).click();
+    });
+    await act(async () => {
+      (toggleButtons[1] as HTMLButtonElement).click();
+    });
+    await act(async () => {
+      (toggleButtons[2] as HTMLButtonElement).click();
+    });
+
+    // Check that empty state message is shown
+    expect(testEnv.container.innerHTML).toContain('No offers selected for comparison');
+    
+    // Check that table-container is not rendered
+    const tableContainer = testEnv.container.querySelector('.table-container');
+    expect(tableContainer).toBeNull();
   });
 
   it('computes overall best offer and displays overall best row', async () => {

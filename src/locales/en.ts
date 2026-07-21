@@ -251,6 +251,8 @@ export const en = {
     pending: 'Pending',
     saving: 'Saving...',
     renewalTab: 'Renewal Rate Comparer',
+    confirmDeleteOffer: 'Are you sure you want to delete "{name}"?',
+    noOffersSelected: 'No offers selected for comparison. Toggle them visible in the renewal parameters above.',
     refinanceTab: 'Refinance Penalty & Break-Even',
     renewalParams: 'Renewal Parameters',
     balanceToRenew: 'Mortgage Balance to Renew',

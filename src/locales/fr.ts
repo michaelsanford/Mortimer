@@ -251,6 +251,8 @@ export const fr = {
     pending: 'En attente',
     saving: 'Enregistrement...',
     renewalTab: 'Comparateur de taux de renouvellement',
+    confirmDeleteOffer: 'Êtes-vous sûr de vouloir supprimer "{name}" ?',
+    noOffersSelected: 'Aucune offre sélectionnée pour comparaison. Activez leur visibilité dans les paramètres de renouvellement ci-dessus.',
     refinanceTab: 'Pénalité de refinancement et seuil de rentabilité',
     renewalParams: 'Paramètres de renouvellement',
     balanceToRenew: 'Solde hypothécaire à renouveler',
