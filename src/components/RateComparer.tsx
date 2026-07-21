@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2, Trophy, Award, ArrowUp } from 'lucide-react';
+import { DollarSign, ShieldAlert, Sparkles, Plus, Trash2, Trophy, Award, ArrowUp, Eye, EyeOff } from 'lucide-react';
 import { calculateRefinance, calculateRegularPayment, getPeriodInterestRate, getPaymentsPerYear, calculateRemainingMonths } from '../utils/mortgageMath';
 import type { MortgageInputs, PaymentFrequency } from '../utils/mortgageMath';
 import { useI18n } from '../utils/i18n';
@@ -64,6 +64,7 @@ interface Offer {
   term: number;
   type: 'fixed' | 'variable';
   variableType?: 'vrm' | 'arm';
+  visible?: boolean;
 }
 
 interface RateComparerProps {
@@ -202,7 +203,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const handleRemoveOffer = (id: string) => {
     if (offers.length <= 1) return;
-    setOffers(prev => prev.filter(o => o.id !== id));
+    const target = offers.find(o => o.id === id);
+    const targetName = target ? target.name : '';
+    const confirmMsg = t.rate.confirmDeleteOffer
+      ? t.rate.confirmDeleteOffer.replace('{name}', targetName)
+      : `Are you sure you want to delete "${targetName}"?`;
+    if (window.confirm(confirmMsg)) {
+      setOffers(prev => prev.filter(o => o.id !== id));
+    }
   };
 
   const handleUpdateOffer = (id: string, field: keyof Offer, value: any) => {
@@ -433,9 +441,14 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     }));
   }, [effRenewalBalance, renewalFrequency, effRenewalAmortizationYears, effRenewalAmortizationMonths, offers]);
 
+  // Filter only visible/considered results for winners and table/charts
+  const visibleRenewalResults = useMemo(() => {
+    return renewalResults.filter(o => o.visible !== false);
+  }, [renewalResults]);
+
   // 1.5. Calculate the best option for each metric in renewal results
   const bestMetricOffers = useMemo(() => {
-    if (renewalResults.length <= 1) return {};
+    if (visibleRenewalResults.length <= 1) return {};
 
     const findBest = (
       extractor: (item: typeof renewalResults[0]) => number | null | undefined,
@@ -444,7 +457,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       let bestVal: number | null = null;
       let worstVal: number | null = null;
 
-      for (const item of renewalResults) {
+      for (const item of visibleRenewalResults) {
         const val = extractor(item);
         if (val === null || val === undefined || isNaN(val)) continue;
         if (bestVal === null || comparator(val, bestVal)) {
@@ -458,7 +471,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       if (bestVal === worstVal) return [];
 
       const bestIds: string[] = [];
-      for (const item of renewalResults) {
+      for (const item of visibleRenewalResults) {
         const val = extractor(item);
         if (val === bestVal) {
           bestIds.push(item.id);
@@ -484,11 +497,11 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
       endingBalance: findBest(o => o.results.endingBalance, (a, b) => a < b),
       amortAtEnd: findBest(getRemainingAmortMonths, (a, b) => a < b),
     };
-  }, [renewalResults, effHouseholdIncome, renewalPaymentsPerYear]);
+  }, [visibleRenewalResults, effHouseholdIncome, renewalPaymentsPerYear]);
 
   // 1.7. Compute overall best offer(s)
   const overallBestOffers = useMemo(() => {
-    if (renewalResults.length <= 1) return [];
+    if (visibleRenewalResults.length <= 1) return [];
 
     const counts: Record<string, number> = {};
     for (const key of Object.keys(bestMetricOffers)) {
@@ -512,12 +525,12 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
     // If there is a tie where all offers have the same max wins, or no category was won,
     // we don't highlight any option as overall best.
-    if (maxCount === 0 || winners.length === renewalResults.length) {
+    if (maxCount === 0 || winners.length === visibleRenewalResults.length) {
       return [];
     }
 
     return winners;
-  }, [bestMetricOffers, renewalResults.length]);
+  }, [bestMetricOffers, visibleRenewalResults.length]);
 
   // 2. Refinance calculations
   const refinanceResults = useMemo(() => {
@@ -543,7 +556,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
     const range = maxVal - minVal || 1;
 
-    return renewalResults.map((_, i) => {
+    return visibleRenewalResults.map((_, i) => {
       const val = values[i];
       if (val === null || val === undefined || isNaN(val) || !isFinite(val)) {
         return { bg: 'rgba(148, 163, 184, 0.2)', border: 'rgba(148, 163, 184, 0.5)' };
@@ -574,7 +587,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   ) => {
     const colors = getBarColors(values, lowerIsBetter);
     return {
-      labels: renewalResults.map(o => {
+      labels: visibleRenewalResults.map(o => {
         const isBest = bestIds?.includes(o.id);
         const isTie = bestIds && bestIds.length > 1;
         const prefix = isBest ? (isTie ? '🎖️ ' : '🏆 ') : '';
@@ -626,7 +639,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
   // Generate 6 Comparison Charts Configuration
   const chartRateData = createChartData(
     t.rate.rateTerm,
-    renewalResults.map(o => o.rate),
+    visibleRenewalResults.map(o => o.rate),
     true,
     bestMetricOffers.rate
   );
@@ -634,7 +647,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartPaymentData = createChartData(
     'Payment',
-    renewalResults.map(o => o.results.monthlyPayment),
+    visibleRenewalResults.map(o => o.results.monthlyPayment),
     true,
     bestMetricOffers.payment
   );
@@ -642,7 +655,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartPctIncomeData = createChartData(
     t.rate.percentOfIncome,
-    renewalResults.map(o => effHouseholdIncome > 0 ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100 : 0),
+    visibleRenewalResults.map(o => effHouseholdIncome > 0 ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100 : 0),
     true,
     bestMetricOffers.pctIncome
   );
@@ -650,7 +663,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartInterestData = createChartData(
     t.rate.interestPaidInTerm,
-    renewalResults.map(o => o.results.totalInterest),
+    visibleRenewalResults.map(o => o.results.totalInterest),
     true,
     bestMetricOffers.interest
   );
@@ -658,7 +671,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartPrincipalData = createChartData(
     t.rate.principalPaidInTerm,
-    renewalResults.map(o => o.results.totalPrincipal),
+    visibleRenewalResults.map(o => o.results.totalPrincipal),
     false,
     bestMetricOffers.principal
   );
@@ -666,7 +679,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartEndingBalanceData = createChartData(
     t.rate.endingBalance,
-    renewalResults.map(o => o.results.endingBalance),
+    visibleRenewalResults.map(o => o.results.endingBalance),
     true,
     bestMetricOffers.endingBalance
   );
@@ -674,7 +687,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
   const chartAmortAtEndData = createChartData(
     t.rate.amortAtTermEnd,
-    renewalResults.map(o => {
+    visibleRenewalResults.map(o => {
       const amort = o.results.remainingAmortization;
       return amort ? amort.years + amort.months / 12 : 50; // cap at 50 if never payoff
     }),
@@ -912,8 +925,10 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                   style={{ 
                     background: 'rgba(255,255,255,0.01)', 
                     padding: '0.75rem', 
-                    border: '1px solid var(--border-color)', 
+                    border: offer.visible === false ? '1px dashed var(--border-color)' : '1px solid var(--border-color)', 
                     borderRadius: '0.5rem',
+                    opacity: offer.visible === false ? 0.6 : 1,
+                    transition: 'opacity 0.2s, border-style 0.2s'
                   }}
                 >
                   <div className="flex justify-between align-center" style={{ marginBottom: '0.5rem' }}>
@@ -934,23 +949,43 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                         width: 'auto'
                       }}
                     />
-                    {offers.length > 1 && (
+                    <div className="flex align-center gap-2">
                       <button 
                         type="button" 
-                        onClick={() => handleRemoveOffer(offer.id)}
+                        data-testid="toggle-visibility-btn"
+                        onClick={() => handleUpdateOffer(offer.id, 'visible', offer.visible === false ? true : false)}
                         style={{ 
                           background: 'transparent', 
                           border: 'none', 
-                          color: 'var(--color-danger)', 
+                          color: offer.visible === false ? 'var(--color-text-muted)' : 'var(--color-primary)', 
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           padding: 0
                         }}
+                        title={offer.visible === false ? "Show in comparison" : "Hide from comparison"}
                       >
-                        <Trash2 size={15} />
+                        {offer.visible === false ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
-                    )}
+                      {offers.length > 1 && (
+                        <button 
+                          type="button" 
+                          data-testid="delete-offer-btn"
+                          onClick={() => handleRemoveOffer(offer.id)}
+                          style={{ 
+                            background: 'transparent', 
+                            border: 'none', 
+                            color: 'var(--color-danger)', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: 0
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-2">
@@ -1031,278 +1066,301 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
 
           {/* Renewal Results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
-            <div className="card">
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{t.rate.renewalResults}</h3>
-              <div className="table-container" style={{ overflowX: 'auto' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t.rate.metric}</th>
-                      {renewalResults.map((o, index) => (
-                        <th 
-                          key={o.id} 
-                          style={{ 
-                            color: `hsla(${200 + (index * 35) % 160}, 85%, 65%, 1)`,
-                            textAlign: 'right',
-                            minWidth: '130px'
-                          }}
-                        >
-                          {o.name}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>{t.rate.rateTerm}</td>
-                      {renewalResults.map(o => {
-                        const isBest = bestMetricOffers.rate?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest, bestMetricOffers.rate)}
-                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                <strong>{formatLocalePercent(o.rate, locale)}</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? (o.variableType === 'arm' ? 'ARM' : 'VRM') : t.rate.fix})
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td>{renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}{renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment</td>
-                      {renewalResults.map(o => {
-                        const isBest = bestMetricOffers.payment?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest, bestMetricOffers.payment)}
-                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                {formatLocaleCurrency(o.results.monthlyPayment, locale)}
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    {comparableCurrentPayment !== null && (
-                      <tr>
-                        <td>{t.rate.paymentDelta || 'Delta from Current'}</td>
-                        {renewalResults.map(o => {
-                          const delta = o.results.monthlyPayment - comparableCurrentPayment;
-                          const isNegative = delta < 0;
-                          const formattedDelta = (isNegative ? '-' : '+') + formatLocaleCurrency(Math.abs(delta), locale);
-                          return (
-                            <td key={o.id} style={{ textAlign: 'right', color: isNegative ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 500 }}>
-                              {formattedDelta}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    )}
-                    <tr>
-                      <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
-                      {renewalResults.map(o => {
-                        const pct = effHouseholdIncome > 0
-                          ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100
-                          : null;
-                        const isBest = bestMetricOffers.pctIncome?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest && pct !== null, bestMetricOffers.pctIncome)}
-                              <span style={{ color: isBest && pct !== null ? 'var(--color-success)' : undefined }}>
-                                {pct !== null ? formatLocalePercent(pct, locale) : '—'}
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    {estimatedNetIncome !== null && estimatedNetIncome > 0 && (
-                      <tr>
-                        <td>{t.rate.percentOfIncomeEstNet}</td>
-                        {renewalResults.map(o => {
-                          const pct = (o.results.monthlyPayment * renewalPaymentsPerYear) / estimatedNetIncome * 100;
-                          const isBest = bestMetricOffers.pctIncome?.includes(o.id);
-                          return (
-                            <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                {renderBestIcon(isBest, bestMetricOffers.pctIncome)}
-                                <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                  {formatLocalePercent(pct, locale)}
-                                </span>
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    )}
-                    <tr>
-                      <td>{t.rate.interestPaidInTerm}</td>
-                      {renewalResults.map(o => {
-                        const isBest = bestMetricOffers.interest?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest, bestMetricOffers.interest)}
-                              <span style={{ color: isBest ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                                {formatLocaleCurrency(o.results.totalInterest, locale)}
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td>{t.rate.principalPaidInTerm}</td>
-                      {renewalResults.map(o => {
-                        const isBest = bestMetricOffers.principal?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest, bestMetricOffers.principal)}
-                              <span style={{ color: 'var(--color-success)' }}>
-                                {formatLocaleCurrency(o.results.totalPrincipal, locale)}
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td>{t.rate.endingBalance}</td>
-                      {renewalResults.map(o => {
-                        const isBest = bestMetricOffers.endingBalance?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(isBest, bestMetricOffers.endingBalance)}
-                              <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
-                                <strong>{formatLocaleCurrency(o.results.endingBalance, locale)}</strong>
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    <tr>
-                      <td>{t.rate.amortAtTermEnd}</td>
-                      {renewalResults.map(o => {
-                        const amort = o.results.remainingAmortization;
-                        const isBest = bestMetricOffers.amortAtEnd?.includes(o.id);
-                        return (
-                          <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined, fontWeight: 600 }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                              {renderBestIcon(!!(isBest && amort), bestMetricOffers.amortAtEnd)}
-                              <span style={{ color: isBest && amort ? 'var(--color-success)' : undefined }}>
-                                {amort ? `${amort.years} ${t.rate.yrs}, ${amort.months} ${t.rate.mos}` : t.rate.neverPayoff}
-                              </span>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    {overallBestOffers.length > 0 && (
-                      <tr style={{ borderTop: '2px solid var(--border-color)', background: 'rgba(16, 185, 129, 0.02)' }}>
-                        <td style={{ fontWeight: 'bold', color: 'var(--color-success)' }}>
-                          {getOverallBestLabel(locale)}
-                        </td>
-                        {renewalResults.map(o => {
-                          const isOverallBest = overallBestOffers.includes(o.id);
-                          const isOverallTie = overallBestOffers.length > 1;
-                          return (
-                            <td key={o.id} style={{ textAlign: 'center', background: isOverallBest ? 'rgba(16, 185, 129, 0.08)' : undefined }}>
-                              {isOverallBest ? (
-                                <div style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}>
-                                  {isOverallTie ? (
-                                    <Award size={15} style={{ color: '#cbd5e1', flexShrink: 0 }} />
-                                  ) : (
-                                    <ArrowUp size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                                  )}
+            {visibleRenewalResults.length === 0 ? (
+              <div 
+                className="card" 
+                style={{ 
+                  padding: '3rem 2rem', 
+                  textAlign: 'center', 
+                  color: 'var(--color-text-muted)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '1rem'
+                }}
+              >
+                <ShieldAlert size={36} style={{ color: 'var(--color-warning)' }} />
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, maxWidth: '400px', lineHeight: 1.5 }}>
+                  {t.rate.noOffersSelected || 'No offers selected for comparison. Toggle them visible in the renewal parameters above.'}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="card">
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{t.rate.renewalResults}</h3>
+                  <div className="table-container" style={{ overflowX: 'auto' }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>{t.rate.metric}</th>
+                          {visibleRenewalResults.map((o, index) => (
+                            <th 
+                              key={o.id} 
+                              style={{ 
+                                color: `hsla(${200 + (index * 35) % 160}, 85%, 65%, 1)`,
+                                textAlign: 'right',
+                                minWidth: '130px'
+                              }}
+                            >
+                              {o.name}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>{t.rate.rateTerm}</td>
+                          {visibleRenewalResults.map(o => {
+                            const isBest = bestMetricOffers.rate?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest, bestMetricOffers.rate)}
+                                  <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                    <strong>{formatLocalePercent(o.rate, locale)}</strong> ({o.term} {t.rate.yrs} {o.type === 'variable' ? (o.variableType === 'arm' ? 'ARM' : 'VRM') : t.rate.fix})
+                                  </span>
                                 </div>
-                              ) : null}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        <tr>
+                          <td>{renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}{renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment</td>
+                          {visibleRenewalResults.map(o => {
+                            const isBest = bestMetricOffers.payment?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest, bestMetricOffers.payment)}
+                                  <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                    {formatLocaleCurrency(o.results.monthlyPayment, locale)}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {comparableCurrentPayment !== null && (
+                          <tr>
+                            <td>{t.rate.paymentDelta || 'Delta from Current'}</td>
+                            {visibleRenewalResults.map(o => {
+                              const delta = o.results.monthlyPayment - comparableCurrentPayment;
+                              const isNegative = delta < 0;
+                              const formattedDelta = (isNegative ? '-' : '+') + formatLocaleCurrency(Math.abs(delta), locale);
+                              return (
+                                <td key={o.id} style={{ textAlign: 'right', color: isNegative ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 500 }}>
+                                  {formattedDelta}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        )}
+                        <tr>
+                          <td>{t.rate.percentOfIncome} ({incomeTypeLabel})</td>
+                          {visibleRenewalResults.map(o => {
+                            const pct = effHouseholdIncome > 0
+                              ? (o.results.monthlyPayment * renewalPaymentsPerYear) / effHouseholdIncome * 100
+                              : null;
+                            const isBest = bestMetricOffers.pctIncome?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest && pct !== null, bestMetricOffers.pctIncome)}
+                                  <span style={{ color: isBest && pct !== null ? 'var(--color-success)' : undefined }}>
+                                    {pct !== null ? formatLocalePercent(pct, locale) : '—'}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {estimatedNetIncome !== null && estimatedNetIncome > 0 && (
+                          <tr>
+                            <td>{t.rate.percentOfIncomeEstNet}</td>
+                            {visibleRenewalResults.map(o => {
+                              const pct = (o.results.monthlyPayment * renewalPaymentsPerYear) / estimatedNetIncome * 100;
+                              const isBest = bestMetricOffers.pctIncome?.includes(o.id);
+                              return (
+                                <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    {renderBestIcon(isBest, bestMetricOffers.pctIncome)}
+                                    <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                      {formatLocalePercent(pct, locale)}
+                                    </span>
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        )}
+                        <tr>
+                          <td>{t.rate.interestPaidInTerm}</td>
+                          {visibleRenewalResults.map(o => {
+                            const isBest = bestMetricOffers.interest?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest, bestMetricOffers.interest)}
+                                  <span style={{ color: isBest ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                                    {formatLocaleCurrency(o.results.totalInterest, locale)}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        <tr>
+                          <td>{t.rate.principalPaidInTerm}</td>
+                          {visibleRenewalResults.map(o => {
+                            const isBest = bestMetricOffers.principal?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest, bestMetricOffers.principal)}
+                                  <span style={{ color: 'var(--color-success)' }}>
+                                    {formatLocaleCurrency(o.results.totalPrincipal, locale)}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        <tr>
+                          <td>{t.rate.endingBalance}</td>
+                          {visibleRenewalResults.map(o => {
+                            const isBest = bestMetricOffers.endingBalance?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(isBest, bestMetricOffers.endingBalance)}
+                                  <span style={{ color: isBest ? 'var(--color-success)' : undefined }}>
+                                    <strong>{formatLocaleCurrency(o.results.endingBalance, locale)}</strong>
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        <tr>
+                          <td>{t.rate.amortAtTermEnd}</td>
+                          {visibleRenewalResults.map(o => {
+                            const amort = o.results.remainingAmortization;
+                            const isBest = bestMetricOffers.amortAtEnd?.includes(o.id);
+                            return (
+                              <td key={o.id} style={{ textAlign: 'right', background: isBest ? 'rgba(16, 185, 129, 0.05)' : undefined, fontWeight: 600 }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  {renderBestIcon(!!(isBest && amort), bestMetricOffers.amortAtEnd)}
+                                  <span style={{ color: isBest && amort ? 'var(--color-success)' : undefined }}>
+                                    {amort ? `${amort.years} ${t.rate.yrs}, ${amort.months} ${t.rate.mos}` : t.rate.neverPayoff}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {overallBestOffers.length > 0 && (
+                          <tr style={{ borderTop: '2px solid var(--border-color)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                            <td style={{ fontWeight: 'bold', color: 'var(--color-success)' }}>
+                              {getOverallBestLabel(locale)}
                             </td>
-                          );
-                        })}
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Trophy size={13} style={{ color: 'var(--color-warning)' }} />
-                  <span>{locale === 'fr' ? 'Meilleure option' : 'Best Option'}</span>
+                            {visibleRenewalResults.map(o => {
+                              const isOverallBest = overallBestOffers.includes(o.id);
+                              const isOverallTie = overallBestOffers.length > 1;
+                              return (
+                                <td key={o.id} style={{ textAlign: 'center', background: isOverallBest ? 'rgba(16, 185, 129, 0.08)' : undefined }}>
+                                  {isOverallBest ? (
+                                    <div style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}>
+                                      {isOverallTie ? (
+                                        <Award size={15} style={{ color: '#cbd5e1', flexShrink: 0 }} />
+                                      ) : (
+                                        <ArrowUp size={15} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
+                                      )}
+                                    </div>
+                                  ) : null}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Trophy size={13} style={{ color: 'var(--color-warning)' }} />
+                      <span>{locale === 'fr' ? 'Meilleure option' : 'Best Option'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Award size={13} style={{ color: '#cbd5e1' }} />
+                      <span>{locale === 'fr' ? 'Égalité (meilleures options)' : 'Tie (Best Options)'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Award size={13} style={{ color: '#cbd5e1' }} />
-                  <span>{locale === 'fr' ? 'Égalité (meilleures options)' : 'Tie (Best Options)'}</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Comparison Charts Grid */}
-            <div className="grid grid-cols-2" style={{ gap: '1.5rem', width: '100%' }}>
-              {/* Chart 1: Interest Rate */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.rateTerm}</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartRateData} options={chartRateOptions} />
-                </div>
-              </div>
+                {/* Comparison Charts Grid */}
+                <div className="grid grid-cols-2" style={{ gap: '1.5rem', width: '100%' }}>
+                  {/* Chart 1: Interest Rate */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.rateTerm}</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartRateData} options={chartRateOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 2: Regular Payment */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-                  {renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}
-                  {renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment
-                </h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartPaymentData} options={chartPaymentOptions} />
-                </div>
-              </div>
+                  {/* Chart 2: Regular Payment */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                      {renewalFrequency.includes('accelerated') ? 'Acc. ' : ''}
+                      {renewalFrequency.replace('accelerated_', '').replace('regular_', '').replace('_', '-').replace(/\b\w/g, c => c.toUpperCase())} Payment
+                    </h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartPaymentData} options={chartPaymentOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 3: Percent of Income */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.percentOfIncome} ({incomeTypeLabel})</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartPctIncomeData} options={chartPctIncomeOptions} />
-                </div>
-              </div>
+                  {/* Chart 3: Percent of Income */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.percentOfIncome} ({incomeTypeLabel})</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartPctIncomeData} options={chartPctIncomeOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 4: Interest Paid */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.interestPaidInTerm}</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartInterestData} options={chartInterestOptions} />
-                </div>
-              </div>
+                  {/* Chart 4: Interest Paid */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.interestPaidInTerm}</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartInterestData} options={chartInterestOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 5: Principal Paid */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.principalPaidInTerm}</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartPrincipalData} options={chartPrincipalOptions} />
-                </div>
-              </div>
+                  {/* Chart 5: Principal Paid */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.principalPaidInTerm}</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartPrincipalData} options={chartPrincipalOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 6: Ending Balance */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.endingBalance}</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartEndingBalanceData} options={chartEndingBalanceOptions} />
-                </div>
-              </div>
+                  {/* Chart 6: Ending Balance */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.endingBalance}</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartEndingBalanceData} options={chartEndingBalanceOptions} />
+                    </div>
+                  </div>
 
-              {/* Chart 7: Amortization at Term End */}
-              <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.amortAtTermEnd}</h3>
-                <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
-                  <Bar data={chartAmortAtEndData} options={chartAmortAtEndOptions} />
+                  {/* Chart 7: Amortization at Term End */}
+                  <div className="card" style={{ height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{t.rate.amortAtTermEnd}</h3>
+                    <div style={{ flexGrow: 1, position: 'relative', height: '170px' }}>
+                      <Bar data={chartAmortAtEndData} options={chartAmortAtEndOptions} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       ) : (
