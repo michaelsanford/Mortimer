@@ -222,7 +222,7 @@ export async function saveRenoList(list: any, pin?: string): Promise<void> {
       const encrypted = await encryptData(dataStr, pin);
       localStorage.setItem(KEYS.RENO_LIST, JSON.stringify(encrypted));
     } catch (err) {
-      console.error('Failed to encrypt reno list', err);
+      console.error('Failed to encrypt renovation list', err);
     }
   } else {
     localStorage.setItem(KEYS.RENO_LIST, dataStr);
@@ -358,7 +358,7 @@ export function clearAllAppData(): void {
     navigator.serviceWorker.getRegistrations()
       .then((registrations) => {
         for (const registration of registrations) {
-          registration.unregister();
+          registration.unregister().then(console.info);
         }
       })
       .catch((err) => console.error('[SW] Unregister failed:', err));
@@ -369,7 +369,7 @@ export function clearAllAppData(): void {
     caches.keys()
       .then((names) => {
         for (const name of names) {
-          caches.delete(name);
+          caches.delete(name).then(console.info);
         }
       })
       .catch((err) => console.error('[Cache] Clear failed:', err));

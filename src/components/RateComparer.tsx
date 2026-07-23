@@ -331,7 +331,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
     if (gross <= taxFree) return gross;
     
     const taxable = gross - taxFree;
-    let tax = 0;
+    let tax: number;
     if (taxable <= 40000) {
       tax = taxable * 0.20;
     } else if (taxable <= 85000) {
@@ -953,7 +953,7 @@ export const RateComparer: React.FC<RateComparerProps> = ({ profile, onSaveProfi
                       <button 
                         type="button" 
                         data-testid="toggle-visibility-btn"
-                        onClick={() => handleUpdateOffer(offer.id, 'visible', offer.visible === false ? true : false)}
+                        onClick={() => handleUpdateOffer(offer.id, 'visible', offer.visible === false)}
                         style={{ 
                           background: 'transparent', 
                           border: 'none', 
