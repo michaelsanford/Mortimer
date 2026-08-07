@@ -76,11 +76,17 @@ jobs:
           name: sbom-cyclonedx
           path: bom.json
 
-      - name: Scan SBOM for vulnerabilities
+      - name: Scan dependencies for vulnerabilities
         id: scan
         uses: anchore/scan-action@v7
         with:
-          sbom: bom.json
+          # Scan the working tree, not bom.json. Grype derives each SARIF
+          # result's physicalLocation.artifactLocation from the scan source's
+          # file paths, and a cyclonedx-npm SBOM carries no path evidence, so
+          # SBOM-sourced results upload with empty locations and code scanning
+          # rejects them ("expected artifact location"). The SBOM is still
+          # generated and published as a build artifact above.
+          path: .
           fail-build: true          # gate the pipeline on findings
           severity-cutoff: high     # fail on high/critical (tunable)
           output-format: sarif
