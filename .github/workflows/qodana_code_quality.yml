@@ -13,6 +13,10 @@ on:
 
 jobs:
   qodana:
+    # Dependabot PRs run against the Dependabot secret store, so repository
+    # Actions secrets (QODANA_TOKEN_*) are unavailable and the scan fails on
+    # its license check. Dependency bumps don't change source, so skip them.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
