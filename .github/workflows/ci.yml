@@ -80,10 +80,21 @@ jobs:
         id: scan
         uses: anchore/scan-action@v7
         with:
+          # Scan the SBOM, not the working tree. A directory scan reaches into
+          # node_modules and does binary analysis, which reports CVEs in the Go
+          # stdlib compiled into vendored binaries (e.g. the native tsc in
+          # @typescript/typescript-linux-x64) -- findings we cannot act on --
+          # while seeing only a fraction of the npm graph. The SBOM gives the
+          # real dependency tree. It carries no file paths, so the SARIF needs
+          # locations injected before upload; see the next step.
           sbom: bom.json
           fail-build: true          # gate the pipeline on findings
           severity-cutoff: high     # fail on high/critical (tunable)
           output-format: sarif
+
+      - name: Give SARIF results an artifact location
+        if: always()                # the scan fails the build on findings
+        run: node scripts/normalize-sarif-locations.mjs "${{ steps.scan.outputs.sarif }}"
 
       - name: Upload scan results to code scanning
         if: always()                # upload even when the scan fails the build
