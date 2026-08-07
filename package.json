@@ -20,6 +20,13 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.8"
   },
+  "_overrides_comment": "All four reach us only through @cyclonedx/cyclonedx-npm (dev-only, never bundled). Each pin is the minimum patched release inside the existing major, so no consumer sees a breaking change. Drop an entry once the upstream chain ships the fix.",
+  "overrides": {
+    "brace-expansion": "^2.1.4",
+    "fast-uri": "^3.1.5",
+    "ip-address": "^10.3.1",
+    "js-yaml": "^4.3.1"
+  },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^6.0.0",
     "@types/node": "^26.1.1",
