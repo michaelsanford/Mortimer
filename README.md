@@ -7,7 +7,6 @@
 
 [![CI](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-report-blue?logo=vitest&logoColor=white)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
-[![Qodana Scan](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/michaelsanford/Mortimer/actions/workflows/qodana_code_quality.yml)
 [![Security scan: Grype](https://img.shields.io/badge/security%20scan-Grype-8A2BE2)](https://github.com/michaelsanford/Mortimer/security/code-scanning)
 [![SBOM: CycloneDX](https://img.shields.io/badge/SBOM-CycloneDX-blue)](https://github.com/michaelsanford/Mortimer/actions/workflows/ci.yml)
 [![Linter: oxlint](https://img.shields.io/badge/linter-oxlint-blue)](https://github.com/oxc-project/oxc)
