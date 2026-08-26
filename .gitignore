@@ -32,9 +32,6 @@ coverage
 *.sln
 *.sw?
 
-# Qodana reports
-*_qodana.sarif.json
-
 # Save files
 mortimer-backup-*.json
 CLAUDE.md
