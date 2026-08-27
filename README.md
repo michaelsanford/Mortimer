@@ -110,3 +110,26 @@ If the **Setup Pages** step fails with `HttpError: Not Found`, ensure the reposi
 ## License
 
 Released under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Security scanning
+
+[Snyk](https://snyk.io) runs on every push and pull request, and weekly on a schedule,
+via [`.github/workflows/snyk.yml`](.github/workflows/snyk.yml):
+
+- **Snyk Open Source** — known vulnerabilities in resolved dependencies
+- **Snyk Code** — static analysis of first-party source
+
+Findings are published to this repository's **Security → Code scanning** tab. The build
+fails on anything at `high` severity or above.
+
+Pushes to the default branch also snapshot the dependency tree to snyk.io, so a
+CVE disclosed later raises an alert without anything here changing.
+
+Run the same scans locally before pushing:
+
+```powershell
+./scripts/Invoke-SnykScan.ps1                          # exactly what CI runs
+./scripts/Invoke-SnykScan.ps1 -SeverityThreshold low   # everything, including noise
+```
+
+Requires the Snyk CLI (`winget install Snyk.Snyk`) and a one-time `snyk auth`.
