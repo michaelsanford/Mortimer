@@ -14,30 +14,32 @@
     "sbom": "cyclonedx-npm --output-format JSON --output-file bom.json"
   },
   "dependencies": {
-    "chart.js": "^4.5.1",
-    "lucide-react": "^1.31.0",
-    "react": "^19.2.8",
+    "chart.js": "^4.6.1",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.3.1"
   },
-  "_overrides_comment": "All four reach us only through @cyclonedx/cyclonedx-npm (dev-only, never bundled). Each pin is the minimum patched release inside the existing major, so no consumer sees a breaking change. Drop an entry once the upstream chain ships the fix.",
+  "_overrides_comment": "All dev-only transitive pins (never bundled). Most reach us through @cyclonedx/cyclonedx-npm; source-map-js (GHSA-68fv-2mgg-jv7q) comes via @babel/core and postcss; http-cache-semantics (GHSA-ch52-4w7c-c8xp) comes via make-fetch-happen -> node-gyp -> libxmljs2. Each pin is the minimum patched release inside the existing major, so no consumer sees a breaking change. Drop an entry once the upstream chain ships the fix.",
   "overrides": {
     "brace-expansion": "^2.1.4",
     "fast-uri": "^3.1.7",
-    "ip-address": "^10.3.1",
-    "js-yaml": "^4.3.2"
+    "http-cache-semantics": "^4.3.0",
+    "ip-address": "^10.7.4",
+    "js-yaml": "^4.3.2",
+    "source-map-js": "^1.2.2"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^6.0.1",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
-    "@vitest/coverage-v8": "^5.0.0",
-    "happy-dom": "^20.11.2",
-    "oxlint": "^1.78.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "happy-dom": "^21.0.4",
+    "oxlint": "^1.89.0",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1",
-    "vitest": "^5.0.0"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }
